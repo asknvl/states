@@ -10,7 +10,8 @@ namespace states.Mongo.Documents.Actions
     public abstract class Action
     {
         [BsonElement("id")]
-        public string Id { get; set; }
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
+        public Guid Id { get; set; }
 
         [BsonRepresentation(BsonType.String)]
         [BsonElement("type")]

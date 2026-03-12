@@ -12,10 +12,12 @@ namespace states.Mongo.Documents.Edges
         public string Id { get; set; }
 
         [BsonElement("source")]
-        public string Source { get; set; }
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
+        public Guid Source { get; set; }
 
         [BsonElement("target")]
-        public string Target { get; set; }
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
+        public Guid Target { get; set; }
 
         [BsonElement("type")]
         [BsonRepresentation(BsonType.String)]

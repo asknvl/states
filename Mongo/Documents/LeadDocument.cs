@@ -51,7 +51,7 @@ namespace states.Mongo.Documents
         public DateTime? LeftAt { get; set; }
 
         [BsonElement("exitEdgeId")]        
-        public string? ExitEdgeId { get; set; }
+        public Guid? ExitEdgeId { get; set; }
 
         [BsonElement("actions")]        
         public List<ActionStatusEntry> ActionsLog { get; set; } = [];
@@ -59,7 +59,7 @@ namespace states.Mongo.Documents
 
     public class ActionStatusEntry
     {
-        public required string Id { get; set; }
+        public Guid ActionId { get; set; }
 
         [BsonElement("type")]
         [BsonRepresentation(BsonType.String)]
@@ -70,7 +70,7 @@ namespace states.Mongo.Documents
         public ActionStatus Status { get; set; }
 
         [BsonElement("timeStamp")]
-        public DateTime Timestamp { get; set; }
+        public DateTime StatusChangedAt { get; set; }
     }
 
     public enum ActionStatus
