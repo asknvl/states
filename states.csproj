@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Mongo\Repositories\" />
+    <Folder Include="Dtos\" />
+    <Folder Include="Services\FunnelService\Runtime\" />
+    <Folder Include="Services\FunnelService\Configuration\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver" Version="3.7.0" />
+  </ItemGroup>
+
+</Project>
