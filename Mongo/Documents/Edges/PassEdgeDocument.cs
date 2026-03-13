@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 namespace states.Mongo.Documents.Edges
 {
     [BsonDiscriminator(nameof(EdgeType.Pass))]
-    public sealed record PassEdge : Edge
+    public sealed record PassEdgeDocument : EdgeDocument
     {
     }
 }

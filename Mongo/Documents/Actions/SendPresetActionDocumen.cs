@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Actions;
 
-public sealed class SendPresetActionDocument : NodeAction
+public sealed class SendPresetActionDocument : NodeActionDocument
 {
     [BsonRepresentation(BsonType.String)]
     [BsonElement("presetId")]

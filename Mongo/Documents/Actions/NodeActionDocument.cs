@@ -5,8 +5,8 @@ using states.Services.FunnelService.Application;
 namespace states.Mongo.Documents.Actions;
 
 [BsonDiscriminator(RootClass = true)]
-[BsonKnownTypes(typeof(ManageTagAction))]
-[BsonKnownTypes(typeof(SendPresetAction))]
+[BsonKnownTypes(typeof(ManageTagActionDocument))]
+[BsonKnownTypes(typeof(SendPresetActionDocument))]
 public abstract class NodeActionDocument
 {
     [BsonElement("id")]

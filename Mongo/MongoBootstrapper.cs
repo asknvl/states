@@ -35,12 +35,12 @@ namespace states.Mongo
         #region indexes
         private async Task CreateFunnelsIndexes(CancellationToken ct)
         {
-            var messages = database.GetCollection<Funnel>("preset_messages");
+            var messages = database.GetCollection<FunnelDocument>("preset_messages");
 
-            var indexes = new List<CreateIndexModel<Funnel>>
+            var indexes = new List<CreateIndexModel<FunnelDocument>>
             {
-                new CreateIndexModel<Funnel>(
-                    Builders<Funnel>.IndexKeys
+                new CreateIndexModel<FunnelDocument>(
+                    Builders<FunnelDocument>.IndexKeys
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.BotId)
                         .Descending(x => x.Id))

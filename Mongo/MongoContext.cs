@@ -7,13 +7,13 @@ namespace states.Mongo
 {
     public sealed class MongoContext
     {
-        public IMongoCollection<Funnel> Funnels { get; }        
+        public IMongoCollection<FunnelDocument> Funnels { get; }        
         public IMongoCollection<FunnelLeadState> LeadStates {  get; }
 
 
         public MongoContext(IMongoDatabase database)
         {
-            Funnels = database.GetCollection<Funnel>("funnels");
+            Funnels = database.GetCollection<FunnelDocument>("funnels");
             LeadStates = database.GetCollection<FunnelLeadState>("lead_states");
         }
     }

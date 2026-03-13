@@ -1,13 +1,21 @@
-﻿using DTO = states.Dtos;
-using DOC = states.Mongo.Documents;
+﻿using states.Dtos.Actions;
+using states.Dtos.Edges;
+using states.Dtos.Funnels;
+using states.Dtos.Nodes;
+using states.Mongo.Documents;
+using states.Mongo.Documents.Actions;
+using states.Mongo.Documents.Edges;
+using states.Mongo.Documents.Nodes;
+using System.Reflection.Metadata;
 
 namespace states.Mongo.Mappers;
 
 public static class FunnelDocumentMapper
 {
-    public static DOC.Funnel ToDocument(this DTO.Funnels.Funnel dto)
+    #region funnel
+    public static FunnelDocument ToDocument(this Funnel dto)
     {
-        return new DOC.Funnel
+        return new FunnelDocument
         {
             Id = dto.Id,
             TenantId = dto.TenantId,
@@ -20,9 +28,9 @@ public static class FunnelDocumentMapper
         };
     }
 
-    public static DTO.Funnels.Funnel ToDto(this DOC.Funnel document)
+    public static Funnel ToDto(this FunnelDocument document)
     {
-        return new DTO.Funnels.Funnel(
+        return new Funnel(
             Id: document.Id,
             TenantId: document.TenantId,
             SpaceId: document.SpaceId,
@@ -33,27 +41,31 @@ public static class FunnelDocumentMapper
             Flows: document.Flows.Select(ToDto).ToList()
         );
     }
+    #endregion
 
-    private static DOC.Tag ToDocument(DTO.Funnels.Tag dto)
+    #region tag
+    private static TagDocument ToDocument(Tag dto)
     {
-        return new DOC.Tag
+        return new TagDocument
         {
             Id = dto.Id,
             Name = dto.Name
         };
     }
 
-    private static DTO.Funnels.Tag ToDto(DOC.Tag document)
+    private static Tag ToDto(TagDocument document)
     {
-        return new DTO.Funnels.Tag(
+        return new Tag(
             Id: document.Id,
             Name: document.Name
         );
     }
+    #endregion
 
-    private static DOC.Flow ToDocument(DTO.Funnels.Flow dto)
+    #region flow
+    private static FlowDocument ToDocument(Flow dto)
     {
-        return new DOC.Flow
+        return new FlowDocument
         {
             Id = dto.Id,
             Name = dto.Name,
@@ -62,19 +74,21 @@ public static class FunnelDocumentMapper
         };
     }
 
-    private static DTO.Funnels.Flow ToDto(DOC.Flow document)
+    private static Flow ToDto(FlowDocument document)
     {
-        return new DTO.Funnels.Flow(
+        return new Flow(
             Id: document.Id,
             Name: document.Name,
             Nodes: document.Nodes.Select(ToDto).ToList(),
             Edges: document.Edges.Select(ToDto).ToList()
         );
     }
+    #endregion flow
 
-    private static DOC.Nodes.Node ToDocument(DTO.Nodes.Node dto)
+    #region node
+    private static NodeDocument ToDocument(Node dto)
     {
-        return new DOC.Nodes.Node
+        return new NodeDocument
         {
             Id = dto.Id,
             Type = dto.Type,
@@ -92,7 +106,9 @@ public static class FunnelDocumentMapper
             Data: ToDto(document.Data)
         );
     }
+    #endregion
 
+    #region position
     private static PositionDocument ToDocument(Position dto)
     {
         return new PositionDocument
@@ -109,7 +125,9 @@ public static class FunnelDocumentMapper
             Y: document.Y
         );
     }
+    #endregion
 
+    #region nodedata
     private static NodeDataDocument ToDocument(NodeData dto)
     {
         return dto switch
@@ -133,7 +151,7 @@ public static class FunnelDocumentMapper
                 ReplacementTagId = x.ReplacementTagId
             },
 
-            _ => throw new NotSupportedException($"Unsupported node data type: {dto.GetType().Name}")
+            _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
         };
     }
 
@@ -163,7 +181,9 @@ public static class FunnelDocumentMapper
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")
         };
     }
+    #endregion
 
+    #region edge
     private static EdgeDocument ToDocument(Edge dto)
     {
         return dto switch
@@ -183,7 +203,7 @@ public static class FunnelDocumentMapper
                 Percentage = x.Percentage
             },
 
-            _ => throw new NotSupportedException($"Unsupported edge type: {dto.GetType().Name}")
+            _ => throw new NotSupportedException($"Unsupported edge dto type: {dto.GetType().Name}")
         };
     }
 
@@ -207,13 +227,14 @@ public static class FunnelDocumentMapper
             _ => throw new NotSupportedException($"Unsupported edge document type: {document.GetType().Name}")
         };
     }
+    #endregion
 
-    private static NodeActionDocument ToDocument(SendPresetAction dto)
+    #region nodeaction
+    private static SendPresetActionDocument ToDocument(SendPresetAction dto)
     {
         return new SendPresetActionDocument
         {
             Id = dto.Id,
-            Type = dto.Type,
             PresetId = dto.PresetId,
             Delay = dto.Delay,
             NeedPin = dto.NeedPin
@@ -229,4 +250,5 @@ public static class FunnelDocumentMapper
             NeedPin: document.NeedPin
         );
     }
+    #endregion
 }

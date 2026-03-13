@@ -5,7 +5,7 @@ using states.Mongo.Documents.Nodes;
 
 namespace states.Mongo.Documents
 {
-    public class Funnel
+    public class FunnelDocument
     {
         [BsonId]
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
@@ -31,13 +31,13 @@ namespace states.Mongo.Documents
         public string? Description { get; init; }
 
         [BsonElement("tags")]
-        public List<Tag> Tags { get; init; } = [];
+        public List<TagDocument> Tags { get; init; } = [];
 
         [BsonElement("flows")]
-        public List<Flow> Flows { get; init; } = [];
+        public List<FlowDocument> Flows { get; init; } = [];
     }
 
-    public class Flow
+    public class FlowDocument
     {
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid Id { get; set; }
@@ -46,13 +46,13 @@ namespace states.Mongo.Documents
         public required string Name { get; set; }
 
         [BsonElement("nodes")]
-        public List<Node> Nodes { get; set; } = [];
+        public List<NodeDocument> Nodes { get; set; } = [];
 
         [BsonElement("edges")]
-        public List<Edge> Edges { get; set; } = [];
+        public List<EdgeDocument> Edges { get; set; } = [];
     }
 
-    public sealed record Tag
+    public sealed record TagDocument
     {
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("id")]

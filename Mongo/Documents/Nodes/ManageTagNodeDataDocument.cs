@@ -6,7 +6,7 @@ namespace states.Mongo.Documents.Nodes
 {
 
     [BsonDiscriminator(nameof(NodeType.ManageTag))]
-    public sealed record ManageTagNodeData : NodeData
+    public sealed record ManageTagNodeDataDocument : NodeDataDocument
     {
         [BsonRepresentation(BsonType.String)]
         [BsonElement("operation")]

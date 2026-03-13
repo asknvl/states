@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using states.Dtos.Funnels;
 using states.Dtos.Funnels.Examples;
+using states.Mongo.Mappers;
 using states.Services.FunnelService.Application;
 using Swashbuckle.AspNetCore.Annotations;
 using Swashbuckle.AspNetCore.Filters;
@@ -33,7 +34,10 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]        
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create([FromBody] Funnel dto, CancellationToken ct)
-        {            
+        {
+
+            var doc = dto.ToDocument();
+
             return Ok(dto);
         }
 

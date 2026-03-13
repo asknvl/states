@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 namespace states.Mongo.Documents.Nodes
 {
     [BsonDiscriminator(nameof(NodeType.Start))]
-    public sealed record StartNodeData : NodeData
+    public sealed record StartNodeDataDocument : NodeDataDocument
     {
     }
 }

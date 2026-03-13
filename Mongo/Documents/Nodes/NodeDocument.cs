@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Nodes
 {
-    public sealed record Node
+    public sealed record NodeDocument
     {
         [BsonRepresentation(BsonType.String)]
         [BsonElement("id")]
@@ -14,13 +14,13 @@ namespace states.Mongo.Documents.Nodes
         public string Type { get; init; } = default!;
 
         [BsonElement("position")]
-        public Position Position { get; init; } = default!;
+        public PositionDocument Position { get; init; } = default!;
 
         [BsonElement("data")]
-        public NodeData Data { get; init; } = default!;
+        public NodeDataDocument Data { get; init; } = default!;
     }
 
-    public sealed record Position
+    public sealed record PositionDocument
     {
         [BsonElement("x")]
         public int X { get; init; }
@@ -30,10 +30,10 @@ namespace states.Mongo.Documents.Nodes
     }
 
     [BsonDiscriminator("nodeData")]
-    [BsonKnownTypes(typeof(StartNodeData),
-        typeof(SendPresetNodeData),
-        typeof(ManageTagNodeData))]
-    public abstract record NodeData
+    [BsonKnownTypes(typeof(StartNodeDataDocument),
+        typeof(SendPresetNodeDataDocument),
+        typeof(ManageTagNodeDataDocument))]
+    public abstract record NodeDataDocument
     {
         [BsonElement("label")]
         public string Label { get; init; } = default!;

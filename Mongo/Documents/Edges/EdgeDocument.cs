@@ -5,8 +5,8 @@ using states.Services.FunnelService.Application;
 namespace states.Mongo.Documents.Edges
 {
     [BsonDiscriminator("edge")]
-    [BsonKnownTypes(typeof(PassEdge), typeof(SplitEdge))]
-    public abstract record Edge
+    [BsonKnownTypes(typeof(PassEdgeDocument), typeof(SplitEdgeDocument))]
+    public abstract record EdgeDocument
     {
         [BsonRepresentation(BsonType.String)]
         [BsonElement("id")]

@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Actions;
 
-public sealed class ManageTagAction : NodeAction
+public sealed class ManageTagActionDocument : NodeActionDocument
 {
     [BsonRepresentation(BsonType.String)]
     [BsonElement("operation")]
@@ -18,7 +18,7 @@ public sealed class ManageTagAction : NodeAction
     [BsonElement("replacementTagId")]
     public Guid? ReplacementTagId { get; set; }
 
-    public ManageTagAction() : base(ActionType.ManageTag)
+    public ManageTagActionDocument() : base(ActionType.ManageTag)
     {
     }
 }
