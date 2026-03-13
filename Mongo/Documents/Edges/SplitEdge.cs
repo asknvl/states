@@ -3,13 +3,10 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Edges
 {
-    public class SplitEdge : Edge
+    [BsonDiscriminator(nameof(EdgeType.Split))]
+    public sealed record SplitEdge : Edge
     {
-        [BsonElement("percent")]
-        public int Percent { get; set; }
-
-        public SplitEdge() : base(EdgeType.Split)
-        {
-        }
+        [BsonElement("percentage")]
+        public int Percentage { get; init; }
     }
 }

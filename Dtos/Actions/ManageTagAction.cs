@@ -4,9 +4,13 @@ namespace states.Dtos.Actions
 {
     public sealed record ManageTagAction(
         Guid Id,
-        TimeSpan Delay
-        ) : Action(
-            Id: Id,
-            Type: ActionType.ManageTag,
-            Delay: Delay);
+        ActionType Type,
+        TimeSpan Delay,
+        TagOperation Operation,
+        Guid TagId,
+        Guid? ReplacementTagId
+    ) : NodeAction(
+        Id: Id,        
+        Delay: Delay
+    );
 }

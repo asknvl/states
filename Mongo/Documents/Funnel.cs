@@ -2,39 +2,39 @@
 using MongoDB.Bson.Serialization.Attributes;
 using states.Mongo.Documents.Edges;
 using states.Mongo.Documents.Nodes;
-using states.Services.FunnelService;
 
 namespace states.Mongo.Documents
 {
-    public class FunnelDocument
+    public class Funnel
     {
         [BsonId]
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid Id { get; set; }
+        [BsonElement("id")]
+        public Guid Id { get; init; }
 
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("tenantId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid TenantId { get; set; }
+        public Guid TenantId { get; init; }
 
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("spaceId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid SpaceId { get; set; }
+        public Guid SpaceId { get; init; }
 
-        [BsonElement("botId")]
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid BotId { get; set; }
+        [BsonElement("botId")]
+        public Guid BotId { get; init; }
 
         [BsonElement("name")]
-        public required string Name { get; set; }
+        public string Name { get; init; } = default!;
 
         [BsonElement("description")]
-        public string? Description { get; set; }
+        public string? Description { get; init; }
 
         [BsonElement("tags")]
-        public List<Tag> Tags { get; set; } = [];
+        public List<Tag> Tags { get; init; } = [];
 
         [BsonElement("flows")]
-        public List<Flow> Flows { get; set; } = [];
+        public List<Flow> Flows { get; init; } = [];
     }
 
     public class Flow
@@ -50,16 +50,16 @@ namespace states.Mongo.Documents
 
         [BsonElement("edges")]
         public List<Edge> Edges { get; set; } = [];
-    }  
+    }
 
-    public class Tag
+    public sealed record Tag
     {
-        [BsonId]
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid Id { get; set; }
+        [BsonElement("id")]
+        public Guid Id { get; init; }
 
         [BsonElement("name")]
-        public required string Name { get; set; }
+        public string Name { get; init; } = default!;
     }
-    
+
 }

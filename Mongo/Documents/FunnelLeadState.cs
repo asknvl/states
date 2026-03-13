@@ -4,7 +4,7 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents
 {
-    public class LeadDocument
+    public class FunnelLeadState
     {
         [BsonId]
         [BsonGuidRepresentation(GuidRepresentation.Standard)]

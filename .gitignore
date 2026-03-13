@@ -1,3 +1,5 @@
 ﻿.vs
 obj/Debug
 obj
+bin
+Properties

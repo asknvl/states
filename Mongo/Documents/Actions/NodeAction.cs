@@ -1,0 +1,24 @@
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using states.Services.FunnelService.Application;
+
+namespace states.Mongo.Documents.Actions;
+
+[BsonDiscriminator(RootClass = true)]
+[BsonKnownTypes(typeof(ManageTagAction))]
+[BsonKnownTypes(typeof(SendPresetAction))]
+public abstract class NodeActionDocument
+{
+    [BsonElement("id")]
+    [BsonRepresentation(BsonType.String)]
+    public Guid Id { get; set; }
+
+    [BsonElement("type")]
+    [BsonRepresentation(BsonType.String)]
+    public ActionType Type { get; set; }
+
+    protected NodeActionDocument(ActionType type)
+    {
+        Type = type;
+    }
+}

@@ -1,10 +1,12 @@
-﻿namespace states.Services.FunnelService.Application
-{
+﻿using System.Text.Json.Serialization;
+
+namespace states.Services.FunnelService.Application
+{    
     public enum NodeType
     {
         Start,
-        Tag,
-        Message,
+        ManageTag,
+        SendPreset,
         ChangeFlow
     }
 }

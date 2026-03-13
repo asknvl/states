@@ -1,11 +1,10 @@
+using MongoDB.Bson.Serialization.Attributes;
 using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Edges
 {
-    public class PassEdge : Edge
+    [BsonDiscriminator(nameof(EdgeType.Pass))]
+    public sealed record PassEdge : Edge
     {
-        public PassEdge() : base(EdgeType.Pass)
-        {
-        }
     }
 }

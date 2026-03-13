@@ -4,45 +4,39 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Nodes
 {
-    [BsonDiscriminator(RootClass = true)]
-    [BsonKnownTypes(typeof(StartNode))]
-    [BsonKnownTypes(typeof(SendMessageNode))]
-    public abstract class Node
-    {        
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid Id { get; set; }
+    public sealed record Node
+    {
+        [BsonRepresentation(BsonType.String)]
+        [BsonElement("id")]
+        public Guid Id { get; init; }
 
         [BsonElement("type")]
-        [BsonRepresentation(BsonType.String)]
-        public NodeType Type { get; set; }
-        
+        public string Type { get; init; } = default!;
+
         [BsonElement("position")]
-        public Position Position { get; set; }
+        public Position Position { get; init; } = default!;
 
         [BsonElement("data")]
-        public NodeData Data { get; set; }
-
-        public Node(NodeType type, NodeData data)
-        {
-            Type = type;
-            Data = data;
-        }
+        public NodeData Data { get; init; } = default!;
     }
 
-    public class Position
+    public sealed record Position
     {
         [BsonElement("x")]
-        public int X { get; set; }
+        public int X { get; init; }
+
         [BsonElement("y")]
-        public int Y { get; set; }
+        public int Y { get; init; }
     }
 
-
-    [BsonDiscriminator(RootClass = true)]
-    [BsonKnownTypes(typeof(StartNodeData))]
-    public abstract class NodeData
+    [BsonDiscriminator("nodeData")]
+    [BsonKnownTypes(typeof(StartNodeData),
+        typeof(SendPresetNodeData),
+        typeof(ManageTagNodeData))]
+    public abstract record NodeData
     {
-        [BsonElement("data")]
-        public List<Action> Actions { get; set; } = new();
+        [BsonElement("label")]
+        public string Label { get; init; } = default!;
     }
+
 }

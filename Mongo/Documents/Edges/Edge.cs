@@ -4,28 +4,21 @@ using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Edges
 {
-    [BsonDiscriminator(RootClass = true)]
-    [BsonKnownTypes(typeof(SplitEdge), typeof(AiRouterEdge), typeof(PassEdge))]
-    public abstract class Edge
+    [BsonDiscriminator("edge")]
+    [BsonKnownTypes(typeof(PassEdge), typeof(SplitEdge))]
+    public abstract record Edge
     {
-        [BsonElement("id")]
-        public string Id { get; set; }
-
-        [BsonElement("source")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid Source { get; set; }
-
-        [BsonElement("target")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        public Guid Target { get; set; }
-
-        [BsonElement("type")]
         [BsonRepresentation(BsonType.String)]
-        public EdgeType Type { get; set; }
+        [BsonElement("id")]
+        public Guid Id { get; init; }
 
-        protected Edge(EdgeType type)
-        {
-            Type = type;
-        }
+        [BsonRepresentation(BsonType.String)]
+        [BsonElement("source")]
+        public Guid Source { get; init; }
+
+        [BsonRepresentation(BsonType.String)]
+        [BsonElement("target")]
+        public Guid Target { get; init; }
     }
+
 }
