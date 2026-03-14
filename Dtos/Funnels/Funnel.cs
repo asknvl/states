@@ -10,7 +10,8 @@ namespace states.Dtos.Funnels
             string Name,
             string? Description,
             List<Tag> Tags,
-            List<Flow> Flows
+            List<Flow> Flows,
+            bool? IsActive
         );
     
 }

@@ -11,9 +11,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Mongo\Repositories\" />
         <Folder Include="Services\FunnelService\Runtime\" />
-        <Folder Include="Services\FunnelService\Configuration\" />
     </ItemGroup>
 
     <ItemGroup>

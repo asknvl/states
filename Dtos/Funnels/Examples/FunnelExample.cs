@@ -122,7 +122,8 @@ namespace states.Dtos.Funnels.Examples
                     Name: "Тестовая воронка",
                     Description: "Описание тествой воронки",
                     Tags: tags,
-                    Flows: flows                   
+                    Flows: flows,
+                    IsActive: null
                 );
 
             yield return new SwaggerExample<object>

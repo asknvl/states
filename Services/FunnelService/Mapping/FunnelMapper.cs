@@ -38,7 +38,8 @@ public static class FunnelDocumentMapper
             Name: document.Name,
             Description: document.Description,
             Tags: document.Tags.Select(ToDto).ToList(),
-            Flows: document.Flows.Select(ToDto).ToList()
+            Flows: document.Flows.Select(ToDto).ToList(),
+            IsActive: document.IsActive
         );
     }
     #endregion

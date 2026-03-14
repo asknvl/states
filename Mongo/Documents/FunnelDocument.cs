@@ -35,6 +35,9 @@ namespace states.Mongo.Documents
 
         [BsonElement("flows")]
         public List<FlowDocument> Flows { get; init; } = [];
+
+        [BsonElement("isActive")]
+        public bool IsActive { get; set; } = true;
     }
 
     public class FlowDocument
