@@ -6,7 +6,7 @@ namespace states.Mongo.Documents.Nodes
 {
     public sealed record NodeDocument
     {
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("id")]
         public Guid Id { get; init; }
 

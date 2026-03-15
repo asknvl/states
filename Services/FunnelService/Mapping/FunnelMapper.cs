@@ -204,6 +204,14 @@ public static class FunnelDocumentMapper
                 Percentage = x.Percentage
             },
 
+            AiRouterEdge x => new AiRouterEdgeDocument
+            {
+                Id = x.Id,
+                Source = x.Source,
+                Target = x.Target,
+                Thesis = x.Thesis
+            },
+
             _ => throw new NotSupportedException($"Unsupported edge dto type: {dto.GetType().Name}")
         };
     }
@@ -223,6 +231,13 @@ public static class FunnelDocumentMapper
                 Source: x.Source,
                 Target: x.Target,
                 Percentage: x.Percentage
+            ),
+
+            AiRouterEdgeDocument x => new AiRouterEdge(
+                Id: x.Id,
+                Source: x.Source,
+                Target: x.Target,
+                Thesis: x.Thesis
             ),
 
             _ => throw new NotSupportedException($"Unsupported edge document type: {document.GetType().Name}")

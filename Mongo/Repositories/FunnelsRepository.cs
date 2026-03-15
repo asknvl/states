@@ -1,4 +1,6 @@
-﻿using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using states.Mongo.Documents;
 
@@ -82,7 +84,7 @@ namespace states.Mongo.Repositories
             return tags;
         }
 
-        public async Task AddTag(Guid funnelId, TagDocument tag, CancellationToken ct)
+        public async Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, TagDocument tag, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
@@ -91,13 +93,17 @@ namespace states.Mongo.Repositories
                 Builders<FunnelDocument>.Filter.Not(
                     Builders<FunnelDocument>.Filter.ElemMatch(x => x.Tags, t => t.Name == tag.Name))
             );
-
             var update = Builders<FunnelDocument>.Update.Push(x => x.Tags, tag);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Tags)
+            };
 
-            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
 
-            if (result.ModifiedCount == 1)
-                return;
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Tags;
 
             var funnel = await collection
                 .Find(x => x.Id == funnelId)
@@ -106,36 +112,39 @@ namespace states.Mongo.Repositories
 
             if (funnel is null)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
-
             if (funnel.Tags.Any(t => t.Id == tag.Id))
                 throw new InvalidOperationException($"Tag with id '{tag.Id}' already exists in funnel '{funnelId}'.");
-
             if (funnel.Tags.Any(t => t.Name == tag.Name))
                 throw new InvalidOperationException($"Tag with name '{tag.Name}' already exists in funnel '{funnelId}'.");
+
+            throw new InvalidOperationException($"Failed to add tag to funnel '{funnelId}'.");
         }
 
-        public async Task RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
+        public async Task<IReadOnlyList<TagDocument>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
                 Builders<FunnelDocument>.Filter.ElemMatch(x => x.Tags, t => t.Id == tagId)
             );
-
             var update = Builders<FunnelDocument>.Update.PullFilter(x => x.Tags, t => t.Id == tagId);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Tags)
+            };
 
-            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
 
-            if (result.ModifiedCount == 1)
-                return;
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Tags;
 
             var exists = await collection.Find(x => x.Id == funnelId).AnyAsync(ct);
             if (!exists)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
-
             throw new KeyNotFoundException($"Tag with id '{tagId}' was not found in funnel '{funnelId}'.");
         }
 
-        public async Task UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
+        public async Task<IReadOnlyList<TagDocument>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
@@ -143,13 +152,17 @@ namespace states.Mongo.Repositories
                 Builders<FunnelDocument>.Filter.Not(
                     Builders<FunnelDocument>.Filter.ElemMatch(x => x.Tags, t => t.Name == name && t.Id != tagId))
             );
-
             var update = Builders<FunnelDocument>.Update.Set(x => x.Tags.FirstMatchingElement().Name, name);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Tags)
+            };
 
-            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
 
-            if (result.ModifiedCount == 1)
-                return;
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Tags;
 
             var funnel = await collection
                 .Find(x => x.Id == funnelId)
@@ -158,12 +171,24 @@ namespace states.Mongo.Repositories
 
             if (funnel is null)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
-
             if (funnel.Tags.All(t => t.Id != tagId))
                 throw new KeyNotFoundException($"Tag with id '{tagId}' was not found in funnel '{funnelId}'.");
-
             if (funnel.Tags.Any(t => t.Name == name && t.Id != tagId))
                 throw new InvalidOperationException($"Tag with name '{name}' already exists in funnel '{funnelId}'.");
+
+            return funnel.Tags;
+        }
+
+        // In FunnelsRepository
+        public async Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+            var update = Builders<FunnelDocument>.Update.Set(x => x.IsActive, isActive);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
         }
         #endregion
     }

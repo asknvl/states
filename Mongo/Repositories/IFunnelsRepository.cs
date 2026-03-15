@@ -10,9 +10,11 @@ namespace states.Mongo.Repositories
         Task<FunnelDocument> Get(Guid funnelId);
 
         Task<IReadOnlyCollection<TagDocument>> GetTags(Guid funnelId, CancellationToken ct);
-        Task AddTag(Guid funnelId, TagDocument tag, CancellationToken ct);
-        Task RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
-        Task UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
+        Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, TagDocument tag, CancellationToken ct);
+        Task<IReadOnlyList<TagDocument>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
+        Task<IReadOnlyList<TagDocument>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
+
+        Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct);
 
     }
 }

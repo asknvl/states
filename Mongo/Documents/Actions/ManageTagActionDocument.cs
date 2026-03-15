@@ -10,11 +10,11 @@ public sealed class ManageTagActionDocument : NodeActionDocument
     [BsonElement("operation")]
     public TagOperation Operation { get; set; }
 
-    [BsonRepresentation(BsonType.String)]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     [BsonElement("tagId")]
     public Guid TagId { get; set; }
 
-    [BsonRepresentation(BsonType.String)]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     [BsonElement("replacementTagId")]
     public Guid? ReplacementTagId { get; set; }
 

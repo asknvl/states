@@ -12,11 +12,11 @@ namespace states.Mongo.Documents.Nodes
         [BsonElement("operation")]
         public TagOperation Operation { get; init; }
 
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("tagId")]
         public Guid TagId { get; init; }
 
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("replacementTagId")]
         public Guid? ReplacementTagId { get; init; }
     }

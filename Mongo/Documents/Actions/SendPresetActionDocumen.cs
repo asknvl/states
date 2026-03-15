@@ -6,7 +6,7 @@ namespace states.Mongo.Documents.Actions;
 
 public sealed class SendPresetActionDocument : NodeActionDocument
 {
-    [BsonRepresentation(BsonType.String)]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     [BsonElement("presetId")]
     public Guid PresetId { get; set; }
 

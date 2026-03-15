@@ -3,6 +3,8 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using states.Dtos.Funnels.Examples;
+using states.Mongo;
+using states.Mongo.Repositories;
 using states.Services.FunnelService.Application;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
@@ -76,6 +78,11 @@ namespace states
                 var config = sp.GetRequiredService<IConfiguration>();
                 return client.GetDatabase(config["Mongo:Database"]);
             });
+
+            builder.Services.AddSingleton<MongoContext>();
+            builder.Services.AddSingleton<MongoBootstrapper>();
+            builder.Services.AddSingleton<IFunnelsRepository, FunnelsRepository>();
+
 
             builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>(); 
 

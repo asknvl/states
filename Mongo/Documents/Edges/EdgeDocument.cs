@@ -8,15 +8,15 @@ namespace states.Mongo.Documents.Edges
     [BsonKnownTypes(typeof(PassEdgeDocument), typeof(SplitEdgeDocument))]
     public abstract record EdgeDocument
     {
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("id")]
         public Guid Id { get; init; }
 
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("source")]
         public Guid Source { get; init; }
 
-        [BsonRepresentation(BsonType.String)]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("target")]
         public Guid Target { get; init; }
     }
