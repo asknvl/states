@@ -84,8 +84,14 @@ namespace states.Mongo.Repositories
             return tags;
         }
 
-        public async Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, TagDocument tag, CancellationToken ct)
+        public async Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, string name, CancellationToken ct)
         {
+
+            var tag = new TagDocument() {
+                Id = Guid.CreateVersion7(),
+                Name = name
+            };
+            
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
                 Builders<FunnelDocument>.Filter.Not(
@@ -179,7 +185,12 @@ namespace states.Mongo.Repositories
             return funnel.Tags;
         }
 
-        // In FunnelsRepository
+        public async Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.IsActive, true);
+            return await collection.Find(filter).ToListAsync(ct);
+        }
+
         public async Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);

@@ -110,7 +110,7 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AddTag([FromRoute] Guid funnelId, [FromBody] Tag tag, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.AddTag(funnelId, tag, ct);
+            var result = await funnelsApplicationService.AddTag(funnelId, tag.Name, ct);
             return Ok(result);
         }
 

@@ -5,7 +5,9 @@ using OpenTelemetry.Resources;
 using states.Dtos.Funnels.Examples;
 using states.Mongo;
 using states.Mongo.Repositories;
+using states.Services.FunnelService;
 using states.Services.FunnelService.Application;
+using states.Services.FunnelService.Runtime;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
 using System.Reflection;
@@ -24,9 +26,9 @@ namespace states
             {
                 options.AddPolicy("AllowAny", policy =>
                 {
-                    policy.AllowAnyOrigin()   // Разрешить любой источник
-                          .AllowAnyMethod()   // Разрешить любые HTTP-методы
-                          .AllowAnyHeader();  // Разрешить любые заголовки
+                    policy.AllowAnyOrigin()   // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+                          .AllowAnyMethod()   // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ HTTP-пїЅпїЅпїЅпїЅпїЅпїЅ
+                          .AllowAnyHeader();  // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 });
             });
 
@@ -84,7 +86,15 @@ namespace states
             builder.Services.AddSingleton<IFunnelsRepository, FunnelsRepository>();
 
 
-            builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>(); 
+            builder.Services.AddMemoryCache();
+            builder.Services.AddSingleton<FunnelCache>();
+            builder.Services.AddSingleton<IFunnelRuntimeCache>(sp => sp.GetRequiredService<FunnelCache>());
+
+            builder.Services.AddSingleton<FunnelRuntimeService>();
+            builder.Services.AddSingleton<IFunnelRuntimeSupervisor>(sp => sp.GetRequiredService<FunnelRuntimeService>());
+            builder.Services.AddHostedService(sp => sp.GetRequiredService<FunnelRuntimeService>());
+
+            builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>();
 
             builder.Services.AddControllers();
 

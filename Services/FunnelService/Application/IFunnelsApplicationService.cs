@@ -11,7 +11,7 @@ namespace states.Services.FunnelService.Application
         Task SetIsActive(Guid funnelId, bool isActive, CancellationToken ct);
 
         Task<IReadOnlyCollection<DTO.Tag>> GetTags(Guid funnelId, CancellationToken ct);
-        Task<IReadOnlyList<DTO.Tag>> AddTag(Guid funnelId, DTO.Tag tag, CancellationToken ct);
+        Task<IReadOnlyList<DTO.Tag>> AddTag(Guid funnelId, string name, CancellationToken ct);
         Task<IReadOnlyList<DTO.Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
         Task<IReadOnlyList<DTO.Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
     }
