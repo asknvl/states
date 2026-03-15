@@ -8,6 +8,9 @@ using states.Mongo.Repositories;
 using states.Services.FunnelService;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
+using states.Services.LeadService;
+using states.Services.LeadService.Routing;
+using states.Services.LeadService.Worker;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
 using System.Reflection;
@@ -95,6 +98,15 @@ namespace states
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FunnelRuntimeService>());
 
             builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>();
+
+            // Lead service
+            builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();
+            builder.Services.AddSingleton<IActionTaskRepository, ActionTaskRepository>();
+            builder.Services.AddSingleton<IAiRouterClient, AiRouterClientStub>();
+            builder.Services.AddSingleton<IEdgeRouter, EdgeRouter>();
+            builder.Services.AddSingleton<IActionExecutor, ActionExecutor>();
+            builder.Services.AddSingleton<ILeadProgressionService, LeadProgressionService>();
+            builder.Services.AddHostedService<ActionWorkerService>();
 
             builder.Services.AddControllers();
 
