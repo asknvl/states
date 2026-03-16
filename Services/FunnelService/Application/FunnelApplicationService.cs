@@ -1,6 +1,6 @@
-﻿using states.Mongo.Mappers;
+﻿using states.Dtos.Funnels;
+using states.Mongo.Mappers;
 using states.Mongo.Repositories;
-using DTO = states.Dtos.Funnels;
 
 namespace states.Services.FunnelService.Application
 {
@@ -17,7 +17,7 @@ namespace states.Services.FunnelService.Application
             this.runtimeSupervisor = runtimeSupervisor;
         }
 
-        public async Task<DTO.Funnel> Create(DTO.Funnel dto, CancellationToken ct)
+        public async Task<Funnel> Create(Funnel dto, CancellationToken ct)
         {
             var document = dto.ToDocument();
             await repository.Create(document, ct);
@@ -26,7 +26,7 @@ namespace states.Services.FunnelService.Application
             return result;
         }
 
-        public async Task<DTO.Funnel> Update(DTO.Funnel dto, CancellationToken ct)
+        public async Task<Funnel> Update(Funnel dto, CancellationToken ct)
         {
             var document = dto.ToDocument();
             await repository.Update(document, ct);
@@ -35,13 +35,13 @@ namespace states.Services.FunnelService.Application
             return result;
         }
 
-        public async Task<DTO.Funnel> Get(Guid funnelId, CancellationToken ct)
+        public async Task<Funnel> Get(Guid funnelId, CancellationToken ct)
         {
             var document = await repository.Get(funnelId);
             return document.ToDto();
         }
 
-        public async Task<IReadOnlyCollection<DTO.Funnel>> Get(Guid tenantId, Guid botId, CancellationToken ct)
+        public async Task<IReadOnlyCollection<Funnel>> Get(Guid tenantId, Guid botId, CancellationToken ct)
         {
             var documents = await repository.Get(tenantId, botId);
             return documents.Select(x => x.ToDto()).ToList();
@@ -57,31 +57,31 @@ namespace states.Services.FunnelService.Application
                 runtimeSupervisor.NotifyDeactivated(funnelId);
         }
 
-        public async Task<IReadOnlyCollection<DTO.Tag>> GetTags(Guid funnelId, CancellationToken ct)
+        public async Task<IReadOnlyCollection<Tag>> GetTags(Guid funnelId, CancellationToken ct)
         {
             var tags = await repository.GetTags(funnelId, ct);
-            return tags.Select(t => new DTO.Tag(t.Id, t.Name)).ToList();
+            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
-        public async Task<IReadOnlyList<DTO.Tag>> AddTag(Guid funnelId, string name, CancellationToken ct)
+        public async Task<IReadOnlyList<Tag>> AddTag(Guid funnelId, string name, CancellationToken ct)
         {
             var tags = await repository.AddTag(funnelId, name, ct);
             await RefreshCache(funnelId);
-            return tags.Select(t => new DTO.Tag(t.Id, t.Name)).ToList();
+            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
-        public async Task<IReadOnlyList<DTO.Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
+        public async Task<IReadOnlyList<Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
         {
             var tags = await repository.RemoveTag(funnelId, tagId, ct);
             await RefreshCache(funnelId);
-            return tags.Select(t => new DTO.Tag(t.Id, t.Name)).ToList();
+            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
-        public async Task<IReadOnlyList<DTO.Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
+        public async Task<IReadOnlyList<Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
             var tags = await repository.UpdateTag(funnelId, tagId, name, ct);
             await RefreshCache(funnelId);
-            return tags.Select(t => new DTO.Tag(t.Id, t.Name)).ToList();
+            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
         private async Task RefreshCache(Guid funnelId)
