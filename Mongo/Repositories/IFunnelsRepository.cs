@@ -6,7 +6,9 @@ namespace states.Mongo.Repositories
     {
         Task Create(FunnelDocument document, CancellationToken ct);
         Task Update(FunnelDocument document, CancellationToken ct);
-        Task<IReadOnlyCollection<FunnelDocument>> Get(Guid tenantId, Guid botId);
+        
+        Task<IReadOnlyCollection<FunnelDocument>> GetByBot(Guid tenantId, Guid botId);
+        Task<IReadOnlyCollection<FunnelDocument>> GetBySpace(Guid tenantId, Guid spaceId);
         Task<FunnelDocument> Get(Guid funnelId);
 
         Task<IReadOnlyCollection<TagDocument>> GetTags(Guid funnelId, CancellationToken ct);

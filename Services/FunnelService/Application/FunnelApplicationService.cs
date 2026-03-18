@@ -43,7 +43,7 @@ namespace states.Services.FunnelService.Application
 
         public async Task<IReadOnlyCollection<Funnel>> Get(Guid tenantId, Guid botId, CancellationToken ct)
         {
-            var documents = await repository.Get(tenantId, botId);
+            var documents = await repository.GetBySpace(tenantId, botId);
             return documents.Select(x => x.ToDto()).ToList();
         }
 

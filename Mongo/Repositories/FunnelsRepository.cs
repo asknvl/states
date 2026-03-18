@@ -42,7 +42,7 @@ namespace states.Mongo.Repositories
                 throw new KeyNotFoundException($"Funnel with id '{document.Id}' was not found.");
         }
 
-        public async Task<IReadOnlyCollection<FunnelDocument>> Get(Guid tenantId, Guid botId)
+        public async Task<IReadOnlyCollection<FunnelDocument>> GetByBot(Guid tenantId, Guid botId)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.TenantId, tenantId),
