@@ -3,6 +3,8 @@ using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using states.Dtos.Funnels.Examples;
+using states.Dtos.Edges;
+using states.Dtos.Nodes;
 using states.Mongo;
 using states.Mongo.Repositories;
 using states.Services.FunnelService;
@@ -55,15 +57,46 @@ namespace states
                 });
             });
 
-            builder.Services.AddSwaggerExamplesFromAssemblyOf<FunnelExample>();
+            builder.Services.AddSwaggerExamplesFromAssemblyOf<FlowExample>();
 
             builder.Services.AddSwaggerGen(options =>
             {
                 options.EnableAnnotations();
+                options.UseInlineDefinitionsForEnums();
                 var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
                 options.ExampleFilters();
                 options.OperationFilter<RemoveErrorBodiesOperationFilter>();
+
+                options.UseOneOfForPolymorphism();
+                options.UseAllOfForInheritance();
+
+                options.SelectSubTypesUsing(baseType =>
+                {
+                    if (baseType == typeof(NodeData))
+                        return [typeof(StartNodeData), typeof(SendPresetNodeData), typeof(ManageTagNodeData)];
+                    if (baseType == typeof(Edge))
+                        return [typeof(PassEdge), typeof(SplitEdge), typeof(AiRouterEdge)];
+                    return [];
+                });
+
+                options.SelectDiscriminatorNameUsing(baseType =>
+                {
+                    if (baseType == typeof(NodeData)) return "nodeType";
+                    if (baseType == typeof(Edge)) return "edgeType";
+                    return null;
+                });
+
+                options.SelectDiscriminatorValueUsing(subType =>
+                {
+                    if (subType == typeof(StartNodeData)) return nameof(NodeType.Start);
+                    if (subType == typeof(SendPresetNodeData)) return nameof(NodeType.SendPreset);
+                    if (subType == typeof(ManageTagNodeData)) return nameof(NodeType.ManageTag);
+                    if (subType == typeof(PassEdge)) return nameof(EdgeType.Pass);
+                    if (subType == typeof(SplitEdge)) return nameof(EdgeType.Split);
+                    if (subType == typeof(AiRouterEdge)) return nameof(EdgeType.AiRouter);
+                    return null;
+                });
             });
 
             builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -108,7 +141,9 @@ namespace states
             builder.Services.AddSingleton<ILeadProgressionService, LeadProgressionService>();
             builder.Services.AddHostedService<ActionWorkerService>();
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers()
+                .AddJsonOptions(o =>
+                    o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
             var app = builder.Build();
 

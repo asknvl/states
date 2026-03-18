@@ -29,31 +29,71 @@ namespace states.Mongo.Repositories
             }
         }
 
-        public async Task Update(FunnelDocument document, CancellationToken ct)
+        public async Task UpdateMetadata(Guid funnelId, string name, string? description, CancellationToken ct)
         {
-            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, document.Id);
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+            var update = Builders<FunnelDocument>.Update
+                .Set(x => x.Name, name)
+                .Set(x => x.Description, description);
 
-            var result = await collection.ReplaceOneAsync(
-                filter,
-                document,
-                cancellationToken: ct);
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
 
             if (result.MatchedCount == 0)
-                throw new KeyNotFoundException($"Funnel with id '{document.Id}' was not found.");
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
         }
 
-        public async Task<IReadOnlyCollection<FunnelDocument>> GetByBot(Guid tenantId, Guid botId)
+        public async Task AddFlow(Guid funnelId, FlowDocument flow, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+            var update = Builders<FunnelDocument>.Update.Push(x => x.Flows, flow);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+        }
+
+        public async Task UpdateFlow(Guid funnelId, FlowDocument flow, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
-                Builders<FunnelDocument>.Filter.Eq(x => x.TenantId, tenantId),
-                Builders<FunnelDocument>.Filter.Eq(x => x.BotId, botId)
+                Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
+                Builders<FunnelDocument>.Filter.ElemMatch(x => x.Flows, f => f.Id == flow.Id)
             );
+            var update = Builders<FunnelDocument>.Update.Set(x => x.Flows.FirstMatchingElement(), flow);
 
-            var documents = await collection
-                .Find(filter)
-                .ToListAsync();
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
 
-            return documents;
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Flow with id '{flow.Id}' was not found in funnel '{funnelId}'.");
+        }
+
+        public async Task RemoveFlow(Guid funnelId, Guid flowId, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+            var update = Builders<FunnelDocument>.Update.PullFilter(x => x.Flows, f => f.Id == flowId);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+        }
+
+        public async Task<IReadOnlyCollection<FunnelDocument>> GetByTenant(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct)
+        {
+            var filters = new List<FilterDefinition<FunnelDocument>>
+            {
+                Builders<FunnelDocument>.Filter.Eq(x => x.TenantId, tenantId)
+            };
+
+            if (spaceId.HasValue)
+                filters.Add(Builders<FunnelDocument>.Filter.Eq(x => x.SpaceId, spaceId.Value));
+
+            if (botId.HasValue)
+                filters.Add(Builders<FunnelDocument>.Filter.Eq(x => x.BotId, botId.Value));
+
+            var filter = Builders<FunnelDocument>.Filter.And(filters);
+
+            return await collection.Find(filter).ToListAsync(ct);
         }
 
         public async Task<FunnelDocument> Get(Guid funnelId)
@@ -201,6 +241,7 @@ namespace states.Mongo.Repositories
             if (result.MatchedCount == 0)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
         }
+
         #endregion
     }
 }

@@ -27,11 +27,10 @@ namespace states.Controllers
         [HttpPost]
         [Produces("application/json")]
         [SwaggerOperation(Summary = "Creates a new funnel")]
-        [SwaggerRequestExample(typeof(Funnel), typeof(FunnelExample))]
-        [ProducesResponseType(typeof(Funnel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(FunnelDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Create([FromBody] Funnel dto, CancellationToken ct)
+        public async Task<IActionResult> Create([FromBody] FunnelCreateDto dto, CancellationToken ct)
         {
             var result = await funnelsApplicationService.Create(dto, ct);
             return Ok(result);
@@ -39,15 +38,14 @@ namespace states.Controllers
 
         [HttpPut("{funnelId:guid}")]
         [Produces("application/json")]
-        [SwaggerOperation(Summary = "Updates a funnel")]
-        [SwaggerRequestExample(typeof(Funnel), typeof(FunnelExample))]
-        [ProducesResponseType(typeof(Funnel), StatusCodes.Status200OK)]
+        [SwaggerOperation(Summary = "Updates funnel metadata")]
+        [ProducesResponseType(typeof(FunnelDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Update([FromRoute] Guid funnelId, [FromBody] Funnel dto, CancellationToken ct)
+        public async Task<IActionResult> Update([FromRoute] Guid funnelId, [FromBody] FunnelUpdateDto dto, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.Update(dto with { Id = funnelId }, ct);
+            var result = await funnelsApplicationService.Update(funnelId, dto, ct);
             return Ok(result);
         }
 
@@ -65,12 +63,12 @@ namespace states.Controllers
 
         [HttpGet]
         [Produces("application/json")]
-        [SwaggerOperation(Summary = "Gets all funnels for a bot")]
-        [ProducesResponseType(typeof(IReadOnlyCollection<Funnel>), StatusCodes.Status200OK)]
+        [SwaggerOperation(Summary = "Gets funnels by tenant, optionally filtered by space and bot")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<FunnelDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Get([FromQuery] Guid tenantId, [FromQuery] Guid botId, CancellationToken ct)
+        public async Task<IActionResult> Get([FromQuery] Guid tenantId, [FromQuery] Guid? spaceId, [FromQuery] Guid? botId, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.Get(tenantId, botId, ct);
+            var result = await funnelsApplicationService.Get(tenantId, spaceId, botId, ct);
             return Ok(result);
         }
 
@@ -82,6 +80,47 @@ namespace states.Controllers
         public async Task<IActionResult> SetIsActive([FromRoute] Guid funnelId, [FromBody] bool isActive, CancellationToken ct)
         {
             await funnelsApplicationService.SetIsActive(funnelId, isActive, ct);
+            return NoContent();
+        }
+
+        #endregion
+
+        #region flows
+
+        [HttpPost("{funnelId:guid}/flows")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Adds a flow to a funnel")]
+        [SwaggerRequestExample(typeof(Flow), typeof(FlowExample))]
+        [ProducesResponseType(typeof(Flow), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddFlow([FromRoute] Guid funnelId, [FromBody] Flow flow, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.AddFlow(funnelId, flow, ct);
+            return Ok(result);
+        }
+
+        [HttpPut("{funnelId:guid}/flows/{flowId:guid}")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Updates a flow in a funnel")]
+        [SwaggerRequestExample(typeof(Flow), typeof(FlowExample))]
+        [ProducesResponseType(typeof(Flow), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateFlow([FromRoute] Guid funnelId, [FromRoute] Guid flowId, [FromBody] Flow flow, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.UpdateFlow(funnelId, flow with { Id = flowId }, ct);
+            return Ok(result);
+        }
+
+        [HttpDelete("{funnelId:guid}/flows/{flowId:guid}")]
+        [SwaggerOperation(Summary = "Removes a flow from a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RemoveFlow([FromRoute] Guid funnelId, [FromRoute] Guid flowId, CancellationToken ct)
+        {
+            await funnelsApplicationService.RemoveFlow(funnelId, flowId, ct);
             return NoContent();
         }
 
@@ -108,9 +147,9 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> AddTag([FromRoute] Guid funnelId, [FromBody] Tag tag, CancellationToken ct)
+        public async Task<IActionResult> AddTag([FromRoute] Guid funnelId, [FromBody] TagCreateDto dto, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.AddTag(funnelId, tag.Id, tag.Name, ct);
+            var result = await funnelsApplicationService.AddTag(funnelId, dto.Name, ct);
             return Ok(result);
         }
 
@@ -121,9 +160,9 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateTag([FromRoute] Guid funnelId, [FromRoute] Guid tagId, [FromBody] string name, CancellationToken ct)
+        public async Task<IActionResult> UpdateTag([FromRoute] Guid funnelId, [FromRoute] Guid tagId, [FromBody] TagUpdateDto dto, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.UpdateTag(funnelId, tagId, name, ct);
+            var result = await funnelsApplicationService.UpdateTag(funnelId, tagId, dto.Name, ct);
             return Ok(result);
         }
 

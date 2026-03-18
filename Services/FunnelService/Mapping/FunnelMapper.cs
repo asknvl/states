@@ -13,19 +13,32 @@ namespace states.Mongo.Mappers;
 public static class FunnelDocumentMapper
 {
     #region funnel
-    public static FunnelDocument ToDocument(this Funnel dto)
+    public static FunnelDocument ToDocument(this FunnelCreateDto dto)
     {
         return new FunnelDocument
         {
-            Id = dto.Id,
+            Id = Guid.CreateVersion7(),
             TenantId = dto.TenantId,
             SpaceId = dto.SpaceId,
             BotId = dto.BotId,
             Name = dto.Name,
-            Description = dto.Description,
-            Tags = dto.Tags.Select(ToDocument).ToList(),
-            Flows = dto.Flows.Select(ToDocument).ToList()
+            Description = dto.Description
         };
+    }
+
+    public static FunnelDto ToFunnelDto(this FunnelDocument document)
+    {
+        return new FunnelDto(
+            Id: document.Id,
+            TenantId: document.TenantId,
+            SpaceId: document.SpaceId,
+            BotId: document.BotId,
+            Name: document.Name,
+            Description: document.Description,
+            Tags: document.Tags.Select(t => new Tag(t.Id, t.Name)).ToList(),
+            Flows: document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList(),
+            IsActive: document.IsActive
+        );
     }
 
     public static Funnel ToDto(this FunnelDocument document)
@@ -64,7 +77,7 @@ public static class FunnelDocumentMapper
     #endregion
 
     #region flow
-    private static FlowDocument ToDocument(Flow dto)
+    public static FlowDocument ToDocument(this Flow dto)
     {
         return new FlowDocument
         {
@@ -75,7 +88,7 @@ public static class FunnelDocumentMapper
         };
     }
 
-    private static Flow ToDto(FlowDocument document)
+    public static Flow ToDto(this FlowDocument document)
     {
         return new Flow(
             Id: document.Id,

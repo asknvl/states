@@ -5,11 +5,14 @@ namespace states.Mongo.Repositories
     public interface IFunnelsRepository
     {
         Task Create(FunnelDocument document, CancellationToken ct);
-        Task Update(FunnelDocument document, CancellationToken ct);
-        
-        Task<IReadOnlyCollection<FunnelDocument>> GetByBot(Guid tenantId, Guid botId);
-        Task<IReadOnlyCollection<FunnelDocument>> GetBySpace(Guid tenantId, Guid spaceId);
+        Task UpdateMetadata(Guid funnelId, string name, string? description, CancellationToken ct);
+
+        Task<IReadOnlyCollection<FunnelDocument>> GetByTenant(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct);
         Task<FunnelDocument> Get(Guid funnelId);
+
+        Task AddFlow(Guid funnelId, FlowDocument flow, CancellationToken ct);
+        Task UpdateFlow(Guid funnelId, FlowDocument flow, CancellationToken ct);
+        Task RemoveFlow(Guid funnelId, Guid flowId, CancellationToken ct);
 
         Task<IReadOnlyCollection<TagDocument>> GetTags(Guid funnelId, CancellationToken ct);
         Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
