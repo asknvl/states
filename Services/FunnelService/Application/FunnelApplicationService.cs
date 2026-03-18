@@ -63,9 +63,9 @@ namespace states.Services.FunnelService.Application
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
-        public async Task<IReadOnlyList<Tag>> AddTag(Guid funnelId, string name, CancellationToken ct)
+        public async Task<IReadOnlyList<Tag>> AddTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
-            var tags = await repository.AddTag(funnelId, name, ct);
+            var tags = await repository.AddTag(funnelId, tagId, name, ct);
             await RefreshCache(funnelId);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }

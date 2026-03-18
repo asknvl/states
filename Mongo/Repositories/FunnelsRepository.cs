@@ -84,11 +84,11 @@ namespace states.Mongo.Repositories
             return tags;
         }
 
-        public async Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, string name, CancellationToken ct)
+        public async Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
 
             var tag = new TagDocument() {
-                Id = Guid.CreateVersion7(),
+                Id = tagId,
                 Name = name
             };
             
