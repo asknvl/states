@@ -1,0 +1,37 @@
+stages:
+  - build
+  - deploy
+  - clear
+build-job-dev:
+  cache: []
+  tags: ['states-dev']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+  stage: build
+  script:
+    - cd /opt/projects/sources/states/
+    - git pull
+    - cd /opt/projects/
+    - echo "Start building"
+    - docker compose build states-dev
+deploy-job-dev:
+  cache: []
+  tags: ['states-dev']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+  stage: deploy
+  environment: dev
+  script:
+    - echo "Start deploying project"
+    - cd /opt/projects/
+    - docker compose rm -s -v -f states-dev
+    - docker compose up -d --no-deps states-dev 
+clear-job-dev:
+  cache: []
+  tags: ['states-dev']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+  stage: clear
+  script:
+    - echo "Clear unused images"
+    - docker image prune -f
