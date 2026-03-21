@@ -45,9 +45,9 @@ public class LeadProgressionService : ILeadProgressionService
         var leadState = new FunnelLeadState
         {
             Id = Guid.CreateVersion7(),
-            TenantId = request.TenantId,
-            SpaceId = request.SpaceId,
+            TenantId = request.TenantId,            
             BotId = request.BotId,
+            ChatId = request.ChatId,
             FunnelId = request.FunnelId,
             FlowId = request.FlowId,
             NodeId = request.NodeId
