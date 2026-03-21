@@ -31,6 +31,13 @@ public class LeadStateRepository : ILeadStateRepository
         return state;
     }
 
+    public async Task<FunnelLeadState?> GetByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    {
+        return await collection
+            .Find(x => x.TenantId == tenantId && x.BotId == botId && x.ChatId == chatId)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct)
     {
         var now = DateTime.UtcNow;

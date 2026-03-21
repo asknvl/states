@@ -12,6 +12,8 @@ using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
 using states.Services.LeadService;
 using states.Services.LeadService.Routing;
+using states.Services.CampaignService;
+using states.Services.Events.Consumer;
 using states.Services.LeadService.Worker;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
@@ -140,6 +142,13 @@ namespace states
             builder.Services.AddSingleton<IActionExecutor, ActionExecutor>();
             builder.Services.AddSingleton<ILeadProgressionService, LeadProgressionService>();
             builder.Services.AddHostedService<ActionWorkerService>();
+
+            // Campaign service
+            builder.Services.AddSingleton<ICampaignClient, CampaignClientStub>();
+
+            // Telegram Kafka consumer
+            builder.Services.AddSingleton<IGlobalEventProcessor, GlobalEventProcessor>();
+            builder.Services.AddHostedService<GlobalEventConsumerService>();
 
             builder.Services.AddControllers()
                 .AddJsonOptions(o =>
