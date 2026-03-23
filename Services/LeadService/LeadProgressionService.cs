@@ -143,8 +143,10 @@ public class LeadProgressionService : ILeadProgressionService
         switch (node.Data)
         {
             case SendPresetNodeData sendPreset:
+                var scheduledAt = now;
                 foreach (var action in sendPreset.Actions)
                 {
+                    scheduledAt += action.Delay;
                     tasks.Add(new SendPresetActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
@@ -153,7 +155,7 @@ public class LeadProgressionService : ILeadProgressionService
                         FlowId = leadState.FlowId,
                         NodeId = node.Id,
                         ActionId = action.Id,
-                        ScheduledAt = now + action.Delay,
+                        ScheduledAt = scheduledAt,
                         CreatedAt = now,
                         PresetId = action.PresetId,
                         NeedPin = action.NeedPin
