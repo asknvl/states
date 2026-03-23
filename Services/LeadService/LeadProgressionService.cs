@@ -115,6 +115,8 @@ public class LeadProgressionService : ILeadProgressionService
         var targetNode = flow.Nodes.FirstOrDefault(n => n.Id == selectedEdge.Target)
             ?? throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
 
+        await actionTaskRepository.CancelPendingByLeadAndNode(leadStateId, leadState.NodeId, ct);
+
         var actionTasks = CreateActionTasks(leadState, targetNode);
 
         var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry

@@ -17,6 +17,8 @@ public class GlobalEventConsumerService(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield(); // ensure host startup is not blocked by synchronous Consume()
+
         var bootstrapServers = config["Kafka:BootstrapServers"]
             ?? throw new InvalidOperationException("Kafka:BootstrapServers not configured");
 

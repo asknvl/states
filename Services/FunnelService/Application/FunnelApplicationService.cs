@@ -83,6 +83,14 @@ namespace states.Services.FunnelService.Application
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
+        public async Task<Flow> GetFlow(Guid funnelId, Guid flowId, CancellationToken ct)
+        {
+            var document = await repository.Get(funnelId);
+            var flow = document.Flows.FirstOrDefault(f => f.Id == flowId)
+                ?? throw new KeyNotFoundException($"Flow '{flowId}' not found in funnel '{funnelId}'.");
+            return flow.ToDto();
+        }
+
         public async Task<Flow> AddFlow(Guid funnelId, Flow flow, CancellationToken ct)
         {
             var document = flow.ToDocument();

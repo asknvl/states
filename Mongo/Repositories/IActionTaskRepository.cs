@@ -9,4 +9,5 @@ public interface IActionTaskRepository
     Task Complete(Guid taskId, CancellationToken ct);
     Task Fail(Guid taskId, CancellationToken ct);
     Task<List<ActionTaskDocument>> GetByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
+    Task CancelPendingByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
 }

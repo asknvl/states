@@ -66,4 +66,18 @@ public class ActionTaskRepository : IActionTaskRepository
 
         return await collection.Find(filter).ToListAsync(ct);
     }
+
+    public async Task CancelPendingByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct)
+    {
+        var filter = Builders<ActionTaskDocument>.Filter.And(
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, leadStateId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.NodeId, nodeId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+        );
+
+        var update = Builders<ActionTaskDocument>.Update
+            .Set(x => x.Status, ActionStatus.Cancelled);
+
+        await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+    }
 }

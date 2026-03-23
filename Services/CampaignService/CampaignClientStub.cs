@@ -1,8 +1,11 @@
 namespace states.Services.CampaignService;
 
-// TODO: replace with real HTTP client to campaign service
 public class CampaignClientStub : ICampaignClient
 {
-    public Task<FunnelEntryPoint?> GetFunnelEntryPoint(Guid tenantId, Guid botId, CancellationToken ct)
-        => Task.FromResult<FunnelEntryPoint?>(null);
+    public Task<FunnelEntryPoint?> GetFunnelEntryPoint(
+        Guid tenantId,
+        Guid botId,
+        Guid globalId,
+        string? startParameter,
+        CancellationToken ct) => Task.FromResult<FunnelEntryPoint?>(null);
 }

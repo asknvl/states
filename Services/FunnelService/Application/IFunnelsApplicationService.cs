@@ -15,6 +15,7 @@ namespace states.Services.FunnelService.Application
         Task<IReadOnlyList<Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
         Task<IReadOnlyList<Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
 
+        Task<Flow> GetFlow(Guid funnelId, Guid flowId, CancellationToken ct);
         Task<Flow> AddFlow(Guid funnelId, Flow flow, CancellationToken ct);
         Task<Flow> UpdateFlow(Guid funnelId, Flow flow, CancellationToken ct);
         Task RemoveFlow(Guid funnelId, Guid flowId, CancellationToken ct);

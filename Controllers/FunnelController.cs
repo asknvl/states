@@ -87,6 +87,18 @@ namespace states.Controllers
 
         #region flows
 
+        [HttpGet("{funnelId:guid}/flows/{flowId:guid}")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Gets a flow by id")]
+        [ProducesResponseType(typeof(Flow), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetFlow([FromRoute] Guid funnelId, [FromRoute] Guid flowId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.GetFlow(funnelId, flowId, ct);
+            return Ok(result);
+        }
+
         [HttpPost("{funnelId:guid}/flows")]
         [Produces("application/json")]
         [SwaggerOperation(Summary = "Adds a flow to a funnel")]

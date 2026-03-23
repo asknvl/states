@@ -23,7 +23,7 @@ namespace states
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -33,15 +33,13 @@ namespace states
             {
                 options.AddPolicy("AllowAny", policy =>
                 {
-                    policy.AllowAnyOrigin()   // ��������� ����� ��������
-                          .AllowAnyMethod()   // ��������� ����� HTTP-������
-                          .AllowAnyHeader();  // ��������� ����� ���������
+                    policy.AllowAnyOrigin()   
+                          .AllowAnyMethod()   
+                          .AllowAnyHeader();  
                 });
             });
 
             var otlpLogs = new Uri(builder.Configuration["OpenTelemetry:Otlp:LogsEndpoint"]);
-
-            builder.Logging.AddFilter<OpenTelemetryLoggerProvider>("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.Warning);
 
             builder.Logging.AddOpenTelemetry(o =>
             {
@@ -69,6 +67,7 @@ namespace states
                 options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
                 options.ExampleFilters();
                 options.OperationFilter<RemoveErrorBodiesOperationFilter>();
+                options.SchemaFilter<DiscriminatorEnumSchemaFilter>();
 
                 options.UseOneOfForPolymorphism();
                 options.UseAllOfForInheritance();
@@ -156,7 +155,15 @@ namespace states
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var bootStrapper = scope.ServiceProvider
+                    .GetRequiredService<MongoBootstrapper>();
+
+                await bootStrapper.Initialize();
+            }
+
             app.UseCors("AllowAny");
 
             if (app.Environment.IsDevelopment())
