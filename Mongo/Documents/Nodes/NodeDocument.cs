@@ -23,10 +23,10 @@ namespace states.Mongo.Documents.Nodes
     public sealed record PositionDocument
     {
         [BsonElement("x")]
-        public int X { get; init; }
+        public double X { get; init; }
 
         [BsonElement("y")]
-        public int Y { get; init; }
+        public double Y { get; init; }
     }
 
     [BsonDiscriminator("nodeData")]

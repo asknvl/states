@@ -12,8 +12,8 @@ namespace states.Dtos.Nodes
     );
 
     public record Position(
-        int X,
-        int Y
+        double X,
+        double Y
     );
 
 
