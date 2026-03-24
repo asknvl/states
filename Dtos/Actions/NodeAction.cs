@@ -8,6 +8,6 @@ namespace states.Dtos.Actions
     [JsonDerivedType(typeof(SendPresetAction), nameof(ActionType.SendPreset))]
     public abstract record NodeAction(
             Guid Id,            
-            TimeSpan Delay
+            TimeSpan? Delay
         );
 }

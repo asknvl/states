@@ -1,6 +1,7 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using states.Services.FunnelService.Application;
+using states.Services.LeadService;
 
 namespace states.Mongo.Documents.Nodes
 {
@@ -37,6 +38,10 @@ namespace states.Mongo.Documents.Nodes
     {
         [BsonElement("label")]
         public string Label { get; init; } = default!;
+
+        [BsonElement("finishStatus")]
+        [BsonRepresentation(BsonType.String)]
+        public LeadFunnelStatus FinishStatus { get; init; } = LeadFunnelStatus.Nothing;
     }
 
 }

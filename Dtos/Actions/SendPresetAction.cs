@@ -4,7 +4,7 @@ namespace states.Dtos.Actions
 {
     public sealed record SendPresetAction(
         Guid Id,
-        TimeSpan Delay,
+        TimeSpan? Delay,
         Guid PresetId,
         bool NeedPin
     ) : NodeAction(

@@ -148,7 +148,9 @@ public class LeadProgressionService : ILeadProgressionService
                 var scheduledAt = now;
                 foreach (var action in sendPreset.Actions)
                 {
-                    scheduledAt += action.Delay;
+                    if (action.Delay.HasValue)
+                        scheduledAt += action.Delay.Value;
+
                     tasks.Add(new SendPresetActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
@@ -160,26 +162,29 @@ public class LeadProgressionService : ILeadProgressionService
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
                         PresetId = action.PresetId,
-                        NeedPin = action.NeedPin
+                        NeedPin = action.NeedPin                        
                     });
                 }
                 break;
 
             case ManageTagNodeData manageTag:
-                tasks.Add(new ManageTagActionTaskDocument
+                
+                foreach (var action in manageTag.Actions)
                 {
-                    Id = Guid.CreateVersion7(),
-                    LeadStateId = leadState.Id,
-                    FunnelId = leadState.FunnelId,
-                    FlowId = leadState.FlowId,
-                    NodeId = node.Id,
-                    ActionId = Guid.CreateVersion7(),
-                    ScheduledAt = now,
-                    CreatedAt = now,
-                    Operation = manageTag.Operation,
-                    TagId = manageTag.TagId,
-                    ReplacementTagId = manageTag.ReplacementTagId
-                });
+                    tasks.Add(new ManageTagActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId,
+                        FlowId = leadState.FlowId,
+                        NodeId = node.Id,
+                        ActionId = action.Id,                        
+                        CreatedAt = now,
+                        Operation = action.Operation,
+                        TagId = action.TagId,
+                        ReplacementTagId = action.ReplacementTagId
+                    });
+                }
                 break;
         }
 

@@ -11,7 +11,7 @@ public sealed class SendPresetActionDocument : NodeActionDocument
     public Guid PresetId { get; set; }
 
     [BsonElement("delay")]
-    public TimeSpan Delay { get; set; }
+    public TimeSpan? Delay { get; set; }
 
     [BsonElement("needPin")]
     public bool NeedPin { get; set; }

@@ -6,6 +6,7 @@ using states.Mongo.Documents;
 using states.Mongo.Documents.Actions;
 using states.Mongo.Documents.Edges;
 using states.Mongo.Documents.Nodes;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection.Metadata;
 
 namespace states.Mongo.Mappers;
@@ -160,9 +161,7 @@ public static class FunnelDocumentMapper
             ManageTagNodeData x => new ManageTagNodeDataDocument
             {
                 Label = x.Label,
-                Operation = x.Operation,
-                TagId = x.TagId,
-                ReplacementTagId = x.ReplacementTagId
+                Actions = x.Actions.Select(ToDocument).ToList()
             },
 
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
@@ -174,11 +173,13 @@ public static class FunnelDocumentMapper
         return document switch
         {
             StartNodeDataDocument x => new StartNodeData(
-                Label: x.Label
+                Label: x.Label,
+                FinishStatus: x.FinishStatus
             ),
 
             SendPresetNodeDataDocument x => new SendPresetNodeData(
                 Label: x.Label,
+                FinishStatus: x.FinishStatus,
                 Actions: x.Actions
                     .OfType<SendPresetActionDocument>()
                     .Select(ToDto)
@@ -187,9 +188,11 @@ public static class FunnelDocumentMapper
 
             ManageTagNodeDataDocument x => new ManageTagNodeData(
                 Label: x.Label,
-                Operation: x.Operation,
-                TagId: x.TagId,
-                ReplacementTagId: x.ReplacementTagId
+                FinishStatus: x.FinishStatus,
+                Actions: x.Actions
+                    .OfType<ManageTagActionDocument>()
+                    .Select(ToDto)
+                    .ToList()
             ),
 
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")
@@ -277,6 +280,26 @@ public static class FunnelDocumentMapper
             PresetId: document.PresetId,
             Delay: document.Delay,
             NeedPin: document.NeedPin
+        );
+    }
+
+    private static ManageTagActionDocument ToDocument(ManageTagAction dto)
+    {
+        return new ManageTagActionDocument
+        {
+            Id = dto.Id,            
+            Operation = dto.Operation,
+            TagId = dto.TagId,
+            ReplacementTagId = dto.ReplacementTagId            
+        };
+    }
+    public static ManageTagAction ToDto(ManageTagActionDocument document) {
+        return new ManageTagAction(
+            Id: document.Id,
+            Operation: document.Operation,
+            TagId: document.TagId,
+            ReplacementTagId: document.ReplacementTagId,
+            Delay: null
         );
     }
     #endregion

@@ -1,5 +1,6 @@
 ﻿using states.Mongo.Documents.Nodes;
 using states.Services.FunnelService.Application;
+using states.Services.LeadService;
 using System.Text.Json.Serialization;
 
 namespace states.Dtos.Nodes
@@ -22,7 +23,8 @@ namespace states.Dtos.Nodes
     [JsonDerivedType(typeof(SendPresetNodeData), nameof(NodeType.SendPreset))]
     [JsonDerivedType(typeof(ManageTagNodeData), nameof(NodeType.ManageTag))]
     public abstract record NodeData(        
-        string Label        
+        string Label,
+        LeadFunnelStatus FinishStatus
     );    
 
 }

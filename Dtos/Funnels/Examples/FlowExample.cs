@@ -2,6 +2,7 @@ using states.Dtos.Actions;
 using states.Dtos.Edges;
 using states.Dtos.Nodes;
 using states.Services.FunnelService.Application;
+using states.Services.LeadService;
 using Swashbuckle.AspNetCore.Filters;
 
 namespace states.Dtos.Funnels.Examples
@@ -36,7 +37,8 @@ namespace states.Dtos.Funnels.Examples
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new StartNodeData(
-                            Label: "Старт"
+                            Label: "Старт",
+                            FinishStatus: LeadFunnelStatus.Nothing
                         )
                     ),
                     new Node(
@@ -45,9 +47,17 @@ namespace states.Dtos.Funnels.Examples
                         Position: new Position( 0, 0 ),
                         Data: new ManageTagNodeData(
                             Label: "Тег1",
-                            Operation: TagOperation.Add,
-                            TagId: tags[0].Id,
-                            ReplacementTagId: null
+                            FinishStatus: LeadFunnelStatus.Nothing,
+                            Actions: new List<ManageTagAction>()
+                            {
+                                new ManageTagAction(
+                                    Id: new Guid("019d2068-5501-725e-9699-067c51b56937"),
+                                    Delay: null,
+                                    Operation: TagOperation.Add,
+                                    TagId: tags[0].Id,
+                                    ReplacementTagId: null
+                                )
+                            }
                         )
                     ),
                     new Node(
@@ -56,6 +66,7 @@ namespace states.Dtos.Funnels.Examples
                         Position: new Position( 0, 0 ),
                         Data: new SendPresetNodeData(
                             Label: "Сообщение 1",
+                            FinishStatus: LeadFunnelStatus.Nothing,
                             Actions: new List<SendPresetAction>()
                             {
                                 new SendPresetAction(
@@ -73,6 +84,7 @@ namespace states.Dtos.Funnels.Examples
                         Position: new Position( 0, 0 ),
                         Data: new SendPresetNodeData(
                             Label: "Сообщение 2",
+                            FinishStatus: LeadFunnelStatus.Nothing,
                             Actions: new List<SendPresetAction>()
                             {
                                 new SendPresetAction(
