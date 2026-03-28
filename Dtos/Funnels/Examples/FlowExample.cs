@@ -84,7 +84,7 @@ namespace states.Dtos.Funnels.Examples
                         Position: new Position( 0, 0 ),
                         Data: new SendPresetNodeData(
                             Label: "Сообщение 2",
-                            FinishStatus: LeadFunnelStatus.Nothing,
+                            FinishStatus: LeadFunnelStatus.Manual,
                             Actions: new List<SendPresetAction>()
                             {
                                 new SendPresetAction(
