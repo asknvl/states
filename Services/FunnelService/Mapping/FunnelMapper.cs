@@ -20,8 +20,7 @@ public static class FunnelDocumentMapper
         {
             Id = Guid.CreateVersion7(),
             TenantId = dto.TenantId,
-            SpaceId = dto.SpaceId,
-            BotId = dto.BotId,
+            SpaceId = dto.SpaceId,            
             Name = dto.Name,
             Description = dto.Description
         };
@@ -32,8 +31,7 @@ public static class FunnelDocumentMapper
         return new FunnelDto(
             Id: document.Id,
             TenantId: document.TenantId,
-            SpaceId: document.SpaceId,
-            BotId: document.BotId,
+            SpaceId: document.SpaceId,            
             Name: document.Name,
             Description: document.Description,
             Tags: document.Tags.Select(t => new Tag(t.Id, t.Name)).ToList(),
@@ -47,8 +45,7 @@ public static class FunnelDocumentMapper
         return new Funnel(
             Id: document.Id,
             TenantId: document.TenantId,
-            SpaceId: document.SpaceId,
-            BotId: document.BotId,
+            SpaceId: document.SpaceId,            
             Name: document.Name,
             Description: document.Description,
             Tags: document.Tags.Select(ToDto).ToList(),
@@ -149,19 +146,22 @@ public static class FunnelDocumentMapper
         {
             StartNodeData x => new StartNodeDataDocument
             {
-                Label = x.Label
+                Label = x.Label,
+                FinishStatus = x.FinishStatus
             },
 
             SendPresetNodeData x => new SendPresetNodeDataDocument
             {
                 Label = x.Label,
-                Actions = x.Actions.Select(ToDocument).ToList()
+                Actions = x.Actions.Select(ToDocument).ToList(),
+                FinishStatus = x.FinishStatus
             },
 
             ManageTagNodeData x => new ManageTagNodeDataDocument
             {
                 Label = x.Label,
-                Actions = x.Actions.Select(ToDocument).ToList()
+                Actions = x.Actions.Select(ToDocument).ToList(),
+                FinishStatus = x.FinishStatus
             },
 
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")

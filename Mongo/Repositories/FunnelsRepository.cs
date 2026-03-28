@@ -88,9 +88,6 @@ namespace states.Mongo.Repositories
             if (spaceId.HasValue)
                 filters.Add(Builders<FunnelDocument>.Filter.Eq(x => x.SpaceId, spaceId.Value));
 
-            if (botId.HasValue)
-                filters.Add(Builders<FunnelDocument>.Filter.Eq(x => x.BotId, botId.Value));
-
             var filter = Builders<FunnelDocument>.Filter.And(filters);
 
             return await collection.Find(filter).ToListAsync(ct);

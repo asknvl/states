@@ -41,8 +41,7 @@ namespace states.Mongo
             {
                 new CreateIndexModel<FunnelDocument>(
                     Builders<FunnelDocument>.IndexKeys
-                        .Ascending(x => x.TenantId)
-                        .Ascending(x => x.BotId)
+                        .Ascending(x => x.TenantId)                        
                         .Descending(x => x.Id))
             };
 

@@ -18,11 +18,7 @@ namespace states.Mongo.Documents
 
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("spaceId")]
-        public Guid SpaceId { get; init; }
-
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
-        [BsonElement("botId")]
-        public Guid BotId { get; init; }
+        public Guid SpaceId { get; init; }       
 
         [BsonElement("name")]
         public string Name { get; init; } = default!;

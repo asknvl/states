@@ -13,8 +13,7 @@ namespace states.Dtos.Funnels.Examples
                 Value = new FunnelDto(
                     Id: new Guid("0195930e-84a0-7e12-8d3a-1b5c9f4e7a02"),
                     TenantId: new Guid("0195930e-84a0-7e12-8d3a-1b5c9f4e7a03"),
-                    SpaceId: new Guid("0195930e-84a0-7e12-8d3a-1b5c9f4e7a04"),
-                    BotId: new Guid("0195930e-84a0-7e12-8d3a-1b5c9f4e7a05"),
+                    SpaceId: new Guid("0195930e-84a0-7e12-8d3a-1b5c9f4e7a04"),                    
                     Name: "Тестовая воронка",
                     Description: "Описание тестовой воронки",
                     Tags: [],
