@@ -143,7 +143,12 @@ namespace states
             builder.Services.AddHostedService<ActionWorkerService>();
 
             // Campaign service
-            builder.Services.AddSingleton<ICampaignClient, CampaignClientStub>();
+            builder.Services.AddHttpClient<ICampaignClient, CampaignClient>(client =>
+            {
+                var baseUrl = builder.Configuration["CampaignClient:EndPoint"]
+                    ?? throw new InvalidOperationException("CampaignClient:EndPoint not configured");
+                client.BaseAddress = new Uri(baseUrl);
+            });
 
             // Telegram Kafka consumer
             builder.Services.AddSingleton<IGlobalEventProcessor, GlobalEventProcessor>();

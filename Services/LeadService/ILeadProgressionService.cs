@@ -6,4 +6,5 @@ public interface ILeadProgressionService
 {
     Task EnterFunnel(EnterFunnelRequest request, CancellationToken ct);
     Task TransitionToNextNode(Guid leadStateId, CancellationToken ct);
+    Task ClearLeadStateByChat(Guid tenantId, Guid chatId);
 }

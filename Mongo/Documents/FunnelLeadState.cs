@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using states.Services.FunnelService.Application;
+using states.Services.LeadService;
 
 namespace states.Mongo.Documents
 {
@@ -26,6 +27,9 @@ namespace states.Mongo.Documents
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid ChatId { get; set; }
 
+        [BsonElement("leadId")]
+        public string LeadId { get; set; }
+
         [BsonElement("funnelId")]    
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid FunnelId { get; set; }
@@ -37,6 +41,10 @@ namespace states.Mongo.Documents
         [BsonElement("nodeId")]       
         [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid NodeId { get; set; }
+
+        [BsonElement("status")]
+        [BsonRepresentation(BsonType.String)]
+        public LeadFunnelStatus Status {  get; set; }
 
         [BsonElement("statesLog")]
         public List<StateLogEntry> StatesLog { get; set; } = [];

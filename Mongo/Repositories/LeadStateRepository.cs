@@ -38,6 +38,13 @@ public class LeadStateRepository : ILeadStateRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<FunnelLeadState?> GetByChatId(Guid tenantId, Guid chatId, CancellationToken ct)
+    {
+        return await collection
+            .Find(x => x.TenantId == tenantId && x.ChatId == chatId)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -85,6 +92,14 @@ public class LeadStateRepository : ILeadStateRepository
         };
 
         await collection.UpdateOneAsync(filter, update, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
+    }
+
+    public async Task Delete(Guid leadStateId, CancellationToken ct)
+    {
+        var result = await collection.DeleteOneAsync(x => x.Id == leadStateId, ct);
+
+        if (result.DeletedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
     }
 
     public async Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct)

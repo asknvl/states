@@ -4,6 +4,7 @@ public sealed record EnterFunnelRequest(
     Guid TenantId,    
     Guid BotId,
     Guid ChatId,
+    string LeadId,
     Guid FunnelId,
     Guid FlowId,
     Guid NodeId

@@ -31,6 +31,63 @@ public class LeadProgressionService : ILeadProgressionService
         this.logger = logger;
     }
 
+    #region private
+    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Node node)
+    {
+        var now = DateTime.UtcNow;
+        var tasks = new List<ActionTaskDocument>();
+
+        switch (node.Data)
+        {
+            case SendPresetNodeData sendPreset:
+                var scheduledAt = now;
+                foreach (var action in sendPreset.Actions)
+                {
+                    if (action.Delay.HasValue)
+                        scheduledAt += action.Delay.Value;
+
+                    tasks.Add(new SendPresetActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId,
+                        FlowId = leadState.FlowId,
+                        NodeId = node.Id,
+                        ActionId = action.Id,
+                        ScheduledAt = scheduledAt,
+                        CreatedAt = now,
+                        PresetId = action.PresetId,
+                        NeedPin = action.NeedPin                        
+                    });
+                }
+                break;
+
+            case ManageTagNodeData manageTag:
+                
+                foreach (var action in manageTag.Actions)
+                {
+                    tasks.Add(new ManageTagActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId,
+                        FlowId = leadState.FlowId,
+                        NodeId = node.Id,
+                        ActionId = action.Id,                        
+                        CreatedAt = now,
+                        Operation = action.Operation,
+                        TagId = action.TagId,
+                        ReplacementTagId = action.ReplacementTagId
+                    });
+                }
+                break;
+        }
+
+        return tasks;
+    }
+    #endregion
+
+    #region public
     public async Task EnterFunnel(EnterFunnelRequest request, CancellationToken ct)
     {
         var funnel = funnelCache.GetFunnel(request.FunnelId)
@@ -45,12 +102,13 @@ public class LeadProgressionService : ILeadProgressionService
         var leadState = new FunnelLeadState
         {
             Id = Guid.CreateVersion7(),
-            TenantId = request.TenantId,            
+            TenantId = request.TenantId,
             BotId = request.BotId,
             ChatId = request.ChatId,
             FunnelId = request.FunnelId,
             FlowId = request.FlowId,
-            NodeId = request.NodeId
+            NodeId = request.NodeId,
+            Status = node.Data.FinishStatus
         };
 
         var actionTasks = CreateActionTasks(leadState, node);
@@ -115,7 +173,7 @@ public class LeadProgressionService : ILeadProgressionService
         var targetNode = flow.Nodes.FirstOrDefault(n => n.Id == selectedEdge.Target)
             ?? throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
 
-        await actionTaskRepository.CancelPendingByLeadAndNode(leadStateId, leadState.NodeId, ct);
+        await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
 
         var actionTasks = CreateActionTasks(leadState, targetNode);
 
@@ -137,57 +195,17 @@ public class LeadProgressionService : ILeadProgressionService
             await TransitionToNextNode(leadStateId, ct);
     }
 
-    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Node node)
+    public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)
     {
-        var now = DateTime.UtcNow;
-        var tasks = new List<ActionTaskDocument>();
+        var leadState = await leadStateRepository.GetByChatId(tenantId, chatId, CancellationToken.None);
+        if (leadState is null)
+            return;
 
-        switch (node.Data)
-        {
-            case SendPresetNodeData sendPreset:
-                var scheduledAt = now;
-                foreach (var action in sendPreset.Actions)
-                {
-                    if (action.Delay.HasValue)
-                        scheduledAt += action.Delay.Value;
+        await actionTaskRepository.CancelPendingByLead(leadState.Id, CancellationToken.None);
+        await leadStateRepository.Delete(leadState.Id, CancellationToken.None);
 
-                    tasks.Add(new SendPresetActionTaskDocument
-                    {
-                        Id = Guid.CreateVersion7(),
-                        LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId,
-                        FlowId = leadState.FlowId,
-                        NodeId = node.Id,
-                        ActionId = action.Id,
-                        ScheduledAt = scheduledAt,
-                        CreatedAt = now,
-                        PresetId = action.PresetId,
-                        NeedPin = action.NeedPin                        
-                    });
-                }
-                break;
-
-            case ManageTagNodeData manageTag:
-                
-                foreach (var action in manageTag.Actions)
-                {
-                    tasks.Add(new ManageTagActionTaskDocument
-                    {
-                        Id = Guid.CreateVersion7(),
-                        LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId,
-                        FlowId = leadState.FlowId,
-                        NodeId = node.Id,
-                        ActionId = action.Id,                        
-                        CreatedAt = now,
-                        Operation = action.Operation,
-                        TagId = action.TagId,
-                        ReplacementTagId = action.ReplacementTagId
-                    });
-                }
-                break;
-        }
-
-        return tasks;
+        logger.LogInformation("Lead state {LeadStateId} cleared for chat {ChatId}", leadState.Id, chatId);
     }
+
+    #endregion
 }

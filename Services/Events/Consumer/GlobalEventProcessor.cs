@@ -26,6 +26,10 @@ public class GlobalEventProcessor(
                 await HandleSubscriptionChanged(rawPayload, ct);
                 break;
 
+            case EventTypes.ChatDeleted:
+                await HandleChatDeletion(rawPayload, ct);
+                break;
+
             default:
                 logger.LogDebug("Unhandled event type '{EventType}', skipping", eventType);
                 break;
@@ -80,14 +84,36 @@ public class GlobalEventProcessor(
             TenantId: p.TenantId,            
             BotId: p.BotId,
             ChatId: p.ChatId,
+            LeadId: entryPoint.LeadId,
             FunnelId: entryPoint.FunnelId,
             FlowId: entryPoint.FlowId,
             NodeId: entryPoint.NodeId);
 
         await leadProgressionService.EnterFunnel(request, ct);
+    }
 
-        logger.LogInformation(
-            "Lead entered funnel {FunnelId} for chat {ChatId} via subscription event",
-            entryPoint.FunnelId, p.ChatId);
+    private async Task HandleChatDeletion(string rawPayload, CancellationToken ct)
+    {
+        IncomingEvent<ChatDeletionPayload>? incoming;
+        try
+        {
+            incoming = JsonSerializer.Deserialize<IncomingEvent<ChatDeletionPayload>>(rawPayload, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "Failed to deserialize {EventType}", EventTypes.ChatDeleted);
+            return;
+        }
+
+        if (incoming is null)
+        {
+            logger.LogWarning("Received null payload for {EventType}", EventTypes.ChatDeleted);
+            return;
+        }
+
+        var p = incoming.Payload;
+
+        await leadProgressionService.ClearLeadStateByChat(p.TenantId, p.ChatId);        
     }
 }
+
