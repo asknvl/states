@@ -27,6 +27,7 @@ namespace states.Controllers
         [HttpPost]
         [Produces("application/json")]
         [SwaggerOperation(Summary = "Creates a new funnel")]
+        [SwaggerRequestExample(typeof(FunnelDto), typeof(FlowExample))]
         [ProducesResponseType(typeof(FunnelDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

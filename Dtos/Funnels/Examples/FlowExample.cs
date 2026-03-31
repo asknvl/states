@@ -33,7 +33,7 @@ namespace states.Dtos.Funnels.Examples
                 Nodes: new List<Node>()
                 {
                     new Node(
-                        Id: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
+                        Id: new Guid("0195e9f7-6c00-7a31-8b54-1f2c9d7e4a01"),
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new StartNodeData(
@@ -42,7 +42,7 @@ namespace states.Dtos.Funnels.Examples
                         )
                     ),
                     new Node(
-                        Id: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
+                        Id: new Guid("0195e9f7-6c01-7f82-9c13-2a7b4d8e5f02"),
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new ManageTagNodeData(
@@ -61,7 +61,7 @@ namespace states.Dtos.Funnels.Examples
                         )
                     ),
                     new Node(
-                        Id: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
+                        Id: new Guid("0195e9f7-6c02-71d4-a6b9-3c8e5f1a7d03"),
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new SendPresetNodeData(
@@ -72,14 +72,14 @@ namespace states.Dtos.Funnels.Examples
                                 new SendPresetAction(
                                     Id: new Guid("0195930e-84a6-79f2-b2d4-7e0a1c8f5b36"),
                                     Delay: TimeSpan.FromSeconds(2),
-                                    PresetId: new Guid("6950dd26-6ea6-4616-869b-8ae0466301cc"),
+                                    PresetId: new Guid("4e53c6d3-199e-403b-bdbe-3b568d745647"),
                                     NeedPin: false
                                 )
                             }
                         )
                     ),
                     new Node(
-                        Id: new Guid("0195930e-84a7-74ab-9d6f-3b1c7e2a8f49"),
+                        Id: new Guid("0195e9f7-6c03-7b95-8f21-4d9a6c2b8e04"),
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new SendPresetNodeData(
@@ -90,7 +90,7 @@ namespace states.Dtos.Funnels.Examples
                                 new SendPresetAction(
                                     Id: new Guid("0195930e-84a8-7e5c-a3f1-4d9b6c0e2a78"),
                                     Delay: TimeSpan.FromSeconds(2),
-                                    PresetId: new Guid("6950dd26-6ea6-4616-869b-8ae0466301cc"),
+                                    PresetId: new Guid("38d33986-f59e-40fd-aa83-9d220d5b62b3"),
                                     NeedPin: false
                                 )
                             }
@@ -101,20 +101,20 @@ namespace states.Dtos.Funnels.Examples
                 {
                     new PassEdge(
                         Id: new Guid("0195930e-84a9-71d8-b7a4-9c2e5f1d3b64"),
-                        Source: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
-                        Target: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10")
+                        Source: new Guid("0195e9f7-6c00-7a31-8b54-1f2c9d7e4a01"),
+                        Target: new Guid("0195e9f7-6c01-7f82-9c13-2a7b4d8e5f02")
                     ),
                     new SplitEdge(
                         Id: new Guid("0195930e-84aa-7c63-8b1f-2d7a4e9c5f20"),
-                        Source: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
-                        Target: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
-                        Percentage: 10
+                        Source: new Guid("0195e9f7-6c01-7f82-9c13-2a7b4d8e5f02"),
+                        Target: new Guid("0195e9f7-6c02-71d4-a6b9-3c8e5f1a7d03"),
+                        Percentage: 50
                     ),
                     new SplitEdge(
                         Id: new Guid("0195930e-9340-7a91-8c4d-2f6b1e7a5032"),
-                        Source: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"),
-                        Target: new Guid("0195930e-84a7-74ab-9d6f-3b1c7e2a8f49"),
-                        Percentage: 10
+                        Source: new Guid("0195e9f7-6c01-7f82-9c13-2a7b4d8e5f02"),
+                        Target: new Guid("0195e9f7-6c03-7b95-8f21-4d9a6c2b8e04"),
+                        Percentage: 50
                     )
                 }
             );
