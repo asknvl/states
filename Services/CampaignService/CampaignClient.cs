@@ -12,6 +12,7 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
+    //
     public async Task<FunnelEntryPoint?> GetFunnelEntryPoint(
         Guid tenantId,
         Guid botId,
