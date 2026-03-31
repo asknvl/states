@@ -2,8 +2,7 @@ namespace states.Dtos.Funnels;
 
 public sealed record FunnelCreateDto(
     Guid TenantId,
-    Guid SpaceId,
-    Guid BotId,
+    Guid SpaceId,    
     string Name,
     string? Description
 );
