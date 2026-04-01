@@ -1,14 +1,17 @@
 using states.Mongo.Documents;
+using states.Services.TgEngineService;
 
 namespace states.Services.LeadService.Worker;
 
 public class ActionExecutor : IActionExecutor
 {
     private readonly ILogger<ActionExecutor> logger;
+    private readonly ITGEngineClient tgengine;
 
-    public ActionExecutor(ILogger<ActionExecutor> logger)
+    public ActionExecutor(ITGEngineClient tgengine, ILogger<ActionExecutor> logger)
     {
         this.logger = logger;
+        this.tgengine = tgengine;
     }
 
     public async Task Execute(ActionTaskDocument task, CancellationToken ct)
@@ -33,6 +36,12 @@ public class ActionExecutor : IActionExecutor
         // TODO: вызов сервиса отправки пресетов (HTTP / gRPC)
         logger.LogInformation("Executing SendPreset: PresetId={PresetId}, NeedPin={NeedPin}, LeadState={LeadStateId}",
             task.PresetId, task.NeedPin, task.LeadStateId);
+
+        await tgengine.SendPreset(
+
+
+
+            );                     
 
         await Task.CompletedTask;
     }

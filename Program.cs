@@ -13,6 +13,7 @@ using states.Services.FunnelService.Runtime;
 using states.Services.LeadService;
 using states.Services.LeadService.Routing;
 using states.Services.CampaignService;
+using states.Services.TgEngineService;
 using states.Services.Events.Consumer;
 using states.Services.LeadService.Worker;
 using states.Swagger;
@@ -147,6 +148,14 @@ namespace states
             {
                 var baseUrl = builder.Configuration["CampaignClient:EndPoint"]
                     ?? throw new InvalidOperationException("CampaignClient:EndPoint not configured");
+                client.BaseAddress = new Uri(baseUrl);
+            });
+
+            // TgEngine service
+            builder.Services.AddHttpClient<ITGEngineClient, TgEngineClient>(client =>
+            {
+                var baseUrl = builder.Configuration["TgEngineClient:EndPoint"]
+                    ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
             });
 

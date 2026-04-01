@@ -49,6 +49,7 @@ public class LeadProgressionService : ILeadProgressionService
                     tasks.Add(new SendPresetActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
                         LeadStateId = leadState.Id,
                         FunnelId = leadState.FunnelId,
                         FlowId = leadState.FlowId,
@@ -56,6 +57,9 @@ public class LeadProgressionService : ILeadProgressionService
                         ActionId = action.Id,
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
+
+                        BotId = leadState.BotId,
+                        ChatId = leadState.ChatId,
                         PresetId = action.PresetId,
                         NeedPin = action.NeedPin                        
                     });
@@ -69,12 +73,14 @@ public class LeadProgressionService : ILeadProgressionService
                     tasks.Add(new ManageTagActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
                         LeadStateId = leadState.Id,
                         FunnelId = leadState.FunnelId,
                         FlowId = leadState.FlowId,
                         NodeId = node.Id,
                         ActionId = action.Id,                        
                         CreatedAt = now,
+
                         Operation = action.Operation,
                         TagId = action.TagId,
                         ReplacementTagId = action.ReplacementTagId

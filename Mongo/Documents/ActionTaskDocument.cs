@@ -13,6 +13,14 @@ public abstract class ActionTaskDocument
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid Id { get; set; }
 
+    [BsonElement("tenantId")]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
+    public Guid TenantId { get; set; }
+
+    [BsonElement("spaceId")]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
+    public Guid SpaceId { get; set; }
+
     [BsonElement("leadStateId")]
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid LeadStateId { get; set; }
@@ -62,6 +70,14 @@ public sealed class SendPresetActionTaskDocument : ActionTaskDocument
     [BsonElement("presetId")]
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid PresetId { get; set; }
+
+    [BsonElement("botId")]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
+    public Guid BotId { get; set; }
+
+    [BsonElement("chatId")]
+    [BsonGuidRepresentation(GuidRepresentation.Standard)]
+    public Guid ChatId { get; set; }
 
     [BsonElement("needPin")]
     public bool NeedPin { get; set; }
