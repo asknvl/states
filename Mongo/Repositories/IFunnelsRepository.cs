@@ -7,8 +7,8 @@ namespace states.Mongo.Repositories
         Task Create(FunnelDocument document, CancellationToken ct);
         Task UpdateMetadata(Guid funnelId, string name, string? description, CancellationToken ct);
 
-        Task<IReadOnlyCollection<FunnelDocument>> GetByTenant(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct);
-        Task<FunnelDocument> Get(Guid funnelId);
+        Task<IReadOnlyCollection<FunnelDocument>> GetFunnels(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct);
+        Task<FunnelDocument> Get(Guid funnelId);           
 
         Task AddFlow(Guid funnelId, FlowDocument flow, CancellationToken ct);
         Task UpdateFlow(Guid funnelId, FlowDocument flow, CancellationToken ct);

@@ -8,5 +8,5 @@ namespace states.Dtos.Funnels
             string Name,
             List<Node> Nodes,
             List<Edge> Edges
-        );
+        );    
 }

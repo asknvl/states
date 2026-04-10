@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using states.Dtos.Funnels;
 using states.Dtos.Funnels.Examples;
+using states.Dtos.Nodes;
 using states.Services.FunnelService.Application;
 using Swashbuckle.AspNetCore.Annotations;
 using Swashbuckle.AspNetCore.Filters;
@@ -73,6 +74,17 @@ namespace states.Controllers
             return Ok(result);
         }
 
+        [HttpGet("short")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Gets short funnel list by tenant, optionally filtered by space")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<FunnelShortDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetShort([FromQuery] Guid tenantId, [FromQuery] Guid? spaceId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.GetShort(tenantId, spaceId, ct);
+            return Ok(result);
+        }
+
         [HttpPatch("{funnelId:guid}/active")]
         [SwaggerOperation(Summary = "Sets the active state of a funnel")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -100,6 +112,18 @@ namespace states.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{funnelId:guid}/flows/short")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Gets short flow list for a funnel")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<FlowShortDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetFlowsShort([FromRoute] Guid funnelId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.GetFlowsShort(funnelId, ct);
+            return Ok(result);
+        }
+
         [HttpPost("{funnelId:guid}/flows")]
         [Produces("application/json")]
         [SwaggerOperation(Summary = "Adds a flow to a funnel")]
@@ -123,6 +147,18 @@ namespace states.Controllers
         public async Task<IActionResult> UpdateFlow([FromRoute] Guid funnelId, [FromRoute] Guid flowId, [FromBody] Flow flow, CancellationToken ct)
         {
             var result = await funnelsApplicationService.UpdateFlow(funnelId, flow with { Id = flowId }, ct);
+            return Ok(result);
+        }
+
+        [HttpGet("{funnelId:guid}/flows/{flowId:guid}/nodes/short")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Gets short node list for a flow")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<NodeShortDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetNodesShort([FromRoute] Guid funnelId, [FromRoute] Guid flowId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.GetNodesShort(funnelId, flowId, ct);
             return Ok(result);
         }
 

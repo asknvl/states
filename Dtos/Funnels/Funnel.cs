@@ -12,5 +12,4 @@ namespace states.Dtos.Funnels
             List<Flow> Flows,
             bool? IsActive
         );
-    
 }

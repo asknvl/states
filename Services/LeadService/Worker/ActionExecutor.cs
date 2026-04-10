@@ -37,11 +37,11 @@ public class ActionExecutor : IActionExecutor
         logger.LogInformation("Executing SendPreset: PresetId={PresetId}, NeedPin={NeedPin}, LeadState={LeadStateId}",
             task.PresetId, task.NeedPin, task.LeadStateId);
 
-        await tgengine.SendPreset(
+        //await tgengine.SendPreset(
 
+            //TODO
 
-
-            );                     
+        //    );                     
 
         await Task.CompletedTask;
     }

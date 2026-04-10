@@ -1,4 +1,5 @@
 ﻿using states.Dtos.Funnels;
+using states.Dtos.Nodes;
 using states.Mongo.Mappers;
 using states.Mongo.Repositories;
 
@@ -41,8 +42,14 @@ namespace states.Services.FunnelService.Application
 
         public async Task<IReadOnlyCollection<FunnelDto>> Get(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct)
         {
-            var documents = await repository.GetByTenant(tenantId, spaceId, botId, ct);
+            var documents = await repository.GetFunnels(tenantId, spaceId, botId, ct);
             return documents.Select(x => x.ToFunnelDto()).ToList();
+        }
+
+        public async Task<IReadOnlyCollection<FunnelShortDto>> GetShort(Guid tenantId, Guid? spaceId, CancellationToken ct)
+        {
+            var documents = await repository.GetFunnels(tenantId, spaceId, null, ct);
+            return documents.Select(x => new FunnelShortDto(x.Id, x.Name)).ToList();
         }
 
         public async Task SetIsActive(Guid funnelId, bool isActive, CancellationToken ct)
@@ -89,6 +96,20 @@ namespace states.Services.FunnelService.Application
             var flow = document.Flows.FirstOrDefault(f => f.Id == flowId)
                 ?? throw new KeyNotFoundException($"Flow '{flowId}' not found in funnel '{funnelId}'.");
             return flow.ToDto();
+        }
+
+        public async Task<IReadOnlyCollection<FlowShortDto>> GetFlowsShort(Guid funnelId, CancellationToken ct)
+        {
+            var document = await repository.Get(funnelId);
+            return document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList();
+        }
+
+        public async Task<IReadOnlyCollection<NodeShortDto>> GetNodesShort(Guid funnelId, Guid flowId, CancellationToken ct)
+        {
+            var document = await repository.Get(funnelId);
+            var flow = document.Flows.FirstOrDefault(f => f.Id == flowId)
+                ?? throw new KeyNotFoundException($"Flow '{flowId}' not found in funnel '{funnelId}'.");
+            return flow.Nodes.Select(n => new NodeShortDto(n.Id, n.Data.Label)).ToList();
         }
 
         public async Task<Flow> AddFlow(Guid funnelId, Flow flow, CancellationToken ct)
