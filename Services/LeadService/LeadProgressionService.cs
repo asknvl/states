@@ -111,10 +111,11 @@ public class LeadProgressionService : ILeadProgressionService
             TenantId = request.TenantId,
             BotId = request.BotId,
             ChatId = request.ChatId,
+            LeadId = request.LeadId,
             FunnelId = request.FunnelId,
             FlowId = request.FlowId,
             NodeId = request.NodeId,
-            Status = node.Data.FinishStatus
+            Status = LeadFunnelStatus.Nothing            
         };
 
         var actionTasks = CreateActionTasks(leadState, node);
@@ -144,7 +145,12 @@ public class LeadProgressionService : ILeadProgressionService
             leadState.Id, funnel.Id, node.Id);
 
         if (actionTasks.Count == 0)
-            await TransitionToNextNode(leadState.Id, ct);
+        {
+            if (node.Data.FinishStatus != LeadFunnelStatus.Waiting)
+            {
+                await TransitionToNextNode(leadState.Id, ct);
+            }
+        }
     }
 
     public async Task TransitionToNextNode(Guid leadStateId, CancellationToken ct)

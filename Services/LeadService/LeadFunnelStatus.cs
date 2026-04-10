@@ -5,6 +5,7 @@
         Nothing,
         Waiting,
         Manual,
-        Finished
+        Finished,
+        Blocked
     }
 }

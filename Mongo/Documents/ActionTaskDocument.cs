@@ -55,6 +55,9 @@ public abstract class ActionTaskDocument
     [BsonElement("claimedAt")]
     public DateTime? ClaimedAt { get; set; }
 
+    [BsonElement("order")]
+    public int Order { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; }
 

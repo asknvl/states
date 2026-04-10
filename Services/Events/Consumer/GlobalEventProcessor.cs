@@ -22,8 +22,12 @@ public class GlobalEventProcessor(
     {
         switch (eventType)
         {
-            case EventTypes.SubscriptionBotStatusChanged:
+            case EventTypes.BotActivationStatusChanged:
                 await HandleSubscriptionChanged(rawPayload, ct);
+                break;
+
+            case EventTypes.IncomingMessageSignal:
+                await HandleIncomingMessageSignal(rawPayload, ct);
                 break;
 
             case EventTypes.ChatDeleted:
@@ -45,13 +49,13 @@ public class GlobalEventProcessor(
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "Failed to deserialize {EventType}", EventTypes.SubscriptionBotStatusChanged);
+            logger.LogError(ex, "Failed to deserialize {EventType}", EventTypes.BotActivationStatusChanged);
             return;
         }
 
         if (incoming is null)
         {
-            logger.LogWarning("Received null payload for {EventType}", EventTypes.SubscriptionBotStatusChanged);
+            logger.LogWarning("Received null payload for {EventType}", EventTypes.BotActivationStatusChanged);
             return;
         }
 
@@ -74,7 +78,7 @@ public class GlobalEventProcessor(
 
         if (entryPoint is null)
         {
-            logger.LogWarning(
+            logger.LogError(
                 "No active campaign found for tenant {TenantId}, bot {BotId} — cannot enter funnel",
                 p.TenantId, p.BotId);
             return;
@@ -90,6 +94,30 @@ public class GlobalEventProcessor(
             NodeId: entryPoint.NodeId);
 
         await leadProgressionService.EnterFunnel(request, ct);
+    }
+
+    private async Task HandleIncomingMessageSignal(string rawPayload, CancellationToken ct)
+    {
+        IncomingEvent<IncomingMessageSignalPayload>? incoming;
+        try
+        {
+            incoming = JsonSerializer.Deserialize<IncomingEvent<IncomingMessageSignalPayload>>(rawPayload, JsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "Failed to deserialize {EventType}", EventTypes.IncomingMessageSignal);
+            return;
+        }
+
+        if (incoming is null)
+        {
+            logger.LogWarning("Received null payload for {EventType}", EventTypes.IncomingMessageSignal);
+            return;
+        }
+
+        var p = incoming.Payload;
+        
+        
     }
 
     private async Task HandleChatDeletion(string rawPayload, CancellationToken ct)

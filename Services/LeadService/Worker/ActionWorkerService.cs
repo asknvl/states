@@ -77,12 +77,17 @@ public sealed class ActionWorkerService : BackgroundService
             logger.LogInformation("Action task {TaskId} completed for lead {LeadStateId}",
                 task.Id, task.LeadStateId);
 
-            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);
+            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);            
+
             if (allDone)
-            {
+            {                
                 logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, transitioning",
                     task.LeadStateId, task.NodeId);
-                await progressionService.TransitionToNextNode(task.LeadStateId, ct);
+
+                var leadState = await leadStateRepository.Get(task.LeadStateId, ct);
+                
+                if (leadState.Status == LeadFunnelStatus.Nothing)
+                    await progressionService.TransitionToNextNode(task.LeadStateId, ct);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
