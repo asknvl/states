@@ -44,6 +44,7 @@ public class ActionExecutor : IActionExecutor
             task.SpaceId,
             task.BotId,
             task.ChatId,
+            task.FunnelId,            
             task.PresetId,
             ct);
     }

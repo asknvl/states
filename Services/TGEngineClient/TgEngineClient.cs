@@ -19,10 +19,17 @@ public class TGEngineClient : ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        Guid funnelId,
         Guid presetId,        
         CancellationToken ct)
     {
-        var body = new SendPresetRequest(tenantId, spaceId, botId, chatId, presetId);
+        var body = new SendPresetRequest(
+            tenantId,
+            spaceId,
+            botId,
+            chatId,
+            funnelId,
+            presetId);
 
         HttpResponseMessage response;
 
@@ -48,6 +55,8 @@ public class TGEngineClient : ITGEngineClient
         Guid BotId,
         [property: JsonPropertyName("chatId")]
         Guid ChatId,
+        [property: JsonPropertyName("funnelId")]
+        Guid FunnelId,
         [property: JsonPropertyName("presetId")]
         Guid PresetId        
     );

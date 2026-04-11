@@ -8,38 +8,30 @@ namespace states.Mongo.Documents
     public class FunnelLeadState
     {
         [BsonId]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid Id { get; set; }
 
         [BsonElement("tenantId")]       
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid TenantId { get; set; }
 
         [BsonElement("spaceId")]    
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid SpaceId { get; set; }
 
         [BsonElement("botId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid BotId { get; set; }
 
         [BsonElement("chatId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid ChatId { get; set; }
 
         [BsonElement("leadId")]
         public string LeadId { get; set; }
 
         [BsonElement("funnelId")]    
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid FunnelId { get; set; }
 
         [BsonElement("flowId")]       
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid FlowId { get; set; }
 
         [BsonElement("nodeId")]       
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid NodeId { get; set; }
 
         [BsonElement("status")]
@@ -56,7 +48,6 @@ namespace states.Mongo.Documents
     public class StateLogEntry
     {
         [BsonElement("nodeId")]        
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid NodeId { get; set; }
 
         [BsonElement("enteredAt")]
@@ -66,7 +57,6 @@ namespace states.Mongo.Documents
         public DateTime? LeftAt { get; set; }
 
         [BsonElement("exitEdgeId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid? ExitEdgeId { get; set; }
 
         [BsonElement("actions")]        
@@ -76,7 +66,6 @@ namespace states.Mongo.Documents
     public class ActionStatusEntry
     {
         [BsonElement("actionId")]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid ActionId { get; set; }
 
         [BsonElement("type")]
@@ -89,6 +78,9 @@ namespace states.Mongo.Documents
 
         [BsonElement("timeStamp")]
         public DateTime StatusChangedAt { get; set; }
+
+        [BsonElement("errorMessage")]
+        public string? ErrorMessage { get; set; }
     }
 
     public enum ActionStatus

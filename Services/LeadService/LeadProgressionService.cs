@@ -52,6 +52,7 @@ public class LeadProgressionService : ILeadProgressionService
                     {
                         Id = Guid.CreateVersion7(),
                         TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
                         LeadStateId = leadState.Id,
                         FunnelId = leadState.FunnelId,
                         FlowId = leadState.FlowId,
@@ -61,7 +62,7 @@ public class LeadProgressionService : ILeadProgressionService
                         Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
-
+                        
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
                         PresetId = action.PresetId,
@@ -78,6 +79,7 @@ public class LeadProgressionService : ILeadProgressionService
                     {
                         Id = Guid.CreateVersion7(),
                         TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
                         LeadStateId = leadState.Id,
                         FunnelId = leadState.FunnelId,
                         FlowId = leadState.FlowId,
@@ -115,6 +117,7 @@ public class LeadProgressionService : ILeadProgressionService
         {
             Id = Guid.CreateVersion7(),
             TenantId = request.TenantId,
+            SpaceId = request.SpaceId,
             BotId = request.BotId,
             ChatId = request.ChatId,
             LeadId = request.LeadId,

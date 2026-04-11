@@ -10,35 +10,27 @@ namespace states.Mongo.Documents;
 public abstract class ActionTaskDocument
 {
     [BsonId]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid Id { get; set; }
 
     [BsonElement("tenantId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid TenantId { get; set; }
 
     [BsonElement("spaceId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid SpaceId { get; set; }
 
     [BsonElement("leadStateId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid LeadStateId { get; set; }
 
     [BsonElement("funnelId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid FunnelId { get; set; }
 
     [BsonElement("flowId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid FlowId { get; set; }
 
     [BsonElement("nodeId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid NodeId { get; set; }
 
     [BsonElement("actionId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid ActionId { get; set; }
 
     [BsonElement("type")]
@@ -74,17 +66,14 @@ public abstract class ActionTaskDocument
 
 public sealed class SendPresetActionTaskDocument : ActionTaskDocument
 {
-    [BsonElement("presetId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
-    public Guid PresetId { get; set; }
-
     [BsonElement("botId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid BotId { get; set; }
 
     [BsonElement("chatId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid ChatId { get; set; }
+
+    [BsonElement("presetId")]
+    public Guid PresetId { get; set; }
 
     [BsonElement("needPin")]
     public bool NeedPin { get; set; }
@@ -99,14 +88,12 @@ public sealed class ManageTagActionTaskDocument : ActionTaskDocument
     public TagOperation Operation { get; set; }
 
     [BsonElement("tagId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid TagId { get; set; }
 
     [BsonElement("tagName")]
     public string TagName { get; set; } = default!;
 
     [BsonElement("replacementTagId")]
-    [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid? ReplacementTagId { get; set; }
 
     [BsonElement("replacementTagName")]

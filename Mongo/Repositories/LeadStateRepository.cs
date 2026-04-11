@@ -85,13 +85,20 @@ public class LeadStateRepository : ILeadStateRepository
         await collection.UpdateOneAsync(filter, pushNextState, cancellationToken: ct);
     }
 
-    public async Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct)
+    public async Task UpdateActionStatus(
+        Guid leadStateId,
+        Guid nodeId,
+        Guid actionId,
+        ActionStatus status,
+        CancellationToken ct,
+        string? errorMessage = null)
     {
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
 
         var update = Builders<FunnelLeadState>.Update
             .Set("statesLog.$[state].actions.$[action].status", status.ToString())
-            .Set("statesLog.$[state].actions.$[action].timeStamp", DateTime.UtcNow);
+            .Set("statesLog.$[state].actions.$[action].timeStamp", DateTime.UtcNow)
+            .Set("statesLog.$[state].actions.$[action].errorMessage", errorMessage);
 
         var arrayFilters = new List<ArrayFilterDefinition>
         {

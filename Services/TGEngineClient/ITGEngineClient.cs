@@ -7,6 +7,7 @@ public interface ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        Guid funnelId,        
         Guid presetId,        
         CancellationToken ct);
 }

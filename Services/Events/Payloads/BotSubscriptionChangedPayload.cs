@@ -2,6 +2,7 @@ namespace states.Services.Events.Payloads;
 
 public record BotSubscriptionChangedPayload(
     Guid TenantId,
+    Guid SpaceId,
     Guid BotId,
     Guid ChatId,
     Guid GlobalId,

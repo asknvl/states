@@ -85,7 +85,8 @@ public class GlobalEventProcessor(
         }
 
         var request = new EnterFunnelRequest(
-            TenantId: p.TenantId,            
+            TenantId: p.TenantId,   
+            SpaceId: p.SpaceId,
             BotId: p.BotId,
             ChatId: p.ChatId,
             LeadId: entryPoint.LeadId,

@@ -100,7 +100,7 @@ public sealed class ActionWorkerService : BackgroundService
             logger.LogError(ex, "Action task {TaskId} failed", task.Id);
             await taskRepository.Fail(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(
-                task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct);
+                task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct, ex.Message);
 
             if (task.IsCritical)
             {

@@ -8,15 +8,12 @@ namespace states.Mongo.Documents
     public class FunnelDocument
     {
         [BsonId]
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("id")]
         public Guid Id { get; init; }
 
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("tenantId")]
         public Guid TenantId { get; init; }
 
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("spaceId")]
         public Guid SpaceId { get; init; }       
 
@@ -38,7 +35,6 @@ namespace states.Mongo.Documents
 
     public class FlowDocument
     {
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid Id { get; set; }
 
         [BsonElement("name")]
@@ -53,7 +49,6 @@ namespace states.Mongo.Documents
 
     public sealed record TagDocument
     {
-        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         [BsonElement("id")]
         public Guid Id { get; init; }
 

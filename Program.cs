@@ -21,6 +21,7 @@ using states.Services.LeadService.Worker;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
 using System.Reflection;
+using MongoDB.Bson.Serialization;
 
 namespace states
 {
