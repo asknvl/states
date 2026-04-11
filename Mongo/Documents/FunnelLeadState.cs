@@ -46,6 +46,9 @@ namespace states.Mongo.Documents
         [BsonRepresentation(BsonType.String)]
         public LeadFunnelStatus Status {  get; set; }
 
+        [BsonElement("tags")]
+        public List<Guid> Tags { get; set; } = [];
+
         [BsonElement("statesLog")]
         public List<StateLogEntry> StatesLog { get; set; } = [];
     }
@@ -62,7 +65,8 @@ namespace states.Mongo.Documents
         [BsonElement("leftAt")]
         public DateTime? LeftAt { get; set; }
 
-        [BsonElement("exitEdgeId")]        
+        [BsonElement("exitEdgeId")]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid? ExitEdgeId { get; set; }
 
         [BsonElement("actions")]        
@@ -71,6 +75,8 @@ namespace states.Mongo.Documents
 
     public class ActionStatusEntry
     {
+        [BsonElement("actionId")]
+        [BsonGuidRepresentation(GuidRepresentation.Standard)]
         public Guid ActionId { get; set; }
 
         [BsonElement("type")]

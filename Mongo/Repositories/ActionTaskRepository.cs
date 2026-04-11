@@ -85,12 +85,26 @@ public class ActionTaskRepository : IActionTaskRepository
     {
         var filter = Builders<ActionTaskDocument>.Filter.And(
             Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, leadStateId),
-            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+            Builders<ActionTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting })
         );
 
         var update = Builders<ActionTaskDocument>.Update
             .Set(x => x.Status, ActionStatus.Cancelled);
 
         await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+    }
+
+    public async Task UnlockNext(Guid leadStateId, Guid nodeId, int completedOrder, CancellationToken ct)
+    {
+        var filter = Builders<ActionTaskDocument>.Filter.And(
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, leadStateId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.NodeId, nodeId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Order, completedOrder + 1),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Waiting)
+        );
+
+        var update = Builders<ActionTaskDocument>.Update.Set(x => x.Status, ActionStatus.Pending);
+
+        await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
     }
 }

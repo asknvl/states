@@ -1,6 +1,8 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
+using states.Services.LeadService;
 
 namespace states.Mongo.Repositories;
 
@@ -13,13 +15,13 @@ public class LeadStateRepository : ILeadStateRepository
         collection = context.LeadStates;
     }
 
-    public async Task<FunnelLeadState> Create(FunnelLeadState state, CancellationToken ct)
+    public async Task<FunnelLeadState> CreateLeadState(FunnelLeadState state, CancellationToken ct)
     {
         await collection.InsertOneAsync(state, cancellationToken: ct);
         return state;
     }
 
-    public async Task<FunnelLeadState> Get(Guid leadStateId, CancellationToken ct)
+    public async Task<FunnelLeadState> GetLeadState(Guid leadStateId, CancellationToken ct)
     {
         var state = await collection
             .Find(x => x.Id == leadStateId)
@@ -31,14 +33,14 @@ public class LeadStateRepository : ILeadStateRepository
         return state;
     }
 
-    public async Task<FunnelLeadState?> GetByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    public async Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
     {
         return await collection
             .Find(x => x.TenantId == tenantId && x.BotId == botId && x.ChatId == chatId)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<FunnelLeadState?> GetByChatId(Guid tenantId, Guid chatId, CancellationToken ct)
+    public async Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid chatId, CancellationToken ct)
     {
         return await collection
             .Find(x => x.TenantId == tenantId && x.ChatId == chatId)
@@ -51,10 +53,26 @@ public class LeadStateRepository : ILeadStateRepository
 
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
 
-        var update = Builders<FunnelLeadState>.Update
+        // MongoDB не позволяет в одном update одновременно менять элементы массива через $[...]
+        // и делать $push в тот же массив — разбиваем на два вызова.
+
+        var closeCurrentState = Builders<FunnelLeadState>.Update
             .Set(x => x.NodeId, nextNodeId)
-            .Set(x => x.StatesLog[-1].LeftAt, now)
-            .Set(x => x.StatesLog[-1].ExitEdgeId, edgeId)
+            .Set("statesLog.$[currentState].leftAt", now)
+            .Set("statesLog.$[currentState].exitEdgeId", new BsonBinaryData(edgeId, GuidRepresentation.Standard));
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new BsonDocumentArrayFilterDefinition<FunnelLeadState>(
+                new BsonDocument("currentState.leftAt", BsonNull.Value))
+        };
+
+        var result = await collection.UpdateOneAsync(filter, closeCurrentState, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+        var pushNextState = Builders<FunnelLeadState>.Update
             .Push(x => x.StatesLog, new StateLogEntry
             {
                 NodeId = nextNodeId,
@@ -62,10 +80,9 @@ public class LeadStateRepository : ILeadStateRepository
                 ActionsLog = actions
             });
 
-        var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+        //TODO OUTBOX
 
-        if (result.MatchedCount == 0)
-            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+        await collection.UpdateOneAsync(filter, pushNextState, cancellationToken: ct);
     }
 
     public async Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct)
@@ -73,7 +90,7 @@ public class LeadStateRepository : ILeadStateRepository
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
 
         var update = Builders<FunnelLeadState>.Update
-            .Set("statesLog.$[state].actions.$[action].status", status)
+            .Set("statesLog.$[state].actions.$[action].status", status.ToString())
             .Set("statesLog.$[state].actions.$[action].timeStamp", DateTime.UtcNow);
 
         var arrayFilters = new List<ArrayFilterDefinition>
@@ -92,6 +109,47 @@ public class LeadStateRepository : ILeadStateRepository
         };
 
         await collection.UpdateOneAsync(filter, update, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
+    }
+
+    public async Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+        var update = Builders<FunnelLeadState>.Update.Set(x => x.Status, status);
+
+        //TODO OUTBOX
+
+        var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+    }
+
+    public async Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+        UpdateDefinition<FunnelLeadState> update = operation switch
+        {
+            TagOperation.Add =>
+                Builders<FunnelLeadState>.Update.AddToSet(x => x.Tags, tagId),
+
+            TagOperation.Remove =>
+                Builders<FunnelLeadState>.Update.Pull(x => x.Tags, tagId),
+
+            TagOperation.Replace when replacementTagId.HasValue =>
+                Builders<FunnelLeadState>.Update
+                    .Pull(x => x.Tags, tagId)
+                    .AddToSet(x => x.Tags, replacementTagId.Value),
+
+            _ => throw new InvalidOperationException($"Unsupported tag operation: {operation}")
+        };
+
+        var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+        //TODO OUTBOX
     }
 
     public async Task Delete(Guid leadStateId, CancellationToken ct)

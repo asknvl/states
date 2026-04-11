@@ -16,6 +16,8 @@ namespace states.Mongo
         {
             await CreateFunnelsCollection(ct);
             await CreateFunnelsIndexes(ct);
+            await CreateLeadStatesCollection(ct);
+            await CreateLeadStatesIndexes(ct);
         }
 
         #region collections
@@ -30,6 +32,18 @@ namespace states.Mongo
 
             await database.CreateCollectionAsync("funnels", cancellationToken: ct);
         }
+
+        private async Task CreateLeadStatesCollection(CancellationToken ct)
+        {
+            var collectionNames = await database
+                .ListCollectionNames()
+                .ToListAsync(ct);
+
+            if (collectionNames.Contains("lead_states"))
+                return;
+
+            await database.CreateCollectionAsync("lead_states", cancellationToken: ct);
+        }
         #endregion
 
         #region indexes
@@ -41,8 +55,24 @@ namespace states.Mongo
             {
                 new CreateIndexModel<FunnelDocument>(
                     Builders<FunnelDocument>.IndexKeys
-                        .Ascending(x => x.TenantId)                        
+                        .Ascending(x => x.TenantId)
                         .Descending(x => x.Id))
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
+        private async Task CreateLeadStatesIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<FunnelLeadState>("lead_states");
+
+            var indexes = new List<CreateIndexModel<FunnelLeadState>>
+            {
+                new CreateIndexModel<FunnelLeadState>(
+                    Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.FunnelId)
+                        .Ascending(x => x.LeadId),
+                    new CreateIndexOptions { Unique = true })
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

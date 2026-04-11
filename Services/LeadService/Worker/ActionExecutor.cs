@@ -1,17 +1,23 @@
 using states.Mongo.Documents;
+using states.Mongo.Repositories;
 using states.Services.TgEngineService;
 
 namespace states.Services.LeadService.Worker;
 
 public class ActionExecutor : IActionExecutor
 {
-    private readonly ILogger<ActionExecutor> logger;
     private readonly ITGEngineClient tgengine;
+    private readonly ILeadStateRepository leadStateRepository;
+    private readonly ILogger<ActionExecutor> logger;
 
-    public ActionExecutor(ITGEngineClient tgengine, ILogger<ActionExecutor> logger)
+    public ActionExecutor(
+        ITGEngineClient tgengine,
+        ILeadStateRepository leadStateRepository,
+        ILogger<ActionExecutor> logger)
     {
-        this.logger = logger;
         this.tgengine = tgengine;
+        this.leadStateRepository = leadStateRepository;
+        this.logger = logger;
     }
 
     public async Task Execute(ActionTaskDocument task, CancellationToken ct)
@@ -19,11 +25,11 @@ public class ActionExecutor : IActionExecutor
         switch (task)
         {
             case SendPresetActionTaskDocument sendPreset:
-                await ExecuteSendPreset(sendPreset, ct);
+                await ExecuteSendPreset(sendPreset, ct);                
                 break;
 
-            case ManageTagActionTaskDocument manageTag:
-                await ExecuteManageTag(manageTag, ct);
+            case ManageTagActionTaskDocument manageTag:                
+                await ExecuteManageTag(manageTag, ct);                
                 break;
 
             default:
@@ -33,25 +39,17 @@ public class ActionExecutor : IActionExecutor
 
     private async Task ExecuteSendPreset(SendPresetActionTaskDocument task, CancellationToken ct)
     {
-        // TODO: вызов сервиса отправки пресетов (HTTP / gRPC)
-        logger.LogInformation("Executing SendPreset: PresetId={PresetId}, NeedPin={NeedPin}, LeadState={LeadStateId}",
-            task.PresetId, task.NeedPin, task.LeadStateId);
-
-        //await tgengine.SendPreset(
-
-            //TODO
-
-        //    );                     
-
-        await Task.CompletedTask;
+        await tgengine.SendPreset(
+            task.TenantId,
+            task.SpaceId,
+            task.BotId,
+            task.ChatId,
+            task.PresetId,
+            ct);
     }
 
     private async Task ExecuteManageTag(ManageTagActionTaskDocument task, CancellationToken ct)
     {
-        // TODO: вызов сервиса управления тегами лида
-        logger.LogInformation("Executing ManageTag: Operation={Operation}, TagId={TagId}, LeadState={LeadStateId}",
-            task.Operation, task.TagId, task.LeadStateId);
-
-        await Task.CompletedTask;
+        await leadStateRepository.ManageTag(task.LeadStateId, task.Operation, task.TagId, task.ReplacementTagId, ct);
     }
 }

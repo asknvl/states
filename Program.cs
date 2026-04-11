@@ -1,3 +1,5 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
@@ -101,6 +103,8 @@ namespace states
                 });
             });
 
+            BsonSerializer.RegisterSerializer(new GuidSerializer(GuidRepresentation.Standard));
+
             builder.Services.AddSingleton<IMongoClient>(sp =>
             {
                 var config = sp.GetRequiredService<IConfiguration>();
@@ -152,7 +156,7 @@ namespace states
             });
 
             // TgEngine service
-            builder.Services.AddHttpClient<ITGEngineClient, TgEngineClient>(client =>
+            builder.Services.AddHttpClient<ITGEngineClient, TGEngineClient>(client =>
             {
                 var baseUrl = builder.Configuration["TgEngineClient:EndPoint"]
                     ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");

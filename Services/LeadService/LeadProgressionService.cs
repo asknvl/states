@@ -1,3 +1,4 @@
+using MongoDB.Driver;
 using states.Dtos.Edges;
 using states.Dtos.Leads;
 using states.Dtos.Nodes;
@@ -41,8 +42,9 @@ public class LeadProgressionService : ILeadProgressionService
         {
             case SendPresetNodeData sendPreset:
                 var scheduledAt = now;
-                foreach (var action in sendPreset.Actions)
+                for (var i = 0; i < sendPreset.Actions.Count; i++)
                 {
+                    var action = sendPreset.Actions[i];
                     if (action.Delay.HasValue)
                         scheduledAt += action.Delay.Value;
 
@@ -55,21 +57,23 @@ public class LeadProgressionService : ILeadProgressionService
                         FlowId = leadState.FlowId,
                         NodeId = node.Id,
                         ActionId = action.Id,
+                        Order = i,
+                        Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
 
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
                         PresetId = action.PresetId,
-                        NeedPin = action.NeedPin                        
+                        NeedPin = action.NeedPin
                     });
                 }
                 break;
 
             case ManageTagNodeData manageTag:
-                
-                foreach (var action in manageTag.Actions)
+                for (var i = 0; i < manageTag.Actions.Count; i++)
                 {
+                    var action = manageTag.Actions[i];
                     tasks.Add(new ManageTagActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
@@ -78,7 +82,9 @@ public class LeadProgressionService : ILeadProgressionService
                         FunnelId = leadState.FunnelId,
                         FlowId = leadState.FlowId,
                         NodeId = node.Id,
-                        ActionId = action.Id,                        
+                        ActionId = action.Id,
+                        Order = i,
+                        Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
                         CreatedAt = now,
 
                         Operation = action.Operation,
@@ -115,7 +121,7 @@ public class LeadProgressionService : ILeadProgressionService
             FunnelId = request.FunnelId,
             FlowId = request.FlowId,
             NodeId = request.NodeId,
-            Status = LeadFunnelStatus.Nothing            
+            Status = node.Data.FinishStatus           
         };
 
         var actionTasks = CreateActionTasks(leadState, node);
@@ -138,7 +144,17 @@ public class LeadProgressionService : ILeadProgressionService
             }
         ];
 
-        await leadStateRepository.Create(leadState, ct);
+        try
+        {
+            await leadStateRepository.CreateLeadState(leadState, ct);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
+        {
+            logger.LogWarning("Lead {LeadId} already exists in funnel {FunnelId}, skipping entry",
+                request.LeadId, request.FunnelId);
+            return;
+        }
+
         await actionTaskRepository.CreateMany(actionTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} entered funnel {FunnelId} at node {NodeId}",
@@ -155,7 +171,7 @@ public class LeadProgressionService : ILeadProgressionService
 
     public async Task TransitionToNextNode(Guid leadStateId, CancellationToken ct)
     {
-        var leadState = await leadStateRepository.Get(leadStateId, ct);
+        var leadState = await leadStateRepository.GetLeadState(leadStateId, ct);
 
         var funnel = funnelCache.GetFunnel(leadState.FunnelId)
             ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
@@ -171,6 +187,9 @@ public class LeadProgressionService : ILeadProgressionService
         {
             logger.LogInformation("Lead {LeadStateId} reached end of funnel {FunnelId}",
                 leadStateId, leadState.FunnelId);
+
+            leadState.Status = LeadFunnelStatus.Finished;
+
             return;
         }
 
@@ -182,8 +201,12 @@ public class LeadProgressionService : ILeadProgressionService
             return;
         }
 
-        var targetNode = flow.Nodes.FirstOrDefault(n => n.Id == selectedEdge.Target)
-            ?? throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
+        var targetNode = flow.Nodes.FirstOrDefault(n => n.Id == selectedEdge.Target);
+        if (targetNode == null)
+        {
+            await leadStateRepository.UpdateLeadStateStatus(leadStateId, LeadFunnelStatus.Manual, ct);
+            throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
+        }            
 
         await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
 
@@ -197,7 +220,10 @@ public class LeadProgressionService : ILeadProgressionService
             StatusChangedAt = DateTime.UtcNow
         }).ToList();
 
+        leadState.Status = targetNode.Data.FinishStatus;
+
         await leadStateRepository.MoveToNode(leadStateId, selectedEdge.Id, targetNode.Id, actionStatusEntries, ct);
+
         await actionTaskRepository.CreateMany(actionTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} transitioned to node {NodeId} via edge {EdgeId}",
@@ -209,7 +235,7 @@ public class LeadProgressionService : ILeadProgressionService
 
     public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)
     {
-        var leadState = await leadStateRepository.GetByChatId(tenantId, chatId, CancellationToken.None);
+        var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, CancellationToken.None);
         if (leadState is null)
             return;
 

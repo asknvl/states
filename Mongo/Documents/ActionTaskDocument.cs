@@ -58,12 +58,16 @@ public abstract class ActionTaskDocument
     [BsonElement("order")]
     public int Order { get; set; }
 
+    [BsonElement("isCritical")]
+    public bool IsCritical { get; set; }
+
     [BsonElement("createdAt")]
     public DateTime CreatedAt { get; set; }
 
-    protected ActionTaskDocument(ActionType type)
+    protected ActionTaskDocument(ActionType type, bool isCritical)
     {
         Type = type;
+        IsCritical = isCritical;
         Status = ActionStatus.Pending;
     }
 }
@@ -85,7 +89,7 @@ public sealed class SendPresetActionTaskDocument : ActionTaskDocument
     [BsonElement("needPin")]
     public bool NeedPin { get; set; }
 
-    public SendPresetActionTaskDocument() : base(ActionType.SendPreset) { }
+    public SendPresetActionTaskDocument() : base(ActionType.SendPreset, isCritical: true) { }
 }
 
 public sealed class ManageTagActionTaskDocument : ActionTaskDocument
@@ -98,9 +102,15 @@ public sealed class ManageTagActionTaskDocument : ActionTaskDocument
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid TagId { get; set; }
 
+    [BsonElement("tagName")]
+    public string TagName { get; set; } = default!;
+
     [BsonElement("replacementTagId")]
     [BsonGuidRepresentation(GuidRepresentation.Standard)]
     public Guid? ReplacementTagId { get; set; }
 
-    public ManageTagActionTaskDocument() : base(ActionType.ManageTag) { }
+    [BsonElement("replacementTagName")]
+    public string? ReplacementTagName { get; set; }
+
+    public ManageTagActionTaskDocument() : base(ActionType.ManageTag, isCritical: true) { }
 }

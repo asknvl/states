@@ -73,6 +73,7 @@ public sealed class ActionWorkerService : BackgroundService
             await taskRepository.Complete(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(
                 task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Completed, ct);
+            await taskRepository.UnlockNext(task.LeadStateId, task.NodeId, task.Order, ct);
 
             logger.LogInformation("Action task {TaskId} completed for lead {LeadStateId}",
                 task.Id, task.LeadStateId);
@@ -84,7 +85,7 @@ public sealed class ActionWorkerService : BackgroundService
                 logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, transitioning",
                     task.LeadStateId, task.NodeId);
 
-                var leadState = await leadStateRepository.Get(task.LeadStateId, ct);
+                var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
                 
                 if (leadState.Status == LeadFunnelStatus.Nothing)
                     await progressionService.TransitionToNextNode(task.LeadStateId, ct);
@@ -100,6 +101,11 @@ public sealed class ActionWorkerService : BackgroundService
             await taskRepository.Fail(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(
                 task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct);
+
+            if (task.IsCritical)
+            {
+                await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Manual, ct);
+            }
         }
         finally
         {

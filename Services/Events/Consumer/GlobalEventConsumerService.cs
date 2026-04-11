@@ -48,7 +48,7 @@ public class GlobalEventConsumerService(
             ConsumeResult<string, string>? result = null;
             try
             {
-                result = consumer.Consume(stoppingToken);
+                  result = consumer.Consume(stoppingToken);
 
                 var eventType = ExtractEventType(result.Message.Value);
                 if (eventType is null)
