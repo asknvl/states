@@ -1,4 +1,4 @@
-namespace states.Services.Events.Payloads;
+namespace states.Services.Events.Consumer.Payloads;
 
 public record BotSubscriptionChangedPayload(
     Guid TenantId,

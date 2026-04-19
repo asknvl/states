@@ -1,6 +1,6 @@
 ﻿using states.Logging;
 
-namespace states.Services.Events
+namespace states.Services.Events.Producer
 {
     public class LogEventService : IEventService
     {

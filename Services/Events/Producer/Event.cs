@@ -1,4 +1,4 @@
-﻿namespace states.Services.Events
+﻿namespace states.Services.Events.Producer
 {
     public abstract record Event<TPayload>
     {

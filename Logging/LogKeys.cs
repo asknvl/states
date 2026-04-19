@@ -1,4 +1,4 @@
-﻿using states.Services.Events;
+﻿using states.Services.Events.Producer;
 
 namespace states.Logging
 {

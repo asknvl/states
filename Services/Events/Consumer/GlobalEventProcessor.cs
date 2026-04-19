@@ -2,7 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using states.Dtos.Leads;
 using states.Services.CampaignService;
-using states.Services.Events.Payloads;
+using states.Services.Events.Consumer.Payloads;
 using states.Services.LeadService;
 
 namespace states.Services.Events.Consumer;

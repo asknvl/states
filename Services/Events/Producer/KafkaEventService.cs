@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using states.Logging;
 
-namespace states.Services.Events
+namespace states.Services.Events.Producer
 {
     public class KafkaEventService : IEventService
     {

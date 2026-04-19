@@ -22,6 +22,9 @@ namespace states.Mongo.Documents
         [BsonElement("chatId")]
         public Guid ChatId { get; set; }
 
+        [BsonElement("campaignId")]
+        public Guid CampaignId { get; set; }
+
         [BsonElement("leadId")]
         public string LeadId { get; set; }
 
@@ -81,7 +84,7 @@ namespace states.Mongo.Documents
 
         [BsonElement("errorMessage")]
         public string? ErrorMessage { get; set; }
-    }
+    }    
 
     public enum ActionStatus
     {
