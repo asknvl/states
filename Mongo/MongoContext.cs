@@ -10,12 +10,14 @@ namespace states.Mongo
         public IMongoCollection<FunnelDocument> Funnels { get; }
         public IMongoCollection<FunnelLeadState> LeadStates { get; }
         public IMongoCollection<ActionTaskDocument> ActionTasks { get; }
+        public IMongoCollection<ChangeStreamCheckpoint> ChangeStreamCheckpoints { get; }
 
         public MongoContext(IMongoDatabase database)
         {
             Funnels = database.GetCollection<FunnelDocument>("funnels");
             LeadStates = database.GetCollection<FunnelLeadState>("lead_states");
             ActionTasks = database.GetCollection<ActionTaskDocument>("action_tasks");
+            ChangeStreamCheckpoints = database.GetCollection<ChangeStreamCheckpoint>("change_stream_checkpoints");
         }
     }
 }

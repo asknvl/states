@@ -191,7 +191,8 @@ public class LeadProgressionService : ILeadProgressionService
             logger.LogInformation("Lead {LeadStateId} reached end of funnel {FunnelId}",
                 leadStateId, leadState.FunnelId);
 
-            leadState.Status = LeadFunnelStatus.Finished;
+            //leadState.Status = LeadFunnelStatus.Finished;
+            await leadStateRepository.UpdateLeadStateStatus(leadStateId, LeadFunnelStatus.Finished, ct);
 
             return;
         }
@@ -223,7 +224,8 @@ public class LeadProgressionService : ILeadProgressionService
             StatusChangedAt = DateTime.UtcNow
         }).ToList();
 
-        leadState.Status = targetNode.Data.FinishStatus;
+        //leadState.Status = targetNode.Data.FinishStatus;
+        await leadStateRepository.UpdateLeadStateStatus(leadStateId, targetNode.Data.FinishStatus, ct);
 
         await leadStateRepository.MoveToNode(leadStateId, selectedEdge.Id, targetNode.Id, actionStatusEntries, ct);
 

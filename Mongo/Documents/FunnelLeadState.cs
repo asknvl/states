@@ -41,6 +41,9 @@ namespace states.Mongo.Documents
         [BsonRepresentation(BsonType.String)]
         public LeadFunnelStatus Status {  get; set; }
 
+        [BsonElement("version")]
+        public long Version { get; set; }
+
         [BsonElement("tags")]
         public List<Guid> Tags { get; set; } = [];
 

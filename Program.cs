@@ -16,7 +16,9 @@ using states.Services.LeadService;
 using states.Services.LeadService.Routing;
 using states.Services.CampaignService;
 using states.Services.TgEngineService;
+using Confluent.Kafka;
 using states.Services.Events.Consumer;
+using states.Services.Events.Producer;
 using states.Services.LeadService.Worker;
 using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
@@ -163,6 +165,22 @@ namespace states
                     ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
             });
+
+            // Kafka producer
+            builder.Services.AddSingleton<IProducer<string, string>>(sp =>
+            {
+                var config = sp.GetRequiredService<IConfiguration>();
+                var producerConfig = new ProducerConfig
+                {
+                    BootstrapServers = config["Kafka:BootstrapServers"]
+                        ?? throw new InvalidOperationException("Kafka:BootstrapServers not configured"),
+                    ClientId = config["Kafka:ClientId"],
+                    BrokerAddressFamily = BrokerAddressFamily.V4
+                };
+                return new ProducerBuilder<string, string>(producerConfig).Build();
+            });
+            builder.Services.AddSingleton<IEventService, KafkaEventService>();
+            builder.Services.AddHostedService<LeadStateChangeStreamWorker>();
 
             // Telegram Kafka consumer
             builder.Services.AddSingleton<IGlobalEventProcessor, GlobalEventProcessor>();

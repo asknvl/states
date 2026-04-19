@@ -47,7 +47,12 @@ public class LeadStateRepository : ILeadStateRepository
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct)
+    public async Task MoveToNode(
+        Guid leadStateId,
+        Guid edgeId,
+        Guid nextNodeId,
+        List<ActionStatusEntry> actions,
+        CancellationToken ct)
     {
         var now = DateTime.UtcNow;
 
@@ -78,7 +83,8 @@ public class LeadStateRepository : ILeadStateRepository
                 NodeId = nextNodeId,
                 EnteredAt = now,
                 ActionsLog = actions
-            });
+            })
+            .Inc(x => x.Version, 1);
 
         //TODO OUTBOX
 
@@ -121,7 +127,9 @@ public class LeadStateRepository : ILeadStateRepository
     public async Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct)
     {
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
-        var update = Builders<FunnelLeadState>.Update.Set(x => x.Status, status);
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Status, status)
+            .Inc(x => x.Version, 1);
 
         //TODO OUTBOX
 
@@ -150,6 +158,8 @@ public class LeadStateRepository : ILeadStateRepository
 
             _ => throw new InvalidOperationException($"Unsupported tag operation: {operation}")
         };
+
+        update = Builders<FunnelLeadState>.Update.Combine(update, Builders<FunnelLeadState>.Update.Inc(x => x.Version, 1));
 
         var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
 

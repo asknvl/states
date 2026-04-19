@@ -7,7 +7,7 @@ namespace states.Mongo.Repositories;
 public interface ILeadStateRepository
 {
     Task<FunnelLeadState> CreateLeadState(FunnelLeadState state, CancellationToken ct);
-    Task<FunnelLeadState> GetLeadState(Guid leadStateId, CancellationToken ct);
+    Task<FunnelLeadState?> GetLeadState(Guid leadStateId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid chatId, CancellationToken ct);
     Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct);
