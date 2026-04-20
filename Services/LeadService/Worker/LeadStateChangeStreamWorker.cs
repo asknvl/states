@@ -2,6 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using states.Mongo;
 using states.Mongo.Documents;
+using states.Mongo.Documents.ChangeStream;
 using states.Services.Events.Producer;
 using states.Services.Events.Producer.Payloads;
 using states.Services.FunnelService.Runtime;
@@ -115,14 +116,13 @@ public sealed class LeadStateChangeStreamWorker(
 
     private Task PublishCreated(FunnelLeadState doc, CancellationToken ct)
     {
-        var payload = new LeadStateCreatedPayload(
-            doc.Id,
+        var payload = new LeadStateCreatedPayload(            
             doc.TenantId,
             doc.SpaceId,
             doc.BotId,
-            doc.ChatId,
-            doc.CampaignId,
+            doc.ChatId,            
             doc.LeadId,
+            doc.CampaignId,
             doc.FunnelId,
             doc.FlowId,
             doc.NodeId,
@@ -134,10 +134,12 @@ public sealed class LeadStateChangeStreamWorker(
 
     private Task PublishStatusChanged(FunnelLeadState doc, CancellationToken ct)
     {
-        var payload = new LeadStatusChangedPayload(
-            doc.Id,
+        var payload = new LeadStatusChangedPayload(            
             doc.TenantId,
+            doc.SpaceId,
+            doc.BotId,
             doc.ChatId,
+            doc.LeadId,
             doc.Status,
             doc.Version);
 
@@ -148,10 +150,12 @@ public sealed class LeadStateChangeStreamWorker(
     {
         var nodeLabel = ResolveNodeLabel(doc.FunnelId, doc.FlowId, doc.NodeId);
 
-        var payload = new LeadNodeChangedPayload(
-            doc.Id,
+        var payload = new LeadNodeChangedPayload(            
             doc.TenantId,
+            doc.SpaceId,
+            doc.BotId,
             doc.ChatId,
+            doc.LeadId,
             doc.NodeId,
             nodeLabel,
             doc.Version);

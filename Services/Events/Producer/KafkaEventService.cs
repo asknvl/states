@@ -68,13 +68,13 @@ namespace states.Services.Events.Producer
         private static string ResolveKey<TPayload>(Event<TPayload> @event)
         {
             if (@event.Payload is LeadStateCreatedPayload createdPayload)
-                return createdPayload.LeadStateId.ToString();
+                return createdPayload.ChatId.ToString();
 
             if (@event.Payload is LeadStatusChangedPayload statusPayload)
-                return statusPayload.LeadStateId.ToString();
+                return statusPayload.ChatId.ToString();
 
             if (@event.Payload is LeadNodeChangedPayload nodePayload)
-                return nodePayload.LeadStateId.ToString();
+                return nodePayload.ChatId.ToString();
 
             return @event.Id.ToString();
         }

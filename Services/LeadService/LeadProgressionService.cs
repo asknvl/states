@@ -171,7 +171,6 @@ public class LeadProgressionService : ILeadProgressionService
             }
         }
     }
-
     public async Task TransitionToNextNode(Guid leadStateId, CancellationToken ct)
     {
         var leadState = await leadStateRepository.GetLeadState(leadStateId, ct);
@@ -237,7 +236,6 @@ public class LeadProgressionService : ILeadProgressionService
         if (actionTasks.Count == 0)
             await TransitionToNextNode(leadStateId, ct);
     }
-
     public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)
     {
         var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, CancellationToken.None);
@@ -250,5 +248,21 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead state {LeadStateId} cleared for chat {ChatId}", leadState.Id, chatId);
     }
 
+    public async Task SetLeadFlowAndNode(
+        Guid tenantId,
+        string leadId,
+        Guid FlowId,
+        Guid NodeId)
+    {
+        await Task.CompletedTask;
+    }
+
+    public async Task SetLeadStatus(
+        Guid tenantId,
+        string leadId,
+        LeadFunnelStatus status)
+    {
+        await Task.CompletedTask;
+    }
     #endregion
 }

@@ -1,7 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace states.Mongo.Documents
+namespace states.Mongo.Documents.ChangeStream
 {
     /// <summary>
     /// Хранит resume token change stream для возобновления после рестарта.

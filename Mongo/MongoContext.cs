@@ -2,6 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
 using states.Mongo.Documents;
+using states.Mongo.Documents.ChangeStream;
 
 namespace states.Mongo
 {
