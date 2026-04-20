@@ -47,6 +47,46 @@ public class LeadStateRepository : ILeadStateRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<FunnelLeadState?> GetLeadStateByLeadId(Guid tenantId, string leadId, CancellationToken ct)
+    {
+        return await collection
+            .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task SetFlowAndNode(Guid leadStateId, Guid flowId, Guid nodeId, List<ActionStatusEntry> actions, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+        var closeCurrentState = Builders<FunnelLeadState>.Update
+            .Set(x => x.FlowId, flowId)
+            .Set(x => x.NodeId, nodeId)
+            .Set("statesLog.$[currentState].leftAt", now);
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new BsonDocumentArrayFilterDefinition<FunnelLeadState>(
+                new BsonDocument("currentState.leftAt", BsonNull.Value))
+        };
+
+        var result = await collection.UpdateOneAsync(filter, closeCurrentState, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+        var pushNextState = Builders<FunnelLeadState>.Update
+            .Push(x => x.StatesLog, new StateLogEntry
+            {
+                NodeId = nodeId,
+                EnteredAt = now,
+                ActionsLog = actions
+            })
+            .Inc(x => x.Version, 1);
+
+        await collection.UpdateOneAsync(filter, pushNextState, cancellationToken: ct);
+    }
+
     public async Task MoveToNode(
         Guid leadStateId,
         Guid edgeId,

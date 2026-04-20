@@ -248,21 +248,53 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead state {LeadStateId} cleared for chat {ChatId}", leadState.Id, chatId);
     }
 
-    public async Task SetLeadFlowAndNode(
-        Guid tenantId,
-        string leadId,
-        Guid FlowId,
-        Guid NodeId)
+    public async Task SetLeadFlowAndNode(Guid tenantId, string leadId, Guid flowId, Guid nodeId, CancellationToken ct)
     {
-        await Task.CompletedTask;
+        var leadState = await leadStateRepository.GetLeadStateByLeadId(tenantId, leadId, ct)
+            ?? throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
+
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId)
+            ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
+
+        var flow = funnel.Flows.FirstOrDefault(f => f.Id == flowId)
+            ?? throw new InvalidOperationException($"Flow '{flowId}' not found in funnel '{funnel.Id}'.");
+
+        var node = flow.Nodes.FirstOrDefault(n => n.Id == nodeId)
+            ?? throw new InvalidOperationException($"Node '{nodeId}' not found in flow '{flow.Id}'.");
+
+        await actionTaskRepository.CancelPendingByLead(leadState.Id, ct);
+
+        leadState.FlowId = flowId;
+        leadState.NodeId = nodeId;
+        var actionTasks = CreateActionTasks(leadState, node);
+
+        var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+        {
+            ActionId = t.ActionId,
+            Type = t.Type,
+            Status = ActionStatus.Pending,
+            StatusChangedAt = DateTime.UtcNow
+        }).ToList();
+
+        await leadStateRepository.UpdateLeadStateStatus(leadState.Id, node.Data.FinishStatus, ct);
+        await leadStateRepository.SetFlowAndNode(leadState.Id, flowId, nodeId, actionStatusEntries, ct);
+        await actionTaskRepository.CreateMany(actionTasks, ct);
+
+        logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}",
+            leadState.Id, flowId, nodeId);
+
+        if (actionTasks.Count == 0)
+            await TransitionToNextNode(leadState.Id, ct);
     }
 
-    public async Task SetLeadStatus(
-        Guid tenantId,
-        string leadId,
-        LeadFunnelStatus status)
+    public async Task SetLeadStatus(Guid tenantId, string leadId, LeadFunnelStatus status, CancellationToken ct)
     {
-        await Task.CompletedTask;
+        var leadState = await leadStateRepository.GetLeadStateByLeadId(tenantId, leadId, ct)
+            ?? throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
+
+        await leadStateRepository.UpdateLeadStateStatus(leadState.Id, status, ct);
+
+        logger.LogInformation("Lead {LeadStateId} status manually set to {Status}", leadState.Id, status);
     }
     #endregion
 }
