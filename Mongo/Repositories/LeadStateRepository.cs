@@ -209,6 +209,21 @@ public class LeadStateRepository : ILeadStateRepository
         //TODO OUTBOX
     }
 
+    public async Task SetTags(Guid leadStateId, List<Guid> tags, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Tags, tags)
+            .Inc(x => x.Version, 1);
+
+        var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+        if (result.MatchedCount == 0)
+            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+        //TODO OUTBOX
+    }
+
     public async Task Delete(Guid leadStateId, CancellationToken ct)
     {
         var result = await collection.DeleteOneAsync(x => x.Id == leadStateId, ct);

@@ -296,5 +296,39 @@ public class LeadProgressionService : ILeadProgressionService
 
         logger.LogInformation("Lead {LeadStateId} status manually set to {Status}", leadState.Id, status);
     }
+
+    public async Task UpdateLeadState(Guid tenantId, string leadId, SetLeadStateRequest dto, CancellationToken ct)
+    {
+        var leadState = await leadStateRepository.GetLeadStateByLeadId(tenantId, leadId, ct)
+            ?? throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
+
+        await ApplyLeadStateUpdate(leadState, dto, ct);
+    }
+
+    public async Task UpdateLeadStateByChatId(Guid tenantId, Guid chatId, SetLeadStateRequest dto, CancellationToken ct)
+    {
+        var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, ct)
+            ?? throw new KeyNotFoundException($"Lead state for chat '{chatId}' not found.");
+
+        await ApplyLeadStateUpdate(leadState, dto, ct);
+    }
+
+    private async Task ApplyLeadStateUpdate(FunnelLeadState leadState, SetLeadStateRequest dto, CancellationToken ct)
+    {
+        if (dto.FlowId.HasValue && dto.NodeId.HasValue)
+            await SetLeadFlowAndNode(leadState.TenantId, leadState.LeadId, dto.FlowId.Value, dto.NodeId.Value, ct);
+
+        if (dto.Status.HasValue)
+        {
+            await leadStateRepository.UpdateLeadStateStatus(leadState.Id, dto.Status.Value, ct);
+            logger.LogInformation("Lead {LeadStateId} status manually set to {Status}", leadState.Id, dto.Status.Value);
+        }
+
+        if (dto.Tags is not null)
+        {
+            await leadStateRepository.SetTags(leadState.Id, dto.Tags, ct);
+            logger.LogInformation("Lead {LeadStateId} tags set to [{Tags}]", leadState.Id, string.Join(", ", dto.Tags));
+        }
+    }
     #endregion
 }

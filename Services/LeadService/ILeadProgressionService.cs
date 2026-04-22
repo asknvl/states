@@ -9,4 +9,6 @@ public interface ILeadProgressionService
     Task ClearLeadStateByChat(Guid tenantId, Guid chatId);
     Task SetLeadFlowAndNode(Guid tenantId, string leadId, Guid flowId, Guid nodeId, CancellationToken ct);
     Task SetLeadStatus(Guid tenantId, string leadId, LeadFunnelStatus status, CancellationToken ct);
+    Task UpdateLeadState(Guid tenantId, string leadId, SetLeadStateRequest dto, CancellationToken ct);
+    Task UpdateLeadStateByChatId(Guid tenantId, Guid chatId, SetLeadStateRequest dto, CancellationToken ct);
 }

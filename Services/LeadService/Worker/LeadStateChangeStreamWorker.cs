@@ -6,6 +6,7 @@ using states.Mongo.Documents.ChangeStream;
 using states.Services.Events.Producer;
 using states.Services.Events.Producer.Payloads;
 using states.Services.FunnelService.Runtime;
+using FunnelTag = states.Dtos.Funnels.Tag;
 
 namespace states.Services.LeadService.Worker;
 
@@ -33,7 +34,8 @@ public sealed class LeadStateChangeStreamWorker(
                             new BsonDocument("$or", new BsonArray
                             {
                                 new BsonDocument("updateDescription.updatedFields.status", new BsonDocument("$exists", true)),
-                                new BsonDocument("updateDescription.updatedFields.nodeId",  new BsonDocument("$exists", true))
+                                new BsonDocument("updateDescription.updatedFields.nodeId",  new BsonDocument("$exists", true)),
+                                new BsonDocument("updateDescription.updatedFields.tags",    new BsonDocument("$exists", true))
                             })
                         })
                     }
@@ -112,6 +114,9 @@ public sealed class LeadStateChangeStreamWorker(
 
         if (updatedFields.Contains("nodeId"))
             await PublishNodeChanged(doc, ct);
+
+        if (updatedFields.Contains("tags"))
+            await PublishTagChanged(doc, ct);
     }
 
     private Task PublishCreated(FunnelLeadState doc, CancellationToken ct)
@@ -161,6 +166,32 @@ public sealed class LeadStateChangeStreamWorker(
             doc.Version);
 
         return eventService.Publish(new LeadNodeChangedEvent(payload), ct);
+    }
+
+    private Task PublishTagChanged(FunnelLeadState doc, CancellationToken ct)
+    {
+        var tags = ResolveTags(doc.FunnelId, doc.Tags);
+
+        var payload = new LeadTagChangedPayload(
+            doc.TenantId,
+            doc.SpaceId,
+            doc.BotId,
+            doc.ChatId,
+            doc.LeadId,
+            tags,
+            doc.Version);
+
+        return eventService.Publish(new LeadTagChangedEvent(payload), ct);
+    }
+
+    private List<FunnelTag> ResolveTags(Guid funnelId, List<Guid> tagIds)
+    {
+        var funnel = funnelCache.GetFunnel(funnelId);
+        if (funnel is null) return [];
+
+        return funnel.Tags
+            .Where(t => tagIds.Contains(t.Id))
+            .ToList();
     }
 
     private string? ResolveNodeLabel(Guid funnelId, Guid flowId, Guid nodeId)

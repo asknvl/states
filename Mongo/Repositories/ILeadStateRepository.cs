@@ -17,5 +17,6 @@ public interface ILeadStateRepository
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
     Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct);
     Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);
+    Task SetTags(Guid leadStateId, List<Guid> tags, CancellationToken ct);
     Task Delete(Guid leadStateId, CancellationToken ct);
 }
