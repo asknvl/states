@@ -6,6 +6,10 @@ public sealed record EnterFunnelRequest(
     Guid BotId,
     Guid ChatId,
     string LeadId,
+    Guid CampaignId,
+    string CampaignName,
+    string? SourceId,
+    string? SourceName,
     Guid FunnelId,
     Guid FlowId,
     Guid NodeId

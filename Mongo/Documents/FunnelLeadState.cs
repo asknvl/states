@@ -25,6 +25,15 @@ namespace states.Mongo.Documents
         [BsonElement("campaignId")]
         public Guid CampaignId { get; set; }
 
+        [BsonElement("campaignName")]
+        public string CampaignName { get; set; }
+
+        [BsonElement("sourceId")]
+        public string? SourceId { get; set; }
+
+        [BsonElement("sourceName")]
+        public string? SourceName { get; set; }
+
         [BsonElement("leadId")]
         public string LeadId { get; set; }
 

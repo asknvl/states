@@ -46,14 +46,32 @@ public sealed class LeadStateCreatedOutboxDocument : OutboxDocument
     [BsonElement("campaignId")]
     public Guid CampaignId { get; set; }
 
+    [BsonElement("campaignName")]
+    public string CampaignName { get; set; }
+
+    [BsonElement("sourceId")]
+    public string SourceId { get; set; }
+
+    [BsonElement("sourceName")]
+    public string SourceName { get; set; }
+
     [BsonElement("funnelId")]
     public Guid FunnelId { get; set; }
+
+    [BsonElement("funnelName")]
+    public string FunnelName { get; set; }
 
     [BsonElement("flowId")]
     public Guid FlowId { get; set; }
 
+    [BsonElement("flowName")]
+    public string FlowName { get; set; }
+
     [BsonElement("nodeId")]
     public Guid NodeId { get; set; }
+
+    [BsonElement("nodeLabel")]
+    public string NodeLabel { get; set; }
 
     [BsonElement("status")]
     [BsonRepresentation(BsonType.String)]

@@ -48,7 +48,7 @@ namespace states.Controllers
             return NoContent();
         }
 
-        [HttpPatch("by-lead")]
+        [HttpPatch]
         [SwaggerOperation(Summary = "Manually update lead state fields by leadId")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -64,20 +64,20 @@ namespace states.Controllers
             return NoContent();
         }
 
-        [HttpPatch("by-chat")]
-        [SwaggerOperation(Summary = "Manually update lead state fields by chatId")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> UpdateLeadStateByChatId(
-            [FromQuery] Guid tenantId,
-            [FromQuery] Guid chatId,
-            [FromBody] SetLeadStateRequest dto,
-            CancellationToken ct)
-        {
-            await leadProgressionService.UpdateLeadStateByChatId(tenantId, chatId, dto, ct);
-            return NoContent();
-        }
+        //[HttpPatch("by-chat")]
+        //[SwaggerOperation(Summary = "Manually update lead state fields by chatId")]
+        //[ProducesResponseType(StatusCodes.Status204NoContent)]
+        //[ProducesResponseType(StatusCodes.Status404NotFound)]
+        //[ProducesResponseType(StatusCodes.Status400BadRequest)]
+        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        //public async Task<IActionResult> UpdateLeadStateByChatId(
+        //    [FromQuery] Guid tenantId,
+        //    [FromQuery] Guid chatId,
+        //    [FromBody] SetLeadStateRequest dto,
+        //    CancellationToken ct)
+        //{
+        //    await leadProgressionService.UpdateLeadStateByChatId(tenantId, chatId, dto, ct);
+        //    return NoContent();
+        //}
     }
 }

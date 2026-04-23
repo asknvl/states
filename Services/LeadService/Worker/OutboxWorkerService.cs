@@ -51,35 +51,84 @@ public sealed class OutboxWorkerService(
 
     private async Task Process(OutboxDocument doc, CancellationToken ct)
     {
+
+        LeadStateChangeEventPayloadBase payload = null;
+
         try
         {
             switch (doc)
             {
                 case LeadStateCreatedOutboxDocument created:
-                    await eventService.Publish(new LeadStateCreatedEvent(new LeadStateCreatedPayload(
-                        created.TenantId, created.SpaceId, created.BotId, created.ChatId,
-                        created.LeadId, created.CampaignId, created.FunnelId,
-                        created.FlowId, created.NodeId, created.Status, created.Version)), ct);
+
+                    var scp = new LeadStateCreatedPayload(
+                            TenantId: created.TenantId,
+                            SpaceId: created.SpaceId,
+                            BotId: created.BotId,
+                            ChatId: created.ChatId,
+                            LeadId: created.LeadId,
+                            CampaignId: created.CampaignId,
+                            CampaignName: created.CampaignName,
+                            SourceId: created.SourceId,
+                            SourceName: created.SourceName,
+                            FunnelId: created.FunnelId,
+                            FunnelName: created.FunnelName,
+                            FlowId: created.FlowId,
+                            FlowName: created.FlowName,
+                            NodeId: created.NodeId,
+                            NodeLabel: created.NodeLabel,
+                            Status: created.Status,
+                            Version: created.Version);
+
+                    await eventService.Publish(new LeadStateCreatedEvent(scp), ct);
+
                     break;
 
                 case LeadStatusChangedOutboxDocument status:
-                    await eventService.Publish(new LeadStatusChangedEvent(new LeadStatusChangedPayload(
-                        status.TenantId, status.SpaceId, status.BotId, status.ChatId,
-                        status.LeadId, status.Status, status.Version)), ct);
+
+                    var lsp = new LeadStatusChangedPayload(
+                        status.TenantId,
+                        status.SpaceId,
+                        status.BotId,
+                        status.ChatId,
+                        status.LeadId,
+                        status.Status,
+                        status.Version);
+
+                    await eventService.Publish(new LeadStatusChangedEvent(lsp), ct);
+
                     break;
 
                 case LeadNodeChangedOutboxDocument node:
+
                     var nodeLabel = ResolveNodeLabel(node.FunnelId, node.FlowId, node.NodeId);
-                    await eventService.Publish(new LeadNodeChangedEvent(new LeadNodeChangedPayload(
-                        node.TenantId, node.SpaceId, node.BotId, node.ChatId,
-                        node.LeadId, node.NodeId, nodeLabel, node.Version)), ct);
+
+                    var lnp = new LeadNodeChangedPayload(
+                        node.TenantId,
+                        node.SpaceId,
+                        node.BotId,
+                        node.ChatId,
+                        node.LeadId,
+                        node.NodeId,
+                        nodeLabel,
+                        node.Version);
+
+                    await eventService.Publish(new LeadNodeChangedEvent(lnp), ct);
                     break;
 
                 case LeadTagChangedOutboxDocument tags:
+
                     var resolvedTags = ResolveTags(tags.FunnelId, tags.Tags);
-                    await eventService.Publish(new LeadTagChangedEvent(new LeadTagChangedPayload(
-                        tags.TenantId, tags.SpaceId, tags.BotId, tags.ChatId,
-                        tags.LeadId, resolvedTags, tags.Version)), ct);
+
+                    var ltc = new LeadTagChangedPayload(
+                        tags.TenantId,
+                        tags.SpaceId,
+                        tags.BotId,
+                        tags.ChatId,
+                        tags.LeadId,
+                        resolvedTags,
+                        tags.Version);
+
+                    await eventService.Publish(new LeadTagChangedEvent(ltc), ct);
                     break;
             }
 

@@ -8,10 +8,16 @@ namespace states.Services.Events.Producer.Payloads
         Guid BotId,
         Guid ChatId,
         string LeadId,
-        Guid CampaignId,        
+        Guid CampaignId,
+        string CampaignName,
+        string SourceId,
+        string SourceName,
         Guid FunnelId,
+        string FunnelName,
         Guid FlowId,
+        string FlowName,
         Guid NodeId,
+        string NodeLabel,
         LeadFunnelStatus Status,
         long Version
     ) : LeadStateChangeEventPayloadBase(

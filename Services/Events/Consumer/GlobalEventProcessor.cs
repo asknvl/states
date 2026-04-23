@@ -90,6 +90,10 @@ public class GlobalEventProcessor(
             BotId: p.BotId,
             ChatId: p.ChatId,
             LeadId: entryPoint.LeadId,
+            CampaignId: entryPoint.CampaignId,
+            CampaignName: entryPoint.CampaignName,
+            SourceId: entryPoint.SourceId,
+            SourceName: entryPoint.SourceName,
             FunnelId: entryPoint.FunnelId,
             FlowId: entryPoint.FlowId,
             NodeId: entryPoint.NodeId);
