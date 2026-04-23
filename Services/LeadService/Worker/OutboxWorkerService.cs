@@ -13,32 +13,27 @@ public sealed class OutboxWorkerService(
     IFunnelRuntimeCache funnelCache,
     ILogger<OutboxWorkerService> logger) : BackgroundService
 {
-    private const int BatchSize = 50;
     private static readonly TimeSpan ClaimTimeout = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan IdleDelay = TimeSpan.FromMilliseconds(200);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield();
-
         logger.LogInformation("OutboxWorkerService started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var batch = await outboxRepository.ClaimBatch(BatchSize, ClaimTimeout, stoppingToken);
+                var doc = await outboxRepository.TakeNext(ClaimTimeout, stoppingToken);
 
-                if (batch.Count == 0)
+                if (doc is null)
                 {
                     await Task.Delay(IdleDelay, stoppingToken);
                     continue;
                 }
 
-                foreach (var doc in batch)
-                {
-                    await Process(doc, stoppingToken);
-                }
+                await Process(doc, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

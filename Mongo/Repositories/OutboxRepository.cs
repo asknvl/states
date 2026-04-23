@@ -12,7 +12,7 @@ public class OutboxRepository : IOutboxRepository
         collection = context.Outbox;
     }
 
-    public async Task<List<OutboxDocument>> ClaimBatch(int size, TimeSpan claimTimeout, CancellationToken ct)
+    public Task<OutboxDocument?> TakeNext(TimeSpan claimTimeout, CancellationToken ct)
     {
         var staleThreshold = DateTime.UtcNow - claimTimeout;
 
@@ -28,16 +28,7 @@ public class OutboxRepository : IOutboxRepository
             Sort = Builders<OutboxDocument>.Sort.Ascending(x => x.CreatedAt)
         };
 
-        var result = new List<OutboxDocument>(size);
-
-        for (var i = 0; i < size; i++)
-        {
-            var doc = await collection.FindOneAndUpdateAsync(filter, update, options, ct);
-            if (doc is null) break;
-            result.Add(doc);
-        }
-
-        return result;
+        return collection.FindOneAndUpdateAsync(filter, update, options, ct)!;
     }
 
     public async Task Delete(Guid id, CancellationToken ct)

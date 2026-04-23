@@ -99,13 +99,11 @@ namespace states.Mongo
 
             var indexes = new List<CreateIndexModel<OutboxDocument>>
             {
-                // для сортировки при ClaimBatch
+                // покрывает фильтр по claimedAt и сортировку по createdAt в одном проходе
                 new CreateIndexModel<OutboxDocument>(
-                    Builders<OutboxDocument>.IndexKeys.Ascending(x => x.CreatedAt)),
-
-                // для фильтрации по claimedAt (unclaimed + stale)
-                new CreateIndexModel<OutboxDocument>(
-                    Builders<OutboxDocument>.IndexKeys.Ascending(x => x.ClaimedAt))
+                    Builders<OutboxDocument>.IndexKeys
+                        .Ascending(x => x.ClaimedAt)
+                        .Ascending(x => x.CreatedAt))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

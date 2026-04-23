@@ -4,6 +4,6 @@ namespace states.Mongo.Repositories;
 
 public interface IOutboxRepository
 {
-    Task<List<OutboxDocument>> ClaimBatch(int size, TimeSpan claimTimeout, CancellationToken ct);
+    Task<OutboxDocument?> TakeNext(TimeSpan claimTimeout, CancellationToken ct);
     Task Delete(Guid id, CancellationToken ct);
 }
