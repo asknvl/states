@@ -62,19 +62,14 @@ namespace states.Services.Events.Producer
             EventTypes.LeadStateCreated  => leadStateEventsTopic,
             EventTypes.LeadStatusChanged => leadStateEventsTopic,
             EventTypes.LeadNodeChanged   => leadStateEventsTopic,
+            EventTypes.LeadTagChanged    => leadStateEventsTopic,
             _ => throw new InvalidOperationException($"No topic mapping defined for event type '{@event.Type}'")
         };
 
         private static string ResolveKey<TPayload>(Event<TPayload> @event)
         {
-            if (@event.Payload is LeadStateCreatedPayload createdPayload)
-                return createdPayload.ChatId.ToString();
-
-            if (@event.Payload is LeadStatusChangedPayload statusPayload)
-                return statusPayload.ChatId.ToString();
-
-            if (@event.Payload is LeadNodeChangedPayload nodePayload)
-                return nodePayload.ChatId.ToString();
+            if (@event.Payload is LeadStateChangeEventPayloadBase basePayload)
+                return basePayload.ChatId.ToString();
 
             return @event.Id.ToString();
         }

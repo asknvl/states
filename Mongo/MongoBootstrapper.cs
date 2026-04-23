@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using states.Mongo.Documents;
+using states.Mongo.Documents.Outbox;
 
 namespace states.Mongo
 {
@@ -18,6 +19,8 @@ namespace states.Mongo
             await CreateFunnelsIndexes(ct);
             await CreateLeadStatesCollection(ct);
             await CreateLeadStatesIndexes(ct);
+            await CreateOutboxCollection(ct);
+            await CreateOutboxIndexes(ct);
         }
 
         #region collections
@@ -73,6 +76,36 @@ namespace states.Mongo
                         .Ascending(x => x.FunnelId)
                         .Ascending(x => x.LeadId),
                     new CreateIndexOptions { Unique = true })
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
+        private async Task CreateOutboxCollection(CancellationToken ct)
+        {
+            var collectionNames = await database
+                .ListCollectionNames()
+                .ToListAsync(ct);
+
+            if (collectionNames.Contains("outbox"))
+                return;
+
+            await database.CreateCollectionAsync("outbox", cancellationToken: ct);
+        }
+
+        private async Task CreateOutboxIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<OutboxDocument>("outbox");
+
+            var indexes = new List<CreateIndexModel<OutboxDocument>>
+            {
+                // для сортировки при ClaimBatch
+                new CreateIndexModel<OutboxDocument>(
+                    Builders<OutboxDocument>.IndexKeys.Ascending(x => x.CreatedAt)),
+
+                // для фильтрации по claimedAt (unclaimed + stale)
+                new CreateIndexModel<OutboxDocument>(
+                    Builders<OutboxDocument>.IndexKeys.Ascending(x => x.ClaimedAt))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

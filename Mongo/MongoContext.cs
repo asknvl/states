@@ -1,8 +1,6 @@
-﻿using Confluent.Kafka;
-using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using states.Mongo.Documents;
-using states.Mongo.Documents.ChangeStream;
+using states.Mongo.Documents.Outbox;
 
 namespace states.Mongo
 {
@@ -11,14 +9,14 @@ namespace states.Mongo
         public IMongoCollection<FunnelDocument> Funnels { get; }
         public IMongoCollection<FunnelLeadState> LeadStates { get; }
         public IMongoCollection<ActionTaskDocument> ActionTasks { get; }
-        public IMongoCollection<ChangeStreamCheckpoint> ChangeStreamCheckpoints { get; }
+        public IMongoCollection<OutboxDocument> Outbox { get; }
 
         public MongoContext(IMongoDatabase database)
         {
             Funnels = database.GetCollection<FunnelDocument>("funnels");
             LeadStates = database.GetCollection<FunnelLeadState>("lead_states");
             ActionTasks = database.GetCollection<ActionTaskDocument>("action_tasks");
-            ChangeStreamCheckpoints = database.GetCollection<ChangeStreamCheckpoint>("change_stream_checkpoints");
+            Outbox = database.GetCollection<OutboxDocument>("outbox");
         }
     }
 }

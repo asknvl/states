@@ -180,7 +180,8 @@ namespace states
                 return new ProducerBuilder<string, string>(producerConfig).Build();
             });
             builder.Services.AddSingleton<IEventService, KafkaEventService>();
-            builder.Services.AddHostedService<LeadStateChangeStreamWorker>();
+            builder.Services.AddSingleton<IOutboxRepository, OutboxRepository>();
+            builder.Services.AddHostedService<OutboxWorkerService>();
 
             // Telegram Kafka consumer
             builder.Services.AddSingleton<IGlobalEventProcessor, GlobalEventProcessor>();
