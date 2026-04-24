@@ -56,7 +56,7 @@ public static class FunnelDocumentMapper
     #endregion
 
     #region tag
-    private static TagDocument ToDocument(Tag dto)
+    public static TagDocument ToDocument(this Tag dto)
     {
         return new TagDocument
         {
@@ -65,7 +65,7 @@ public static class FunnelDocumentMapper
         };
     }
 
-    private static Tag ToDto(TagDocument document)
+    public static Tag ToDto(this TagDocument document)
     {
         return new Tag(
             Id: document.Id,

@@ -1,3 +1,4 @@
+using states.Dtos.Funnels;
 using states.Mongo.Documents;
 using states.Services.FunnelService.Application;
 using states.Services.LeadService;
@@ -26,14 +27,11 @@ public interface ILeadStateRepository
         CancellationToken ct);
 
     Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);    
-    Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct);    
+    Task UpdateTag(Guid leadStateId, TagOperation operation, Tag tagId, Tag replacementTag, CancellationToken ct);    
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
 
-
-
-    Task SetTags(Guid leadStateId, List<Guid> tags, CancellationToken ct);
+    Task SaveTags(Guid leadStateId, List<Tag> tags, CancellationToken ct);
     Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct);
-
 
     Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);    
     Task Delete(Guid leadStateId, CancellationToken ct);

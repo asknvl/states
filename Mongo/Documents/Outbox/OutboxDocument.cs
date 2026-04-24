@@ -1,5 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using states.Dtos.Funnels;
+using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
 namespace states.Mongo.Documents.Outbox;
@@ -116,5 +118,9 @@ public sealed class LeadTagChangedOutboxDocument : OutboxDocument
     public Guid FunnelId { get; set; }
 
     [BsonElement("tags")]
-    public List<Guid> Tags { get; set; } = [];
+    public List<TagDocument> Tags { get; set; } = [];
+    [BsonRepresentation(BsonType.String)]
+    public TagOperation Operation { get; set; }
+    public TagDocument Tag { get; set; }
+
 }

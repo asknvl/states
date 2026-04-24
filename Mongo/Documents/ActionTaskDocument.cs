@@ -88,16 +88,9 @@ public sealed class ManageTagActionTaskDocument : ActionTaskDocument
     public TagOperation Operation { get; set; }
 
     [BsonElement("tagId")]
-    public Guid TagId { get; set; }
-
-    [BsonElement("tagName")]
-    public string TagName { get; set; } = default!;
+    public Guid TagId { get; set; }    
 
     [BsonElement("replacementTagId")]
-    public Guid? ReplacementTagId { get; set; }
-
-    [BsonElement("replacementTagName")]
-    public string? ReplacementTagName { get; set; }
-
+    public Guid? ReplacementTagId { get; set; }    
     public ManageTagActionTaskDocument() : base(ActionType.ManageTag, isCritical: true) { }
 }

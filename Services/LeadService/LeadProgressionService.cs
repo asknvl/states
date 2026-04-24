@@ -34,7 +34,7 @@ public class LeadProgressionService : ILeadProgressionService
     }
 
     #region private
-    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Node node, IReadOnlyList<Tag> funnelTags)
+    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Node node)
     {
         var now = DateTime.UtcNow;
         var tasks = new List<ActionTaskDocument>();
@@ -63,7 +63,7 @@ public class LeadProgressionService : ILeadProgressionService
                         Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
-
+                        
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
                         PresetId = action.PresetId,
@@ -76,13 +76,6 @@ public class LeadProgressionService : ILeadProgressionService
                 for (var i = 0; i < manageTag.Actions.Count; i++)
                 {
                     var action = manageTag.Actions[i];
-                    var tag = funnelTags.FirstOrDefault(t => t.Id == action.TagId)
-                        ?? throw new InvalidOperationException($"Tag '{action.TagId}' not found in funnel '{leadState.FunnelId}'.");
-                    var replacementTag = action.ReplacementTagId.HasValue
-                        ? funnelTags.FirstOrDefault(t => t.Id == action.ReplacementTagId.Value)
-                          ?? throw new InvalidOperationException($"Replacement tag '{action.ReplacementTagId}' not found in funnel '{leadState.FunnelId}'.")
-                        : null;
-
                     tasks.Add(new ManageTagActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
@@ -98,10 +91,8 @@ public class LeadProgressionService : ILeadProgressionService
                         CreatedAt = now,
 
                         Operation = action.Operation,
-                        TagId = tag.Id,
-                        TagName = tag.Name,
-                        ReplacementTagId = replacementTag?.Id,
-                        ReplacementTagName = replacementTag?.Name
+                        TagId = action.TagId,
+                        ReplacementTagId = action.ReplacementTagId
                     });
                 }
                 break;
@@ -368,7 +359,7 @@ public class LeadProgressionService : ILeadProgressionService
 
         if (dto.Tags is not null)
         {
-            await leadStateRepository.SetTags(leadState.Id, dto.Tags, ct);
+            await leadStateRepository.SaveTags(leadState.Id, dto.Tags, ct);
             logger.LogInformation("Lead {LeadStateId} tags set to [{Tags}]", leadState.Id, string.Join(", ", dto.Tags));
         }
     }

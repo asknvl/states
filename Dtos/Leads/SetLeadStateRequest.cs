@@ -1,4 +1,5 @@
-﻿using states.Services.LeadService;
+﻿using states.Dtos.Funnels;
+using states.Services.LeadService;
 
 namespace states.Dtos.Leads
 {
@@ -7,6 +8,6 @@ namespace states.Dtos.Leads
             Guid? FunnelId,
             Guid? FlowId,
             Guid? NodeId,
-            List<Guid>? Tags
+            List<Tag>? Tags
         );
 }

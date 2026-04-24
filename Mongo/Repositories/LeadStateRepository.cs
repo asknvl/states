@@ -1,7 +1,9 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
+using states.Dtos.Funnels;
 using states.Mongo.Documents;
 using states.Mongo.Documents.Outbox;
+using states.Mongo.Mappers;
 using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
@@ -305,22 +307,40 @@ public class LeadStateRepository : ILeadStateRepository
     //        }, cancellationToken: ct);
     //    }, ct);
     //}
-    public async Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct)
+
+    public async Task UpdateTag(
+        Guid leadStateId,
+        TagOperation operation,
+        Dtos.Funnels.Tag tag,
+        Dtos.Funnels.Tag? replacementTag,
+        CancellationToken ct)
     {
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+        var tagDocument = new TagDocument()
+        {
+            Id = tag.Id,
+            Name = tag.Name
+        };
+
+        var replacementTagDocument = (replacementTag is not null) ? new TagDocument()
+        {
+            Id = replacementTag.Id,
+            Name = replacementTag.Name
+        } : null;
 
         UpdateDefinition<FunnelLeadState> update = operation switch
         {
             TagOperation.Add =>
-                Builders<FunnelLeadState>.Update.AddToSet(x => x.Tags, tagId),
+                Builders<FunnelLeadState>.Update.AddToSet(x => x.Tags, tagDocument),
 
             TagOperation.Remove =>
-                Builders<FunnelLeadState>.Update.Pull(x => x.Tags, tagId),
+                Builders<FunnelLeadState>.Update.Pull(x => x.Tags, tagDocument),
 
-            TagOperation.Replace when replacementTagId.HasValue =>
+            TagOperation.Replace when replacementTag is not null =>
                 Builders<FunnelLeadState>.Update
-                    .Pull(x => x.Tags, tagId)
-                    .AddToSet(x => x.Tags, replacementTagId.Value),
+                    .Pull(x => x.Tags, tagDocument)
+                    .AddToSet(x => x.Tags, replacementTagDocument),
 
             _ => throw new InvalidOperationException($"Unsupported tag operation: {operation}")
         };
@@ -348,16 +368,19 @@ public class LeadStateRepository : ILeadStateRepository
                 LeadId = updated.LeadId,
                 Version = updated.Version,
                 FunnelId = updated.FunnelId,
-                Tags = updated.Tags
+                Tags = updated.Tags,
+                Operation = operation,
+                Tag = tagDocument,
             }, cancellationToken: ct);
         }, ct);
     }
 
-    public async Task SetTags(Guid leadStateId, List<Guid> tags, CancellationToken ct)
+    public async Task SaveTags(Guid leadStateId, List<Dtos.Funnels.Tag> tags, CancellationToken ct)
     {
+        
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
         var update = Builders<FunnelLeadState>.Update
-            .Set(x => x.Tags, tags)
+            .Set(x => x.Tags, tags.Select(t => t.ToDocument()))
             .Inc(x => x.Version, 1);
 
         await InTransaction(async session =>

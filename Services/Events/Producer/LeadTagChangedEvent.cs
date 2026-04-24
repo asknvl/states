@@ -2,9 +2,9 @@ using states.Services.Events.Producer.Payloads;
 
 namespace states.Services.Events.Producer
 {
-    public record LeadTagChangedEvent : Event<LeadTagChangedPayload>
+    public record LeadTagChangedEvent : Event<LeadTagsChangedPayload>
     {
-        public LeadTagChangedEvent(LeadTagChangedPayload payload)
+        public LeadTagChangedEvent(LeadTagsChangedPayload payload)
             : base(EventTypes.LeadTagChanged, payload) { }
     }
 }

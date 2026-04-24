@@ -1,4 +1,5 @@
 using states.Mongo.Documents.Outbox;
+using states.Mongo.Mappers;
 using states.Mongo.Repositories;
 using states.Services.Events.Producer;
 using states.Services.Events.Producer.Payloads;
@@ -118,21 +119,21 @@ public sealed class OutboxWorkerService(
                             Version: position.Version
                         );
 
-                    await eventService.Publish(new LeadNodeChangedEvent(lnp), ct);
+                    await eventService.Publish(new LeadFunnelPositionChangedEvent(lnp), ct);
                     break;
 
                 case LeadTagChangedOutboxDocument tags:
 
-                    var resolvedTags = ResolveTags(tags.FunnelId, tags.Tags);
-
-                    var ltc = new LeadTagChangedPayload(
-                        tags.TenantId,
-                        tags.SpaceId,
-                        tags.BotId,
-                        tags.ChatId,
-                        tags.LeadId,
-                        resolvedTags,
-                        tags.Version);
+                    var ltc = new LeadTagsChangedPayload(
+                        TenantId: tags.TenantId,
+                        SpaceId: tags.SpaceId,
+                        BotId: tags.BotId,
+                        ChatId: tags.ChatId,
+                        LeadId: tags.LeadId,
+                        Tags: tags.Tags.Select(t => t.ToDto()).ToList(),    
+                        Operation: tags.Operation,
+                        Tag: tags.Tag.ToDto(),                        
+                        Version: tags.Version);
 
                     await eventService.Publish(new LeadTagChangedEvent(ltc), ct);
                     break;
