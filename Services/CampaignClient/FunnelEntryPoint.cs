@@ -6,7 +6,7 @@ public record FunnelEntryPoint(
     string CampaignName,
     string? SourceId,
     string? SourceName,
-    Guid FunnelId,   
-    Guid FlowId,
-    Guid NodeId
+    Guid FunnelId,       
+    Guid FlowId,    
+    Guid NodeId    
 );

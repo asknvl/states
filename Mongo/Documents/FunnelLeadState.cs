@@ -40,11 +40,20 @@ namespace states.Mongo.Documents
         [BsonElement("funnelId")]    
         public Guid FunnelId { get; set; }
 
+        [BsonElement("funnelName")]
+        public string FunnelName { get; set; }
+
         [BsonElement("flowId")]       
         public Guid FlowId { get; set; }
 
+        [BsonElement("flowName")]
+        public string FlowName { get; set; }
+
         [BsonElement("nodeId")]       
         public Guid NodeId { get; set; }
+
+        [BsonElement("nodeLabel")]
+        public string NodeLabel { get; set; }
 
         [BsonElement("status")]
         [BsonRepresentation(BsonType.String)]
@@ -54,10 +63,13 @@ namespace states.Mongo.Documents
         public long Version { get; set; }
 
         [BsonElement("tags")]
-        public List<Guid> Tags { get; set; } = [];
+        public List<TagDocument> Tags { get; set; } = [];
 
         [BsonElement("statesLog")]
         public List<StateLogEntry> StatesLog { get; set; } = [];
+
+        [BsonElement("createdAt")]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 
     public class StateLogEntry

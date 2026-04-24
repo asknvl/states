@@ -2,9 +2,9 @@ using states.Services.Events.Producer.Payloads;
 
 namespace states.Services.Events.Producer
 {
-    public record LeadNodeChangedEvent : Event<LeadNodeChangedPayload>
+    public record LeadNodeChangedEvent : Event<LeadFunnelPositionChangedPayload>
     {
-        public LeadNodeChangedEvent(LeadNodeChangedPayload payload)
-            : base(EventTypes.LeadNodeChanged, payload) { }
+        public LeadNodeChangedEvent(LeadFunnelPositionChangedPayload payload)
+            : base(EventTypes.LeadFunnelPositionChanged, payload) { }
     }
 }

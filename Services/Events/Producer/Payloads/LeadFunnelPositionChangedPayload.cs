@@ -1,13 +1,20 @@
+using states.Services.LeadService;
+
 namespace states.Services.Events.Producer.Payloads
 {
-    public record LeadNodeChangedPayload(        
+    public record LeadFunnelPositionChangedPayload(        
         Guid TenantId,
         Guid SpaceId,
         Guid BotId,
         Guid ChatId,
         string LeadId,
-        Guid NodeId,
+        Guid FunnelId,
+        string FunnelName,
+        Guid FlowId,
+        string FlowName,
+        Guid NodeId,        
         string? NodeLabel,
+        LeadFunnelStatus Status,
         long Version
     ) : LeadStateChangeEventPayloadBase(
         TenantId: TenantId,

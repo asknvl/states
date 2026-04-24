@@ -78,7 +78,7 @@ public sealed class ActionWorkerService : BackgroundService
             logger.LogInformation("Action task {TaskId} completed for lead {LeadStateId}",
                 task.Id, task.LeadStateId);
 
-            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);            
+            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);          //TODO в асинхронном контексте тут может быть гонка  
 
             if (allDone)
             {                

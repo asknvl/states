@@ -9,7 +9,7 @@
 
         //outcoming
         public const string LeadStateCreated = "states.lead.created";
-        public const string LeadNodeChanged = "states.lead.node.changed";
+        public const string LeadFunnelPositionChanged = "states.lead.position.changed";
         public const string LeadStatusChanged = "states.lead.status.changed";
         public const string LeadTagChanged = "states.lead.tag.changed";
 

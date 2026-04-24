@@ -4,6 +4,7 @@ namespace states.Dtos.Leads
 {
     public sealed record SetLeadStateRequest(                
             LeadFunnelStatus? Status,
+            Guid? FunnelId,
             Guid? FlowId,
             Guid? NodeId,
             List<Guid>? Tags

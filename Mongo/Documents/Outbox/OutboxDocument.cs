@@ -8,7 +8,7 @@ namespace states.Mongo.Documents.Outbox;
 [BsonKnownTypes(
     typeof(LeadStateCreatedOutboxDocument),
     typeof(LeadStatusChangedOutboxDocument),
-    typeof(LeadNodeChangedOutboxDocument),
+    typeof(LeadFunnelPositionChangedOutboxDocument),
     typeof(LeadTagChangedOutboxDocument))]
 public abstract class OutboxDocument
 {
@@ -85,16 +85,29 @@ public sealed class LeadStatusChangedOutboxDocument : OutboxDocument
     public LeadFunnelStatus Status { get; set; }
 }
 
-public sealed class LeadNodeChangedOutboxDocument : OutboxDocument
+public sealed class LeadFunnelPositionChangedOutboxDocument : OutboxDocument
 {
     [BsonElement("funnelId")]
     public Guid FunnelId { get; set; }
 
+    [BsonElement("funnelName")]
+    public string FunnelName { get; set; }
+
     [BsonElement("flowId")]
     public Guid FlowId { get; set; }
 
+    [BsonElement("flowName")]
+    public string FlowName { get; set; }
+
     [BsonElement("nodeId")]
     public Guid NodeId { get; set; }
+
+    [BsonElement("nodeLabel")]
+    public string NodeLabel { get; set; }
+
+    [BsonElement("status")]
+    [BsonRepresentation(BsonType.String)]
+    public LeadFunnelStatus Status { get; set; }
 }
 
 public sealed class LeadTagChangedOutboxDocument : OutboxDocument

@@ -11,12 +11,30 @@ public interface ILeadStateRepository
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByLeadId(Guid tenantId, string leadId, CancellationToken ct);
-    Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct);
-    Task SetFlowAndNode(Guid leadStateId, Guid flowId, Guid nodeId, List<ActionStatusEntry> actions, CancellationToken ct);
-    Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);
+    //Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct);
+
+    Task SetLeadFunnelPosition(
+        Guid leadStateId,
+        Guid funnelId,
+        string funnelName,
+        Guid flowId,
+        string flowName,
+        Guid nodeId,
+        string nodeLabel,
+        LeadFunnelStatus status,
+        List<ActionStatusEntry> actions,
+        CancellationToken ct);
+
+    Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);    
+    Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct);    
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
-    Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct);
-    Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);
+
+
+
     Task SetTags(Guid leadStateId, List<Guid> tags, CancellationToken ct);
+    Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct);
+
+
+    Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);    
     Task Delete(Guid leadStateId, CancellationToken ct);
 }

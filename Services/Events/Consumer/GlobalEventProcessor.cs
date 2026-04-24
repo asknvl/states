@@ -94,8 +94,8 @@ public class GlobalEventProcessor(
             CampaignName: entryPoint.CampaignName,
             SourceId: entryPoint.SourceId,
             SourceName: entryPoint.SourceName,
-            FunnelId: entryPoint.FunnelId,
-            FlowId: entryPoint.FlowId,
+            FunnelId: entryPoint.FunnelId,            
+            FlowId: entryPoint.FlowId,            
             NodeId: entryPoint.NodeId);
 
         await leadProgressionService.EnterFunnel(request, ct);

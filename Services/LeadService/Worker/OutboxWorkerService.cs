@@ -98,19 +98,25 @@ public sealed class OutboxWorkerService(
 
                     break;
 
-                case LeadNodeChangedOutboxDocument node:
+                case LeadFunnelPositionChangedOutboxDocument position:
 
-                    var nodeLabel = ResolveNodeLabel(node.FunnelId, node.FlowId, node.NodeId);
+                    var nodeLabel = ResolveNodeLabel(position.FunnelId, position.FlowId, position.NodeId);
 
-                    var lnp = new LeadNodeChangedPayload(
-                        node.TenantId,
-                        node.SpaceId,
-                        node.BotId,
-                        node.ChatId,
-                        node.LeadId,
-                        node.NodeId,
-                        nodeLabel,
-                        node.Version);
+                    var lnp = new LeadFunnelPositionChangedPayload(
+                            TenantId: position.TenantId,
+                            SpaceId: position.SpaceId,
+                            BotId: position.BotId,
+                            ChatId: position.ChatId,
+                            LeadId: position.LeadId,
+                            FunnelId: position.FunnelId,
+                            FunnelName: position.FunnelName,
+                            FlowId: position.FlowId,
+                            FlowName: position.FlowName,
+                            NodeId: position.NodeId,
+                            NodeLabel: position.NodeLabel,
+                            Status: position.Status,
+                            Version: position.Version
+                        );
 
                     await eventService.Publish(new LeadNodeChangedEvent(lnp), ct);
                     break;

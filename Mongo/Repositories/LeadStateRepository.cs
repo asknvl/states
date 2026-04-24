@@ -89,8 +89,11 @@ public class LeadStateRepository : ILeadStateRepository
                 SourceId = state.SourceId,
                 SourceName = state.SourceName,
                 FunnelId = state.FunnelId,
+                FunnelName = state.FunnelName,
                 FlowId = state.FlowId,
+                FlowName = state.FlowName,
                 NodeId = state.NodeId,
+                NodeLabel = state.NodeLabel,
                 Status = state.Status
             }, cancellationToken: ct);
         }, ct);
@@ -113,7 +116,7 @@ public class LeadStateRepository : ILeadStateRepository
                 ct);
 
             if (updated is null)
-                throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+                throw new KeyNotFoundException($"Lead state Id={leadStateId} not found.");
 
             await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
             {
@@ -130,14 +133,63 @@ public class LeadStateRepository : ILeadStateRepository
         }, ct);
     }
 
-    public async Task SetFlowAndNode(Guid leadStateId, Guid flowId, Guid nodeId, List<ActionStatusEntry> actions, CancellationToken ct)
+    #region for chats
+    public async Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId);
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Status, status)
+            .Inc(x => x.Version, 1);
+
+        await InTransaction(async session =>
+        {
+            var updated = await collection.FindOneAndUpdateAsync(
+                session, filter, update,
+                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                ct);
+
+            if (updated is null)
+                throw new KeyNotFoundException($"Lead state chatId={chatId} not found.");
+
+            await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CreatedAt = DateTime.UtcNow,
+                TenantId = updated.TenantId,
+                SpaceId = updated.SpaceId,
+                BotId = updated.BotId,
+                ChatId = updated.ChatId,
+                LeadId = updated.LeadId,
+                Version = updated.Version,
+                Status = status
+            }, cancellationToken: ct);
+        }, ct);
+    }
+    #endregion
+
+    public async Task SetLeadFunnelPosition(
+        Guid leadStateId,
+        Guid funnelId,        
+        string funnelName,
+        Guid flowId,
+        string flowName,
+        Guid nodeId,
+        string nodeLabel,
+        LeadFunnelStatus status,
+        List<ActionStatusEntry> actions,
+        CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
 
         var closeCurrentState = Builders<FunnelLeadState>.Update
-            .Set(x => x.FlowId, flowId)
+            .Set(x => x.FunnelId, funnelId)
+            .Set(x => x.FunnelName, funnelName)
+            .Set(x => x.FlowId, flowId)       
+            .Set(x => x.FlowName, flowName)
             .Set(x => x.NodeId, nodeId)
+            .Set(x => x.Status, status)
+            .Set(x => x.NodeLabel, nodeLabel)
             .Set("statesLog.$[currentState].leftAt", now);
 
         var arrayFilters = new List<ArrayFilterDefinition>
@@ -170,7 +222,7 @@ public class LeadStateRepository : ILeadStateRepository
                 new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
                 ct);
 
-            await outbox.InsertOneAsync(session, new LeadNodeChangedOutboxDocument
+            await outbox.InsertOneAsync(session, new LeadFunnelPositionChangedOutboxDocument
             {
                 Id = Guid.CreateVersion7(),
                 CreatedAt = DateTime.UtcNow,
@@ -181,69 +233,78 @@ public class LeadStateRepository : ILeadStateRepository
                 LeadId = updated.LeadId,
                 Version = updated.Version,
                 FunnelId = updated.FunnelId,
-                FlowId = flowId,
-                NodeId = nodeId
-            }, cancellationToken: ct);
-        }, ct);
-    }
-
-    public async Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct)
-    {
-        var now = DateTime.UtcNow;
-        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
-
-        var closeCurrentState = Builders<FunnelLeadState>.Update
-            .Set(x => x.NodeId, nextNodeId)
-            .Set("statesLog.$[currentState].leftAt", now)
-            .Set("statesLog.$[currentState].exitEdgeId", new BsonBinaryData(edgeId, GuidRepresentation.Standard));
-
-        var arrayFilters = new List<ArrayFilterDefinition>
-        {
-            new BsonDocumentArrayFilterDefinition<FunnelLeadState>(
-                new BsonDocument("currentState.leftAt", BsonNull.Value))
-        };
-
-        var pushNextState = Builders<FunnelLeadState>.Update
-            .Push(x => x.StatesLog, new StateLogEntry
-            {
-                NodeId = nextNodeId,
-                EnteredAt = now,
-                ActionsLog = actions
-            })
-            .Inc(x => x.Version, 1);
-
-        await InTransaction(async session =>
-        {
-            var result = await collection.UpdateOneAsync(
-                session, filter, closeCurrentState,
-                new UpdateOptions { ArrayFilters = arrayFilters },
-                ct);
-
-            if (result.MatchedCount == 0)
-                throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
-
-            var updated = await collection.FindOneAndUpdateAsync(
-                session, filter, pushNextState,
-                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
-                ct);
-
-            await outbox.InsertOneAsync(session, new LeadNodeChangedOutboxDocument
-            {
-                Id = Guid.CreateVersion7(),
-                CreatedAt = DateTime.UtcNow,
-                TenantId = updated!.TenantId,
-                SpaceId = updated.SpaceId,
-                BotId = updated.BotId,
-                ChatId = updated.ChatId,
-                LeadId = updated.LeadId,
-                Version = updated.Version,
-                FunnelId = updated.FunnelId,
+                FunnelName = updated.FunnelName,
                 FlowId = updated.FlowId,
-                NodeId = nextNodeId
+                FlowName = updated.FlowName,
+                NodeId = updated.NodeId,
+                NodeLabel = updated.NodeLabel,
+                Status = updated.Status
+
             }, cancellationToken: ct);
         }, ct);
     }
 
+    //public async Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct)
+    //{
+    //    var now = DateTime.UtcNow;
+    //    var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+    //    var closeCurrentState = Builders<FunnelLeadState>.Update
+    //        .Set(x => x.NodeId, nextNodeId)
+    //        .Set("statesLog.$[currentState].leftAt", now)
+    //        .Set("statesLog.$[currentState].exitEdgeId", new BsonBinaryData(edgeId, GuidRepresentation.Standard));
+
+    //    var arrayFilters = new List<ArrayFilterDefinition>
+    //    {
+    //        new BsonDocumentArrayFilterDefinition<FunnelLeadState>(
+    //            new BsonDocument("currentState.leftAt", BsonNull.Value))
+    //    };
+
+    //    var pushNextState = Builders<FunnelLeadState>.Update
+    //        .Push(x => x.StatesLog, new StateLogEntry
+    //        {
+    //            NodeId = nextNodeId,
+    //            EnteredAt = now,
+    //            ActionsLog = actions
+    //        })
+    //        .Inc(x => x.Version, 1);
+
+    //    await InTransaction(async session =>
+    //    {
+    //        var result = await collection.UpdateOneAsync(
+    //            session, filter, closeCurrentState,
+    //            new UpdateOptions { ArrayFilters = arrayFilters },
+    //            ct);
+
+    //        if (result.MatchedCount == 0)
+    //            throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+    //        var updated = await collection.FindOneAndUpdateAsync(
+    //            session, filter, pushNextState,
+    //            new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+    //            ct);
+
+    //        await outbox.InsertOneAsync(session, new LeadFunnelPositionChangedOutboxDocument
+    //        {
+    //            Id = Guid.CreateVersion7(),
+    //            CreatedAt = DateTime.UtcNow,
+    //            TenantId = updated!.TenantId,
+    //            SpaceId = updated.SpaceId,
+    //            BotId = updated.BotId,
+    //            ChatId = updated.ChatId,
+    //            LeadId = updated.LeadId,
+    //            Version = updated.Version,
+    //            FunnelId = updated.FunnelId,
+    //            FunnelName = updated.FunnelName,
+    //            FlowId = updated.FlowId,
+    //            FlowName = updated.FlowName,
+    //            NodeId = updated.NodeId,
+    //            NodeLabel = updated.NodeLabel,                
+    //            Status = updated.Status
+
+    //        }, cancellationToken: ct);
+    //    }, ct);
+    //}
     public async Task ManageTag(Guid leadStateId, TagOperation operation, Guid tagId, Guid? replacementTagId, CancellationToken ct)
     {
         var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
