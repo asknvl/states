@@ -4,6 +4,7 @@ namespace states.Services.FunnelService.Application
     {
         Add,
         Remove,
-        Replace
+        Replace,
+        Manual
     }
 }

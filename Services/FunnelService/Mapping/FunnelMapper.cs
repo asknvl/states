@@ -65,8 +65,11 @@ public static class FunnelDocumentMapper
         };
     }
 
-    public static Tag ToDto(this TagDocument document)
+    public static Tag? ToDto(this TagDocument document)
     {
+        if (document == null)
+            return null;
+
         return new Tag(
             Id: document.Id,
             Name: document.Name

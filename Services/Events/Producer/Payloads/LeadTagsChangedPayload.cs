@@ -11,7 +11,7 @@ namespace states.Services.Events.Producer.Payloads
         string LeadId,
         List<Tag> Tags,
         TagOperation Operation,
-        Tag Tag,
+        Tag? Tag,
         long Version
     ) : LeadStateChangeEventPayloadBase(
         TenantId: TenantId,

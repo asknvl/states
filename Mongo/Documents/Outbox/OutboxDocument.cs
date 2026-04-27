@@ -121,6 +121,6 @@ public sealed class LeadTagChangedOutboxDocument : OutboxDocument
     public List<TagDocument> Tags { get; set; } = [];
     [BsonRepresentation(BsonType.String)]
     public TagOperation Operation { get; set; }
-    public TagDocument Tag { get; set; }
+    public TagDocument? Tag { get; set; }
 
 }
