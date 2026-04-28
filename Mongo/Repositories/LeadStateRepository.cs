@@ -404,7 +404,7 @@ public class LeadStateRepository : ILeadStateRepository
                 LeadId = updated.LeadId,
                 Version = updated.Version,
                 FunnelId = updated.FunnelId,
-                Tags = updated.Tags,
+                Tags = updated.Tags ?? [],
                 Operation = TagOperation.Manual,
                 Tag = null
             }, cancellationToken: ct);

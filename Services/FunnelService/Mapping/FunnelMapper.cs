@@ -50,6 +50,7 @@ public static class FunnelDocumentMapper
             Description: document.Description,
             Tags: document.Tags.Select(ToDto).ToList(),
             Flows: document.Flows.Select(ToDto).ToList(),
+            PresetsFolderId: document.PresetsFolderId,
             IsActive: document.IsActive
         );
     }

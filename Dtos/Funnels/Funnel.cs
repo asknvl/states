@@ -10,6 +10,7 @@ namespace states.Dtos.Funnels
             string? Description,
             List<Tag> Tags,
             List<Flow> Flows,
+            Guid PresetsFolderId,
             bool? IsActive
         );
 }

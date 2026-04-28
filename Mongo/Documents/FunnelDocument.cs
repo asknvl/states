@@ -29,6 +29,9 @@ namespace states.Mongo.Documents
         [BsonElement("flows")]
         public List<FlowDocument> Flows { get; init; } = [];
 
+        [BsonElement("presetsFolderId")]
+        public Guid PresetsFolderId { get; set; }
+
         [BsonElement("isActive")]
         public bool IsActive { get; set; } = true;
     }

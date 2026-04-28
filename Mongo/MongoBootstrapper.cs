@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using states.Mongo.Documents;
+using states.Mongo.Documents.Folders;
 using states.Mongo.Documents.Outbox;
 
 namespace states.Mongo
@@ -21,6 +22,8 @@ namespace states.Mongo
             await CreateLeadStatesIndexes(ct);
             await CreateOutboxCollection(ct);
             await CreateOutboxIndexes(ct);
+            await CreateFoldersCollection(ct);
+            await CreateFoldersIndexes(ct);
         }
 
         #region collections
@@ -47,7 +50,31 @@ namespace states.Mongo
 
             await database.CreateCollectionAsync("lead_states", cancellationToken: ct);
         }
+
+        private async Task CreateOutboxCollection(CancellationToken ct)
+        {
+            var collectionNames = await database
+                .ListCollectionNames()
+                .ToListAsync(ct);
+
+            if (collectionNames.Contains("outbox"))
+                return;
+
+            await database.CreateCollectionAsync("outbox", cancellationToken: ct);
+        }
         #endregion
+
+        private async Task CreateFoldersCollection(CancellationToken ct)
+        {
+            var collectionNames = await database
+                .ListCollectionNames()
+                .ToListAsync(ct);
+
+            if (collectionNames.Contains("folders"))
+                return;
+
+            await database.CreateCollectionAsync("folders", cancellationToken: ct);
+        }
 
         #region indexes
         private async Task CreateFunnelsIndexes(CancellationToken ct)
@@ -79,19 +106,7 @@ namespace states.Mongo
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
-        }
-
-        private async Task CreateOutboxCollection(CancellationToken ct)
-        {
-            var collectionNames = await database
-                .ListCollectionNames()
-                .ToListAsync(ct);
-
-            if (collectionNames.Contains("outbox"))
-                return;
-
-            await database.CreateCollectionAsync("outbox", cancellationToken: ct);
-        }
+        }      
 
         private async Task CreateOutboxIndexes(CancellationToken ct)
         {
@@ -108,6 +123,24 @@ namespace states.Mongo
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
         }
+
+        private async Task CreateFoldersIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<FolderDocument>("folders");
+
+            var indexes = new List<CreateIndexModel<FolderDocument>>
+            {
+                // покрывает фильтр tenantId+funnelId и sort по order без in-memory сортировки
+                new CreateIndexModel<FolderDocument>(
+                    Builders<FolderDocument>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.FunnelId)
+                        .Ascending(x => x.Order))
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
         #endregion
     }
 }

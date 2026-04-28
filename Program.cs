@@ -9,6 +9,7 @@ using states.Dtos.Edges;
 using states.Dtos.Nodes;
 using states.Mongo;
 using states.Mongo.Repositories;
+using states.Services.Folders.Application;
 using states.Services.FunnelService;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
@@ -129,6 +130,7 @@ namespace states
             builder.Services.AddSingleton<MongoContext>();
             builder.Services.AddSingleton<MongoBootstrapper>();
             builder.Services.AddSingleton<IFunnelsRepository, FunnelsRepository>();
+            builder.Services.AddSingleton<IFoldersRepository, FoldersRepository>();
 
 
             builder.Services.AddMemoryCache();
@@ -140,6 +142,7 @@ namespace states
             builder.Services.AddHostedService(sp => sp.GetRequiredService<FunnelRuntimeService>());
 
             builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>();
+            builder.Services.AddScoped<IFoldersApplicationService, FoldersApplicationService>();
 
             // Lead service
             builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();
