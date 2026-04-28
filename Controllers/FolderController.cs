@@ -28,7 +28,7 @@ namespace states.Controllers
             return Ok(folder);
         }
 
-        [HttpPut("{folderId:guid}")]
+        [HttpPatch("{folderId:guid}")]
         public async Task<ActionResult<FolderDto>> UpdateFolder(
             Guid folderId,
             [FromBody] UpdateFolderDto dto,
