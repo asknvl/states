@@ -117,6 +117,7 @@ namespace states.Services.FunnelService.Application
         public async Task<IReadOnlyList<Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
         {
             var tags = await funnelsRepository.RemoveTag(funnelId, tagId, ct);
+            await tenantTagsRepository.DecreaseTenantTagUsage(tagId, funnelId);
             await RefreshCache(funnelId);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
@@ -124,6 +125,7 @@ namespace states.Services.FunnelService.Application
         public async Task<IReadOnlyList<Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
             var tags = await funnelsRepository.UpdateTag(funnelId, tagId, name, ct);
+            await tenantTagsRepository.UpdateTenantTagName(tagId, name);
             await RefreshCache(funnelId);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }

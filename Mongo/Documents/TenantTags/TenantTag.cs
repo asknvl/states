@@ -13,17 +13,17 @@ namespace states.Mongo.Documents.TenantTags
         public Guid TagId { get; set; }
         [BsonElement("tagName")]
         public string TagName { get; set; }
-        [BsonElement("usagesNumber")]
-        public int UsagesNumber { get; set; }
-        [BsonElement("usedInSpaces")]
-        public List<Guid> UsedInSpaces { get; set; } = [];
-        [BsonElement("usedInFunnels")]
-        public List<Guid> UsedInFunnels { get; set; } = [];
+
+        [BsonElement("usages")]
+        public List<Usage> Usages {get; set;} = [];
+        
     }
 
     public class Usage
     {
+        [BsonElement("spaceId")]
         public Guid SpaceId {get; set;}
+        [BsonElement("funnelId")]
         public Guid FunnelId {get; set;}
     }
 }
