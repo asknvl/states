@@ -47,9 +47,9 @@ namespace states.Mongo.Repositories
         public async Task<IReadOnlyCollection<TenantTag>> GetTenantTags(Guid tenantId, Guid spaceId)
         {
             var filter = Builders<TenantTag>.Filter.And(
-                Builders<TenantTag>.Filter.Eq(x => x.TenantId, tenantId),
-                Builders<TenantTag>.Filter.ElemMatch(x => x.Usages,
-                    Builders<Usage>.Filter.Eq(u => u.SpaceId, spaceId))
+                Builders<TenantTag>.Filter.Eq(x => x.TenantId, tenantId)
+                //Builders<TenantTag>.Filter.ElemMatch(x => x.Usages,
+                //    Builders<Usage>.Filter.Eq(u => u.SpaceId, spaceId))
             );
 
             return await collection.Find(filter).ToListAsync();
