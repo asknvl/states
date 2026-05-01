@@ -2,6 +2,7 @@
 using states.Mongo.Documents;
 using states.Mongo.Documents.Folders;
 using states.Mongo.Documents.Outbox;
+using states.Mongo.Documents.TenantTags;
 
 namespace states.Mongo
 {
@@ -12,6 +13,7 @@ namespace states.Mongo
         public IMongoCollection<ActionTaskDocument> ActionTasks { get; }
         public IMongoCollection<OutboxDocument> Outbox { get; }
         public IMongoCollection<FolderDocument> Folders { get; }
+        public IMongoCollection<TenantTag> TenantTags { get; set; }
 
         public MongoContext(IMongoDatabase database)
         {
@@ -20,6 +22,7 @@ namespace states.Mongo
             ActionTasks = database.GetCollection<ActionTaskDocument>("action_tasks");
             Outbox = database.GetCollection<OutboxDocument>("outbox");
             Folders = database.GetCollection<FolderDocument>("folders");
+            TenantTags = database.GetCollection<TenantTag>("tenant_tags");
         }
     }
 }

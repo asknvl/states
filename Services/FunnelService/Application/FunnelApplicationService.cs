@@ -10,17 +10,21 @@ namespace states.Services.FunnelService.Application
         private readonly IFunnelsRepository funnelsRepository;
         private readonly IFunnelRuntimeSupervisor runtimeSupervisor;
         private readonly IFoldersRepository foldersRepository;
+        private readonly ITenantTagsRepository tenantTagsRepository;
 
         public FunnelApplicationService(
             IFunnelsRepository repository,
             IFunnelRuntimeSupervisor runtimeSupervisor,
-            IFoldersRepository foldersRepository)
+            IFoldersRepository foldersRepository,
+            ITenantTagsRepository tenantTagsRepository)
         {
             this.funnelsRepository = repository;
             this.runtimeSupervisor = runtimeSupervisor;
             this.foldersRepository = foldersRepository;
+            this.tenantTagsRepository = tenantTagsRepository;
         }
 
+        #region funnels
         public async Task<FunnelDto> Create(FunnelCreateDto dto, CancellationToken ct)
         {
             var funnel = dto.ToDocument();
@@ -76,18 +80,37 @@ namespace states.Services.FunnelService.Application
             else
                 runtimeSupervisor.NotifyDeactivated(funnelId);
         }
+        #endregion
 
-        public async Task<IReadOnlyCollection<Tag>> GetTags(Guid funnelId, CancellationToken ct)
+        #region tags
+        public async Task<IReadOnlyCollection<Tag>> GetTagsByFunnel(Guid funnelId, CancellationToken ct)
         {
             var tags = await funnelsRepository.GetTags(funnelId, ct);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
+        public async Task<IReadOnlyCollection<Tag>> GetTagsByTenant(Guid tenantId, Guid spaceId, CancellationToken ct)
+        {
+            var tenantTags = await tenantTagsRepository.GetTenantTags(tenantId, spaceId);
+            return tenantTags
+                .Select(t => new Tag(t.TagId, t.TagName))
+                .ToList();
+        }
+
         public async Task<IReadOnlyList<Tag>> AddTag(Guid funnelId, string name, CancellationToken ct)
         {
-            var tagId = Guid.CreateVersion7();
-            var tags = await funnelsRepository.AddTag(funnelId, tagId, name, ct);
+            var funnel = await funnelsRepository.Get(funnelId);
+
+            var (tagId, tagName) = await tenantTagsRepository.CreateIfNeed(
+                funnel.TenantId,
+                funnel.SpaceId,
+                funnelId,
+                name);
+
+
+            var tags = await funnelsRepository.AddTag(funnelId, tagId, tagName, ct);
             await RefreshCache(funnelId);
+
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
 
@@ -104,7 +127,9 @@ namespace states.Services.FunnelService.Application
             await RefreshCache(funnelId);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
         }
+        #endregion
 
+        #region flows
         public async Task<Flow> GetFlow(Guid funnelId, Guid flowId, CancellationToken ct)
         {
             var document = await funnelsRepository.Get(funnelId);
@@ -118,15 +143,6 @@ namespace states.Services.FunnelService.Application
             var document = await funnelsRepository.Get(funnelId);
             return document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList();
         }
-
-        public async Task<IReadOnlyCollection<NodeShortDto>> GetNodesShort(Guid funnelId, Guid flowId, CancellationToken ct)
-        {
-            var document = await funnelsRepository.Get(funnelId);
-            var flow = document.Flows.FirstOrDefault(f => f.Id == flowId)
-                ?? throw new KeyNotFoundException($"Flow '{flowId}' not found in funnel '{funnelId}'.");
-            return flow.Nodes.Select(n => new NodeShortDto(n.Id, n.Data.Label)).ToList();
-        }
-
         public async Task<Flow> AddFlow(Guid funnelId, Flow flow, CancellationToken ct)
         {
             var document = flow.ToDocument();
@@ -148,6 +164,14 @@ namespace states.Services.FunnelService.Application
             await funnelsRepository.RemoveFlow(funnelId, flowId, ct);
             await RefreshCache(funnelId);
         }
+        public async Task<IReadOnlyCollection<NodeShortDto>> GetNodesShort(Guid funnelId, Guid flowId, CancellationToken ct)
+        {
+            var document = await funnelsRepository.Get(funnelId);
+            var flow = document.Flows.FirstOrDefault(f => f.Id == flowId)
+                ?? throw new KeyNotFoundException($"Flow '{flowId}' not found in funnel '{funnelId}'.");
+            return flow.Nodes.Select(n => new NodeShortDto(n.Id, n.Data.Label)).ToList();
+        }
+        #endregion
 
         private async Task RefreshCache(Guid funnelId)
         {

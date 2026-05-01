@@ -156,7 +156,7 @@ namespace states.Mongo.Repositories
             if (funnel is null)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
             if (funnel.Tags.Any(t => t.Id == tag.Id))
-                throw new InvalidOperationException($"Tag with id '{tag.Id}' already exists in funnel '{funnelId}'.");
+                return funnel.Tags;
             if (funnel.Tags.Any(t => t.Name == tag.Name))
                 throw new InvalidOperationException($"Tag with name '{tag.Name}' already exists in funnel '{funnelId}'.");
 

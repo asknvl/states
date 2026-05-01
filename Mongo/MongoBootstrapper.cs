@@ -2,6 +2,7 @@
 using states.Mongo.Documents;
 using states.Mongo.Documents.Folders;
 using states.Mongo.Documents.Outbox;
+using states.Mongo.Documents.TenantTags;
 
 namespace states.Mongo
 {
@@ -24,6 +25,8 @@ namespace states.Mongo
             await CreateOutboxIndexes(ct);
             await CreateFoldersCollection(ct);
             await CreateFoldersIndexes(ct);
+            await CreateTenantTagsCollection(ct);
+            await CreateTenantTagsIndexes(ct);
         }
 
         #region collections
@@ -74,6 +77,14 @@ namespace states.Mongo
                 return;
 
             await database.CreateCollectionAsync("folders", cancellationToken: ct);
+        }
+
+        private async Task CreateTenantTagsCollection(CancellationToken ct)
+        {
+            var collectionNames = await database.ListCollectionNames().ToListAsync(ct);
+            if (collectionNames.Contains("tenant_tags"))
+                return;
+            await database.CreateCollectionAsync("tenant_tags", cancellationToken: ct);
         }
 
         #region indexes
@@ -136,6 +147,21 @@ namespace states.Mongo
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.FunnelId)
                         .Ascending(x => x.Order))
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
+        private async Task CreateTenantTagsIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<TenantTag>("tenant_tags");
+
+            var indexes = new List<CreateIndexModel<TenantTag>>
+            {
+                new CreateIndexModel<TenantTag>(
+                    Builders<TenantTag>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.TagName))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

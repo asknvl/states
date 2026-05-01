@@ -185,7 +185,7 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetTags([FromRoute] Guid funnelId, CancellationToken ct)
         {
-            var result = await funnelsApplicationService.GetTags(funnelId, ct);
+            var result = await funnelsApplicationService.GetTagsByFunnel(funnelId, ct);
             return Ok(result);
         }
 

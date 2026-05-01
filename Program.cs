@@ -130,6 +130,7 @@ namespace states
             builder.Services.AddSingleton<MongoContext>();
             builder.Services.AddSingleton<MongoBootstrapper>();
             builder.Services.AddSingleton<IFunnelsRepository, FunnelsRepository>();
+            builder.Services.AddSingleton<ITenantTagsRepository, TenantTagsRepository>();
             builder.Services.AddSingleton<IFoldersRepository, FoldersRepository>();
 
 
