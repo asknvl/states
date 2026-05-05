@@ -12,6 +12,7 @@
         public const string LeadFunnelPositionChanged = "states.lead.position.changed";
         public const string LeadStatusChanged = "states.lead.status.changed";
         public const string LeadTagChanged = "states.lead.tag.changed";
+        public const string LeadTranslatorChanged = "states.lead.translator.changed";
 
 
     }

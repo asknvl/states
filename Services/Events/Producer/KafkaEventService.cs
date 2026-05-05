@@ -63,6 +63,8 @@ namespace states.Services.Events.Producer
             EventTypes.LeadStatusChanged => leadStateEventsTopic,
             EventTypes.LeadFunnelPositionChanged   => leadStateEventsTopic,
             EventTypes.LeadTagChanged    => leadStateEventsTopic,
+            EventTypes.LeadTranslatorChanged => leadStateEventsTopic,
+
             _ => throw new InvalidOperationException($"No topic mapping defined for event type '{@event.Type}'")
         };
 

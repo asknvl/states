@@ -8,6 +8,8 @@ namespace states.Dtos.Funnels
         string? Description,
         List<Tag> Tags,
         List<FlowShortDto> Flows,
-        bool? IsActive
+        bool? IsActive,
+        bool IsInputTranslatorOn,
+        bool IsOutputTranslatorOn
     );
 }

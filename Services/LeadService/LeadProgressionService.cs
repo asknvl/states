@@ -132,7 +132,9 @@ public class LeadProgressionService : ILeadProgressionService
             FlowName = flow.Name,
             NodeId = node.Id,
             NodeLabel = node.Data.Label,
-            Status = node.Data.FinishStatus           
+            Status = node.Data.FinishStatus,
+            IsInputTranslatorOn = funnel.IsInputTranslatorOn,
+            IsOutputTranslatorOn = funnel.IsOutputTranslatorOn
         };
 
         var actionTasks = CreateActionTasks(leadState, node);
@@ -361,6 +363,12 @@ public class LeadProgressionService : ILeadProgressionService
         {
             await leadStateRepository.SaveTags(leadState.Id, dto.Tags, ct);
             logger.LogInformation("Lead {LeadStateId} tags set to [{Tags}]", leadState.Id, string.Join(", ", dto.Tags));
+        }
+
+        if (dto.IsInputTranslatorOn.HasValue || dto.IsOutputTranslatorOn.HasValue)
+        {
+            await leadStateRepository.SetIsTranslatorOn(leadState.Id, dto.IsInputTranslatorOn, dto.IsOutputTranslatorOn, ct);
+            logger.LogInformation("Lead {LeadStateId} translator set to input={IsInputTranslatorOn}, output={IsOutputTranslatorOn}", leadState.Id, dto.IsInputTranslatorOn, dto.IsOutputTranslatorOn);
         }
     }
     public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)

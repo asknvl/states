@@ -96,6 +96,17 @@ namespace states.Controllers
             return NoContent();
         }
 
+        [HttpPatch("{funnelId:guid}/translator")]
+        [SwaggerOperation(Summary = "Sets the translator state of a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SetIsTranslatorOn([FromRoute] Guid funnelId, [FromBody] SetTranslatorRequest request, CancellationToken ct)
+        {
+            await funnelsApplicationService.SetIsTranslatorOn(funnelId, request.IsInputTranslatorOn, request.IsOutputTranslatorOn, ct);
+            return NoContent();
+        }
+
         #endregion
 
         #region flows

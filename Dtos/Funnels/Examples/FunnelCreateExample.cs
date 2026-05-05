@@ -18,7 +18,9 @@ namespace states.Dtos.Funnels.Examples
                     Description: "Описание тестовой воронки",
                     Tags: [],
                     Flows: [],
-                    IsActive: true
+                    IsActive: true,
+                    IsInputTranslatorOn: true,
+                    IsOutputTranslatorOn : false
                 )
             };
         }

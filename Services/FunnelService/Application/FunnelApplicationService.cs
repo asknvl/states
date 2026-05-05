@@ -80,6 +80,12 @@ namespace states.Services.FunnelService.Application
             else
                 runtimeSupervisor.NotifyDeactivated(funnelId);
         }
+
+        public async Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct)
+        {
+            await funnelsRepository.SetIsTranslatorOn(funnelId, isInputTranslatorOn, isOutputTranslatorOn, ct);
+            await RefreshCache(funnelId);
+        }
         #endregion
 
         #region tags

@@ -34,6 +34,12 @@ namespace states.Mongo.Documents
 
         [BsonElement("isActive")]
         public bool IsActive { get; set; } = true;
+
+        [BsonElement("isInputTranslatorOn")]
+        public bool IsInputTranslatorOn { get; set; }
+
+        [BsonElement("isOutputTranslatorOn")]
+        public bool IsOutputTranslatorOn { get; set; }
     }
 
     public class FlowDocument

@@ -1,24 +1,11 @@
-using states.Services.LeadService;
-
 namespace states.Services.Events.Producer.Payloads
 {
-    public record LeadStateCreatedPayload(
+    public record LeadTranslatorChangedPayload(
         Guid TenantId,
         Guid SpaceId,
         Guid BotId,
         Guid ChatId,
         string LeadId,
-        Guid CampaignId,
-        string CampaignName,
-        string SourceId,
-        string SourceName,
-        Guid FunnelId,
-        string FunnelName,
-        Guid FlowId,
-        string FlowName,
-        Guid NodeId,
-        string NodeLabel,
-        LeadFunnelStatus Status,
         bool IsInputTranslatorOn,
         bool IsOutputTranslatorOn,
         long Version

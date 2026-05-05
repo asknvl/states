@@ -78,6 +78,8 @@ public sealed class OutboxWorkerService(
                             NodeId: created.NodeId,
                             NodeLabel: created.NodeLabel,
                             Status: created.Status,
+                            IsInputTranslatorOn: created.IsInputTranslatorOn,
+                            IsOutputTranslatorOn: created.IsOutputTranslatorOn,
                             Version: created.Version);
 
                     await eventService.Publish(new LeadStateCreatedEvent(scp), ct);
@@ -130,12 +132,27 @@ public sealed class OutboxWorkerService(
                         BotId: tags.BotId,
                         ChatId: tags.ChatId,
                         LeadId: tags.LeadId,
-                        Tags: tags.Tags.Select(t => t.ToDto()).ToList(),    
+                        Tags: tags.Tags.Select(t => t.ToDto()).ToList(),
                         Operation: tags.Operation,
-                        Tag: tags.Tag.ToDto(),                        
+                        Tag: tags.Tag.ToDto(),
                         Version: tags.Version);
 
                     await eventService.Publish(new LeadTagChangedEvent(ltc), ct);
+                    break;
+
+                case LeadTranslatorChangedOutboxDocument translator:
+
+                    var ltr = new LeadTranslatorChangedPayload(
+                        TenantId: translator.TenantId,
+                        SpaceId: translator.SpaceId,
+                        BotId: translator.BotId,
+                        ChatId: translator.ChatId,
+                        LeadId: translator.LeadId,
+                        IsInputTranslatorOn: translator.IsInputTranslatorOn,
+                        IsOutputTranslatorOn: translator.IsOutputTranslatorOn,
+                        Version: translator.Version);
+
+                    await eventService.Publish(new LeadTranslatorChangedEvent(ltr), ct);
                     break;
             }
 

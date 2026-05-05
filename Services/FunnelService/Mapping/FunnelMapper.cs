@@ -31,12 +31,14 @@ public static class FunnelDocumentMapper
         return new FunnelDto(
             Id: document.Id,
             TenantId: document.TenantId,
-            SpaceId: document.SpaceId,            
+            SpaceId: document.SpaceId,
             Name: document.Name,
             Description: document.Description,
             Tags: document.Tags.Select(t => new Tag(t.Id, t.Name)).ToList(),
             Flows: document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList(),
-            IsActive: document.IsActive
+            IsActive: document.IsActive,
+            IsInputTranslatorOn: document.IsInputTranslatorOn,
+            IsOutputTranslatorOn: document.IsOutputTranslatorOn
         );
     }
 
@@ -45,13 +47,15 @@ public static class FunnelDocumentMapper
         return new Funnel(
             Id: document.Id,
             TenantId: document.TenantId,
-            SpaceId: document.SpaceId,            
+            SpaceId: document.SpaceId,
             Name: document.Name,
             Description: document.Description,
             Tags: document.Tags.Select(ToDto).ToList(),
             Flows: document.Flows.Select(ToDto).ToList(),
             PresetsFolderId: document.PresetsFolderId,
-            IsActive: document.IsActive
+            IsActive: document.IsActive,
+            IsInputTranslatorOn: document.IsInputTranslatorOn,
+            IsOutputTranslatorOn: document.IsOutputTranslatorOn
         );
     }
     #endregion

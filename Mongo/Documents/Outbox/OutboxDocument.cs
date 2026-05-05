@@ -11,7 +11,8 @@ namespace states.Mongo.Documents.Outbox;
     typeof(LeadStateCreatedOutboxDocument),
     typeof(LeadStatusChangedOutboxDocument),
     typeof(LeadFunnelPositionChangedOutboxDocument),
-    typeof(LeadTagChangedOutboxDocument))]
+    typeof(LeadTagChangedOutboxDocument),
+    typeof(LeadTranslatorChangedOutboxDocument))]
 public abstract class OutboxDocument
 {
     [BsonId]
@@ -78,6 +79,12 @@ public sealed class LeadStateCreatedOutboxDocument : OutboxDocument
     [BsonElement("status")]
     [BsonRepresentation(BsonType.String)]
     public LeadFunnelStatus Status { get; set; }
+
+    [BsonElement("isInputTranslatorOn")]
+    public bool IsInputTranslatorOn { get; set; }
+
+    [BsonElement("isOutputTranslatorOn")]
+    public bool IsOutputTranslatorOn { get; set; }
 }
 
 public sealed class LeadStatusChangedOutboxDocument : OutboxDocument
@@ -122,5 +129,13 @@ public sealed class LeadTagChangedOutboxDocument : OutboxDocument
     [BsonRepresentation(BsonType.String)]
     public TagOperation Operation { get; set; }
     public TagDocument? Tag { get; set; }
+}
 
+public sealed class LeadTranslatorChangedOutboxDocument : OutboxDocument
+{
+    [BsonElement("isInputTranslatorOn")]
+    public bool IsInputTranslatorOn { get; set; }
+
+    [BsonElement("isOutputTranslatorOn")]
+    public bool IsOutputTranslatorOn { get; set; }
 }

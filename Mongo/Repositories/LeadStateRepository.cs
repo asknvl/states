@@ -96,7 +96,9 @@ public class LeadStateRepository : ILeadStateRepository
                 FlowName = state.FlowName,
                 NodeId = state.NodeId,
                 NodeLabel = state.NodeLabel,
-                Status = state.Status
+                Status = state.Status,
+                IsInputTranslatorOn = state.IsInputTranslatorOn,
+                IsOutputTranslatorOn = state.IsOutputTranslatorOn
             }, cancellationToken: ct);
         }, ct);
 
@@ -407,6 +409,49 @@ public class LeadStateRepository : ILeadStateRepository
                 Tags = updated.Tags ?? [],
                 Operation = TagOperation.Manual,
                 Tag = null
+            }, cancellationToken: ct);
+        }, ct);
+    }
+
+    public async Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct)
+    {
+        if (isInputTranslatorOn is null && isOutputTranslatorOn is null)
+            return;
+
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+        var updates = new List<UpdateDefinition<FunnelLeadState>>
+        {
+            Builders<FunnelLeadState>.Update.Inc(x => x.Version, 1)
+        };
+        if (isInputTranslatorOn.HasValue)
+            updates.Add(Builders<FunnelLeadState>.Update.Set(x => x.IsInputTranslatorOn, isInputTranslatorOn.Value));
+        if (isOutputTranslatorOn.HasValue)
+            updates.Add(Builders<FunnelLeadState>.Update.Set(x => x.IsOutputTranslatorOn, isOutputTranslatorOn.Value));
+
+        var update = Builders<FunnelLeadState>.Update.Combine(updates);
+
+        await InTransaction(async session =>
+        {
+            var updated = await collection.FindOneAndUpdateAsync(
+                session, filter, update,
+                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                ct);
+
+            if (updated is null) throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
+            await outbox.InsertOneAsync(session, new LeadTranslatorChangedOutboxDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CreatedAt = DateTime.UtcNow,
+                TenantId = updated.TenantId,
+                SpaceId = updated.SpaceId,
+                BotId = updated.BotId,
+                ChatId = updated.ChatId,
+                LeadId = updated.LeadId,
+                Version = updated.Version,
+                IsInputTranslatorOn = updated.IsInputTranslatorOn,
+                IsOutputTranslatorOn = updated.IsOutputTranslatorOn
             }, cancellationToken: ct);
         }, ct);
     }

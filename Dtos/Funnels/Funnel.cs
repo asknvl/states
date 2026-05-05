@@ -2,15 +2,17 @@
 
 namespace states.Dtos.Funnels
 {
-    public sealed record Funnel(            
+    public sealed record Funnel(
             Guid Id,
             Guid TenantId,
-            Guid SpaceId,            
+            Guid SpaceId,
             string Name,
             string? Description,
             List<Tag> Tags,
             List<Flow> Flows,
             Guid PresetsFolderId,
-            bool? IsActive
+            bool? IsActive,
+            bool IsInputTranslatorOn,
+            bool IsOutputTranslatorOn
         );
 }

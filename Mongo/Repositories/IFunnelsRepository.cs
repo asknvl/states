@@ -20,6 +20,7 @@ namespace states.Mongo.Repositories
         Task<IReadOnlyList<TagDocument>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
 
         Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct);
+        Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
 
         Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct);
     }

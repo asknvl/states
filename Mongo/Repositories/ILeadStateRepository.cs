@@ -8,7 +8,7 @@ namespace states.Mongo.Repositories;
 public interface ILeadStateRepository
 {
     Task<FunnelLeadState> CreateLeadState(FunnelLeadState state, CancellationToken ct);
-    Task<FunnelLeadState?> GetLeadState(Guid leadStateId, CancellationToken ct);
+    Task<FunnelLeadState> GetLeadState(Guid leadStateId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByLeadId(Guid tenantId, string leadId, CancellationToken ct);
@@ -29,6 +29,7 @@ public interface ILeadStateRepository
     Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);    
     Task UpdateTag(Guid leadStateId, TagOperation operation, Tag tagId, Tag replacementTag, CancellationToken ct);    
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
+    Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
 
     Task SaveTags(Guid leadStateId, List<Tag> tags, CancellationToken ct);
     Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct);
