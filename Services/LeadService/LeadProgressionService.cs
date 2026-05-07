@@ -114,6 +114,8 @@ public class LeadProgressionService : ILeadProgressionService
         var node = flow.Nodes.FirstOrDefault(n => n.Id == request.NodeId)
             ?? throw new InvalidOperationException($"Node '{request.NodeId}' not found in flow '{flow.Id}'.");
 
+        //Для органики без воронки тоже нужно состояние лида... 
+
         var leadState = new FunnelLeadState
         {
             Id = Guid.CreateVersion7(),
