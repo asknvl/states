@@ -236,13 +236,13 @@ public class LeadStateRepository : ILeadStateRepository
                 ChatId = updated.ChatId,
                 LeadId = updated.LeadId,
                 Version = updated.Version,
-                FunnelId = updated.FunnelId,
-                FunnelName = updated.FunnelName,
-                FlowId = updated.FlowId,
-                FlowName = updated.FlowName,
-                NodeId = updated.NodeId,
-                NodeLabel = updated.NodeLabel,
-                Status = updated.Status
+                FunnelId = funnelId,
+                FunnelName = funnelName,
+                FlowId = flowId,
+                FlowName = flowName,
+                NodeId = nodeId,
+                NodeLabel = nodeLabel,
+                Status = status
 
             }, cancellationToken: ct);
         }, ct);
@@ -369,7 +369,7 @@ public class LeadStateRepository : ILeadStateRepository
                 ChatId = updated.ChatId,
                 LeadId = updated.LeadId,
                 Version = updated.Version,
-                FunnelId = updated.FunnelId,
+                //FunnelId = updated.FunnelId,
                 Tags = updated.Tags,
                 Operation = operation,
                 Tag = tagDocument,
@@ -405,7 +405,7 @@ public class LeadStateRepository : ILeadStateRepository
                 ChatId = updated.ChatId,
                 LeadId = updated.LeadId,
                 Version = updated.Version,
-                FunnelId = updated.FunnelId,
+                //FunnelId = updated.FunnelId,
                 Tags = updated.Tags ?? [],
                 Operation = TagOperation.Manual,
                 Tag = null

@@ -23,10 +23,10 @@ namespace states.Mongo.Documents
         public Guid ChatId { get; set; }
 
         [BsonElement("campaignId")]
-        public Guid CampaignId { get; set; }
+        public Guid? CampaignId { get; set; }
 
         [BsonElement("campaignName")]
-        public string CampaignName { get; set; }
+        public string? CampaignName { get; set; }
 
         [BsonElement("sourceId")]
         public string? SourceId { get; set; }
@@ -38,22 +38,22 @@ namespace states.Mongo.Documents
         public string LeadId { get; set; }
 
         [BsonElement("funnelId")]    
-        public Guid FunnelId { get; set; }
+        public Guid? FunnelId { get; set; }
 
         [BsonElement("funnelName")]
-        public string FunnelName { get; set; }
+        public string? FunnelName { get; set; }
 
         [BsonElement("flowId")]       
-        public Guid FlowId { get; set; }
+        public Guid? FlowId { get; set; }
 
         [BsonElement("flowName")]
-        public string FlowName { get; set; }
+        public string? FlowName { get; set; }
 
         [BsonElement("nodeId")]       
-        public Guid NodeId { get; set; }
+        public Guid? NodeId { get; set; }
 
         [BsonElement("nodeLabel")]
-        public string NodeLabel { get; set; }
+        public string? NodeLabel { get; set; }
 
         [BsonElement("status")]
         [BsonRepresentation(BsonType.String)]

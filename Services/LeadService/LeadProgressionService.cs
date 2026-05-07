@@ -1,3 +1,4 @@
+using Confluent.Kafka;
 using MongoDB.Driver;
 using states.Dtos.Edges;
 using states.Dtos.Funnels;
@@ -34,8 +35,11 @@ public class LeadProgressionService : ILeadProgressionService
     }
 
     #region private
-    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Node node)
+    private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Dtos.Nodes.Node node)
     {
+        if (leadState.FunnelId is null || leadState.FlowId is null)
+            return [];
+
         var now = DateTime.UtcNow;
         var tasks = new List<ActionTaskDocument>();
 
@@ -55,8 +59,8 @@ public class LeadProgressionService : ILeadProgressionService
                         TenantId = leadState.TenantId,
                         SpaceId = leadState.SpaceId,
                         LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId,
-                        FlowId = leadState.FlowId,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId.Value,
                         NodeId = node.Id,
                         ActionId = action.Id,
                         Order = i,
@@ -82,8 +86,8 @@ public class LeadProgressionService : ILeadProgressionService
                         TenantId = leadState.TenantId,
                         SpaceId = leadState.SpaceId,
                         LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId,
-                        FlowId = leadState.FlowId,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId.Value,
                         NodeId = node.Id,
                         ActionId = action.Id,
                         Order = i,
@@ -105,14 +109,14 @@ public class LeadProgressionService : ILeadProgressionService
     #region public
     public async Task EnterFunnel(EnterFunnelRequest request, CancellationToken ct)
     {
-        var funnel = funnelCache.GetFunnel(request.FunnelId)
-            ?? throw new InvalidOperationException($"Funnel '{request.FunnelId}' not found in cache.");
+        var funnel = funnelCache.GetFunnel(request.FunnelId);
+        //?? throw new InvalidOperationException($"Funnel '{request.FunnelId}' not found in cache.");
 
-        var flow = funnel.Flows.FirstOrDefault(f => f.Id == request.FlowId)
-            ?? throw new InvalidOperationException($"Flow '{request.FlowId}' not found in funnel '{funnel.Id}'.");
+        var flow = funnel.Flows.FirstOrDefault(f => f.Id == request.FlowId);
+        //?? throw new InvalidOperationException($"Flow '{request.FlowId}' not found in funnel '{funnel.Id}'.");
 
-        var node = flow.Nodes.FirstOrDefault(n => n.Id == request.NodeId)
-            ?? throw new InvalidOperationException($"Node '{request.NodeId}' not found in flow '{flow.Id}'.");
+        var node = flow.Nodes.FirstOrDefault(n => n.Id == request.NodeId);
+            //?? throw new InvalidOperationException($"Node '{request.NodeId}' not found in flow '{flow.Id}'.");
 
         //Для органики без воронки тоже нужно состояние лида... 
 
@@ -128,15 +132,15 @@ public class LeadProgressionService : ILeadProgressionService
             CampaignName = request.CampaignName,
             SourceId = request.SourceId,
             SourceName = request.SourceName,
-            FunnelId = funnel.Id,
-            FunnelName = funnel.Name,
-            FlowId = flow.Id,
-            FlowName = flow.Name,
-            NodeId = node.Id,
-            NodeLabel = node.Data.Label,
-            Status = node.Data.FinishStatus,
-            IsInputTranslatorOn = funnel.IsInputTranslatorOn,
-            IsOutputTranslatorOn = funnel.IsOutputTranslatorOn
+            FunnelId = funnel?.Id,
+            FunnelName = funnel?.Name,
+            FlowId = flow?.Id,
+            FlowName = flow?.Name,
+            NodeId = node?.Id,
+            NodeLabel = node?.Data.Label,
+            Status = node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual,
+            IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
+            IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false
         };
 
         var actionTasks = CreateActionTasks(leadState, node);
@@ -187,7 +191,10 @@ public class LeadProgressionService : ILeadProgressionService
     {
         var leadState = await leadStateRepository.GetLeadState(leadStateId, ct);
 
-        var funnel = funnelCache.GetFunnel(leadState.FunnelId)
+        if (leadState.FunnelId == null)
+            throw new InvalidOperationException($"Funnel id id null");
+
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value) 
             ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
 
         var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId)
@@ -274,8 +281,8 @@ public class LeadProgressionService : ILeadProgressionService
         var leadState = await leadStateRepository.GetLeadStateByLeadId(tenantId, leadId, ct)
             ?? throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
 
-        var funnel = funnelCache.GetFunnel(leadState.FunnelId)
-            ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
+        var funnel = funnelCache.GetFunnel(funnelId)
+            ?? throw new InvalidOperationException($"Funnel '{funnelId}' not found in cache.");
 
         var flow = funnel.Flows.FirstOrDefault(f => f.Id == flowId)
             ?? throw new InvalidOperationException($"Flow '{flowId}' not found in funnel '{funnel.Id}'.");

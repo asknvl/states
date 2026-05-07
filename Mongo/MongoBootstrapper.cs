@@ -109,11 +109,32 @@ namespace states.Mongo
 
             var indexes = new List<CreateIndexModel<FunnelLeadState>>
             {
+                // один стейт на (тенант, воронка, лид); FunnelId=null — органика, тоже уникальна по (tenantId, null, leadId)
                 new CreateIndexModel<FunnelLeadState>(
                     Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.TenantId)
                         .Ascending(x => x.FunnelId)
                         .Ascending(x => x.LeadId),
-                    new CreateIndexOptions { Unique = true })
+                    new CreateIndexOptions { Unique = true }),
+
+                // GetLeadStateByChatId(tenantId, botId, chatId)
+                new CreateIndexModel<FunnelLeadState>(
+                    Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.BotId)
+                        .Ascending(x => x.ChatId)),
+
+                // GetLeadStateByChatId(tenantId, chatId)
+                new CreateIndexModel<FunnelLeadState>(
+                    Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.ChatId)),
+
+                // GetLeadStateByLeadId(tenantId, leadId)
+                new CreateIndexModel<FunnelLeadState>(
+                    Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.LeadId)),
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
