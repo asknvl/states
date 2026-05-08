@@ -13,7 +13,7 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
     };
 
     //
-    public async Task<FunnelEntryPoint?> GetFunnelEntryPoint(
+    public async Task<FunnelEntryPoint> GetFunnelEntryPoint(
         Guid tenantId,
         Guid botId,
         Guid globalId,
@@ -37,12 +37,10 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
             throw;
         }
 
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return null;
-
         response.EnsureSuccessStatusCode();
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        return await JsonSerializer.DeserializeAsync<FunnelEntryPoint>(stream, JsonOptions, ct);
+
+        return await JsonSerializer.DeserializeAsync<FunnelEntryPoint>(stream, JsonOptions, ct); //TODO разобраться тут чтобы всегда что-то возврашало
     }
 }

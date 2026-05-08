@@ -69,36 +69,55 @@ public class GlobalEventProcessor(
             return;
         }
 
-        var entryPoint = await campaignClient.GetFunnelEntryPoint(
-            p.TenantId,
-            p.BotId,
-            p.GlobalId,
-            p.StartParameter,
-            ct);
+        FunnelEntryPoint entryPoint = null!;
+
+
+        try
+        {
+
+            entryPoint = await campaignClient.GetFunnelEntryPoint(
+                p.TenantId,
+                p.BotId,
+                p.GlobalId,
+                p.StartParameter,
+                ct);
+
+        } catch (Exception ex)
+        {
+
+        }
+
+        EnterFunnelRequest request = null!;
 
         if (entryPoint is null)
         {
             logger.LogError(
-                "No active campaign found for tenant {TenantId}, bot {BotId} — cannot enter funnel",
+                "No lead entry point for tenant {TenantId}, bot {BotId} — cannot enter funnel",
                 p.TenantId, p.BotId);
+
             return;
         }
+        else
+        {
 
-        var request = new EnterFunnelRequest(
-            TenantId: p.TenantId,   
-            SpaceId: p.SpaceId,
-            BotId: p.BotId,
-            ChatId: p.ChatId,
-            LeadId: entryPoint.LeadId,
-            CampaignId: entryPoint.CampaignId,
-            CampaignName: entryPoint.CampaignName,
-            SourceId: entryPoint.SourceId,
-            SourceName: entryPoint.SourceName,
-            FunnelId: entryPoint.FunnelId,            
-            FlowId: entryPoint.FlowId,            
-            NodeId: entryPoint.NodeId);
+            request = new EnterFunnelRequest(
+                TenantId: p.TenantId,
+                SpaceId: p.SpaceId,
+                BotId: p.BotId,
+                ChatId: p.ChatId,
+                LeadId: entryPoint.LeadId,
+                CampaignId: entryPoint.CampaignId,
+                CampaignName: entryPoint.CampaignName,
+                SourceId: entryPoint.SourceId,
+                SourceName: entryPoint.SourceName,
+                FunnelId: entryPoint.FunnelId,
+                FlowId: entryPoint.FlowId,
+                NodeId: entryPoint.NodeId);         
+        }
+
 
         await leadProgressionService.EnterFunnel(request, ct);
+
     }
 
     private async Task HandleIncomingMessageSignal(string rawPayload, CancellationToken ct)

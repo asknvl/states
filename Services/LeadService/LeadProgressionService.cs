@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using MongoDB.Driver;
+using NanoidDotNet;
 using states.Dtos.Edges;
 using states.Dtos.Funnels;
 using states.Dtos.Leads;
@@ -9,6 +10,7 @@ using states.Mongo.Repositories;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
 using states.Services.LeadService.Routing;
+using System.Xml.Linq;
 
 namespace states.Services.LeadService;
 
@@ -67,7 +69,7 @@ public class LeadProgressionService : ILeadProgressionService
                         Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
                         ScheduledAt = scheduledAt,
                         CreatedAt = now,
-                        
+
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
                         PresetId = action.PresetId,
@@ -106,19 +108,21 @@ public class LeadProgressionService : ILeadProgressionService
     }
     #endregion
 
-    #region public
+    #region public   
     public async Task EnterFunnel(EnterFunnelRequest request, CancellationToken ct)
     {
-        var funnel = funnelCache.GetFunnel(request.FunnelId);
-        //?? throw new InvalidOperationException($"Funnel '{request.FunnelId}' not found in cache.");
+        Funnel? funnel = null;
+        Flow? flow = null;
+        Dtos.Nodes.Node? node = null;
 
-        var flow = funnel.Flows.FirstOrDefault(f => f.Id == request.FlowId);
-        //?? throw new InvalidOperationException($"Flow '{request.FlowId}' not found in funnel '{funnel.Id}'.");
+        if (request.FunnelId.HasValue)
+            funnel = funnelCache.GetFunnel(request.FunnelId.Value);
 
-        var node = flow.Nodes.FirstOrDefault(n => n.Id == request.NodeId);
-            //?? throw new InvalidOperationException($"Node '{request.NodeId}' not found in flow '{flow.Id}'.");
+        if (request.FlowId.HasValue)
+            flow = funnel?.Flows.FirstOrDefault(f => f.Id == request.FlowId.Value);
 
-        //Для органики без воронки тоже нужно состояние лида... 
+        if (request.NodeId.HasValue)
+            node = flow?.Nodes.FirstOrDefault(n => n.Id == request.NodeId.Value);
 
         var leadState = new FunnelLeadState
         {
@@ -132,36 +136,50 @@ public class LeadProgressionService : ILeadProgressionService
             CampaignName = request.CampaignName,
             SourceId = request.SourceId,
             SourceName = request.SourceName,
+
             FunnelId = funnel?.Id,
             FunnelName = funnel?.Name,
+
             FlowId = flow?.Id,
             FlowName = flow?.Name,
+
             NodeId = node?.Id,
-            NodeLabel = node?.Data.Label,
+            NodeLabel = node?.Data?.Label,
+
             Status = node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual,
+
             IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
-            IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false
+            IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false,
+
+            StatesLog = []
         };
 
-        var actionTasks = CreateActionTasks(leadState, node);
+        List<ActionTaskDocument> actionTasks = [];
 
-        var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+        if (node != null)
         {
-            ActionId = t.ActionId,
-            Type = t.Type,
-            Status = ActionStatus.Pending,
-            StatusChangedAt = DateTime.UtcNow
-        }).ToList();
+            actionTasks = CreateActionTasks(leadState, node);
 
-        leadState.StatesLog =
-        [
-            new StateLogEntry
+            var now = DateTime.UtcNow;
+
+            var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+            {
+                ActionId = t.ActionId,
+                Type = t.Type,
+                Status = ActionStatus.Pending,
+                StatusChangedAt = now
+            }).ToList();
+
+            leadState.StatesLog =
+            [
+                new StateLogEntry
             {
                 NodeId = node.Id,
-                EnteredAt = DateTime.UtcNow,
+                EnteredAt = now,
                 ActionsLog = actionStatusEntries
             }
-        ];
+            ];
+        }
 
         try
         {
@@ -169,22 +187,30 @@ public class LeadProgressionService : ILeadProgressionService
         }
         catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
         {
-            logger.LogWarning("Lead {LeadId} already exists in funnel {FunnelId}, skipping entry",
-                request.LeadId, request.FunnelId);
+            logger.LogWarning(
+                "Lead {LeadId} already exists in funnel {FunnelId}, skipping entry",
+                request.LeadId,
+                request.FunnelId);
+
             return;
         }
 
-        await actionTaskRepository.CreateMany(actionTasks, ct);
-
-        logger.LogInformation("Lead {LeadStateId} entered funnel {FunnelId} at node {NodeId}",
-            leadState.Id, funnel.Id, node.Id);
-
-        if (actionTasks.Count == 0)
+        if (actionTasks.Count > 0)
         {
-            if (node.Data.FinishStatus != LeadFunnelStatus.Waiting)
-            {
-                await TransitionToNextNode(leadState.Id, ct);
-            }
+            await actionTaskRepository.CreateMany(actionTasks, ct);
+        }
+
+        logger.LogInformation(
+            "Lead {LeadStateId} entered funnel {FunnelId} at node {NodeId}",
+            leadState.Id,
+            leadState.FunnelId,
+            leadState.NodeId);
+
+        if (node != null &&
+            actionTasks.Count == 0 &&
+            node.Data?.FinishStatus != LeadFunnelStatus.Waiting)
+        {
+            await TransitionToNextNode(leadState.Id, ct);
         }
     }
     public async Task TransitionToNextNode(Guid leadStateId, CancellationToken ct)
@@ -194,7 +220,7 @@ public class LeadProgressionService : ILeadProgressionService
         if (leadState.FunnelId == null)
             throw new InvalidOperationException($"Funnel id id null");
 
-        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value) 
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value)
             ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
 
         var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId)
@@ -228,7 +254,7 @@ public class LeadProgressionService : ILeadProgressionService
         {
             await leadStateRepository.UpdateLeadStateStatus(leadStateId, LeadFunnelStatus.Manual, ct);
             throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
-        }            
+        }
 
         await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
 
@@ -258,7 +284,7 @@ public class LeadProgressionService : ILeadProgressionService
                 nodeLabel: targetNode.Data.Label,
                 status: targetNode.Data.FinishStatus,
                 actionStatusEntries,
-                ct               
+                ct
             );
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
@@ -268,7 +294,7 @@ public class LeadProgressionService : ILeadProgressionService
 
         if (actionTasks.Count == 0)
             await TransitionToNextNode(leadStateId, ct);
-    } 
+    }
 
     public async Task SetLeadFunnelPosition(
         Guid tenantId,
@@ -342,10 +368,49 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead state chatId={LeadStateId} status manually set to {Status}", chatId, status);
     }
 
-    public async Task UpdateLeadStateByChatId(Guid tenantId, Guid chatId, SetLeadStateRequest dto, CancellationToken ct)
+    public async Task UpdateLeadStateByChatId(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        SetLeadStateRequest dto,
+        CancellationToken ct)
     {
-        var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, ct)
-            ?? throw new KeyNotFoundException($"Lead state for chat '{chatId}' not found.");
+        var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, ct);
+            //?? throw new KeyNotFoundException($"Lead state for chat '{chatId}' not found.");
+
+        if (leadState == null)
+        {
+            leadState = new FunnelLeadState
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = tenantId,
+                SpaceId = spaceId,
+                BotId = botId,
+                ChatId = chatId,
+                LeadId = Nanoid.Generate(Nanoid.Alphabets.LettersAndDigits, size: 12),
+                CampaignId = null,
+                CampaignName = null,
+                SourceId = null,
+                SourceName = null,
+
+                FunnelId = null,
+                FunnelName = null,
+
+                FlowId = null,
+                FlowName = null,
+
+                NodeId = null,
+                NodeLabel = null,
+
+                Status = LeadFunnelStatus.Manual,
+
+                IsInputTranslatorOn = false,
+                IsOutputTranslatorOn = false,
+
+                StatesLog = []
+            };
+        }
 
         var positionFieldsSet = new[] { dto.FunnelId.HasValue, dto.FlowId.HasValue, dto.NodeId.HasValue };
         if (positionFieldsSet.Any(x => x) && !positionFieldsSet.All(x => x))

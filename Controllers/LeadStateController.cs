@@ -55,7 +55,7 @@ namespace states.Controllers
         //    return NoContent();
         //}
 
-        [HttpPatch("{tenantId:guid}/chats/{chatId}/state")]
+        [HttpPatch("{tenantId:guid}/spaces/{spaceId:guid}/bots/{botId:guid}/chats/{chatId:guid}/state")]
         [SwaggerOperation(Summary = "Manually update lead state fields by chatId")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -63,11 +63,19 @@ namespace states.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateLeadStateByChatId(
             [FromRoute] Guid tenantId,
+            [FromRoute] Guid spaceId,
+            [FromRoute] Guid botId,
             [FromRoute] Guid chatId,
             [FromBody] SetLeadStateRequest dto,
             CancellationToken ct)
         {
-            await leadProgressionService.UpdateLeadStateByChatId(tenantId, chatId, dto, ct);
+            await leadProgressionService.UpdateLeadStateByChatId(
+                tenantId,
+                spaceId,
+                botId,
+                chatId,
+                dto,
+                ct);
             return NoContent();
         }
     }
