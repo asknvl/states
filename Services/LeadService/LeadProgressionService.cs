@@ -410,6 +410,8 @@ public class LeadProgressionService : ILeadProgressionService
 
                 StatesLog = []
             };
+
+            await leadStateRepository.CreateLeadState(leadState, ct);
         }
 
         var positionFieldsSet = new[] { dto.FunnelId.HasValue, dto.FlowId.HasValue, dto.NodeId.HasValue };
