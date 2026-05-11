@@ -447,6 +447,29 @@ public class LeadProgressionService : ILeadProgressionService
             logger.LogInformation("Lead {LeadStateId} translator set to input={IsInputTranslatorOn}, output={IsOutputTranslatorOn}", leadState.Id, dto.IsInputTranslatorOn, dto.IsOutputTranslatorOn);
         }
     }
+    public async Task HandleIncomingSignal(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    {
+        // Атомарно захватываем лид: переводим Waiting → Nothing только если статус ещё Waiting.
+        // Если другой воркер уже захватил — вернётся null, и мы просто выходим.
+        var leadState = await leadStateRepository.ClaimWaitingLeadByChatId(tenantId, botId, chatId, ct);
+        if (leadState is null) return;
+
+        // Проверяем завершённость actions прямо по уже полученному документу — без доп. запроса.
+        var currentLog = leadState.StatesLog.LastOrDefault(s => s.NodeId == leadState.NodeId && s.LeftAt == null);
+        bool allDone = currentLog is null
+            || currentLog.ActionsLog.Count == 0
+            || currentLog.ActionsLog.All(a => a.Status == ActionStatus.Completed);
+
+        if (!allDone)
+        {
+            // Actions ещё не завершены — возвращаем статус Waiting, сигнал проигнорируем.
+            await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
+            return;
+        }
+
+        await TransitionToNextNode(leadState.Id, ct);
+    }
+
     public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)
     {
         var leadState = await leadStateRepository.GetLeadStateByChatId(tenantId, chatId, CancellationToken.None);

@@ -47,6 +47,25 @@ public class LeadStateRepository : ILeadStateRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<FunnelLeadState?> ClaimWaitingLeadByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.Status, LeadFunnelStatus.Waiting)
+        );
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Status, LeadFunnelStatus.Nothing);
+
+        // ReturnDocument.Before — возвращаем документ до обновления,
+        // чтобы проверить actions прямо в памяти без лишнего запроса.
+        // Если другой воркер уже сменил статус — filter не совпадёт и вернётся null.
+        return await collection.FindOneAndUpdateAsync(filter, update,
+            new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.Before }, ct);
+    }
+
     public async Task<FunnelLeadState?> GetLeadStateByLeadId(Guid tenantId, string leadId, CancellationToken ct)
     {
         return await collection

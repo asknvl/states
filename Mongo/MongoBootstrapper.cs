@@ -27,6 +27,8 @@ namespace states.Mongo
             await CreateFoldersIndexes(ct);
             await CreateTenantTagsCollection(ct);
             await CreateTenantTagsIndexes(ct);
+            await CreateActionTasksCollection(ct);
+            await CreateActionTasksIndexes(ct);
         }
 
         #region collections
@@ -85,6 +87,14 @@ namespace states.Mongo
             if (collectionNames.Contains("tenant_tags"))
                 return;
             await database.CreateCollectionAsync("tenant_tags", cancellationToken: ct);
+        }
+
+        private async Task CreateActionTasksCollection(CancellationToken ct)
+        {
+            var collectionNames = await database.ListCollectionNames().ToListAsync(ct);
+            if (collectionNames.Contains("action_tasks"))
+                return;
+            await database.CreateCollectionAsync("action_tasks", cancellationToken: ct);
         }
 
         #region indexes
@@ -183,6 +193,28 @@ namespace states.Mongo
                     Builders<TenantTag>.IndexKeys
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.TagName))
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
+        private async Task CreateActionTasksIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<ActionTaskDocument>("action_tasks");
+
+            var indexes = new List<CreateIndexModel<ActionTaskDocument>>
+            {
+                // ClaimNext: фильтр Status=Pending + ScheduledAt<=Now, сортировка по ScheduledAt
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys
+                        .Ascending(x => x.Status)
+                        .Ascending(x => x.ScheduledAt)),
+
+                // CancelPendingByLead / UnlockNext: фильтр по LeadStateId
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys
+                        .Ascending(x => x.LeadStateId)
+                        .Ascending(x => x.NodeId))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

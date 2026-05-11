@@ -140,8 +140,8 @@ public class GlobalEventProcessor(
         }
 
         var p = incoming.Payload;
-        
-        
+
+        await leadProgressionService.HandleIncomingSignal(p.TenantId, p.BotId, p.ChatId, ct);
     }
 
     private async Task HandleChatDeletion(string rawPayload, CancellationToken ct)
