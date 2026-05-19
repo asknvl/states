@@ -185,7 +185,11 @@ public static class FunnelDocumentMapper
             AiReplyNodeData x => new AiReplyNodeDataDocument
             {
                 Label = x.Label,
-                FinishStatus = x.FinishStatus
+                FinishStatus = x.FinishStatus,
+                Goal = x.Goal,
+                Requirements = x.Requirements,
+                Legend = x.Legend,
+                AdditionalInfo = x.AdditionalInfo
             },
 
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
@@ -221,7 +225,11 @@ public static class FunnelDocumentMapper
 
             AiReplyNodeDataDocument x => new AiReplyNodeData(
                 Label: x.Label,
-                FinishStatus: x.FinishStatus
+                FinishStatus: x.FinishStatus,
+                Goal: x.Goal,
+                Requirements: x.Requirements,
+                Legend: x.Legend,
+                AdditionalInfo: x.AdditionalInfo
             ),
 
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")

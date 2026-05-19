@@ -101,8 +101,12 @@ namespace states.Dtos.Funnels.Examples
                         Type: "custom",
                         Position: new Position( 0, 0 ),
                         Data: new AiReplyNodeData(
-                            Label: "Сообщение 2",
-                            FinishStatus: LeadFunnelStatus.Nothing                            
+                            Label: "ИИ ответ",
+                            FinishStatus: LeadFunnelStatus.Nothing,
+                            Goal: "Чтобы все было хорошо",
+                            Requirements: "Чтобы это было дешево",
+                            Legend: "Чтобы ничего за это не было",
+                            AdditionalInfo: "Ну все, приплыли"
                         )
                     ),
 
