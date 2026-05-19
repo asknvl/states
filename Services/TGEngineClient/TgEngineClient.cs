@@ -46,6 +46,34 @@ public class TGEngineClient : ITGEngineClient
         response.EnsureSuccessStatusCode();
     }
 
+    // TODO: уточнить реальный endpoint у TgEngine
+    public async Task<ChatContextResponse> GetChatContext(
+        Guid tenantId,
+        Guid botId,
+        Guid chatId,
+        int limit,
+        CancellationToken ct)
+    {
+        var url = $"/chats/context?tenantId={tenantId}&botId={botId}&chatId={chatId}&limit={limit}";
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.GetAsync(url, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TgEngineClient GetChatContext failed: chatId={ChatId}", chatId);
+            throw;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<ChatContextResponse>(ct);
+        return result ?? new ChatContextResponse([]);
+    }
+
     private record SendPresetRequest(
         [property: JsonPropertyName("tenantId")]
         Guid TenantId,
@@ -58,6 +86,6 @@ public class TGEngineClient : ITGEngineClient
         [property: JsonPropertyName("funnelId")]
         Guid FunnelId,
         [property: JsonPropertyName("presetId")]
-        Guid PresetId        
+        Guid PresetId
     );
 }

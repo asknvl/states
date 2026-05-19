@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Linq;
 using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Repositories
 {
@@ -251,6 +252,50 @@ namespace states.Mongo.Repositories
                 updates.Add(Builders<FunnelDocument>.Update.Set(x => x.IsInputTranslatorOn, isInputTranslatorOn.Value));
             if (isOutputTranslatorOn.HasValue)
                 updates.Add(Builders<FunnelDocument>.Update.Set(x => x.IsOutputTranslatorOn, isOutputTranslatorOn.Value));
+
+            var update = Builders<FunnelDocument>.Update.Combine(updates);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+        }
+
+        public async Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct)
+        {
+            if (photoRecognition is null && videoRecognition is null && voiceRecognition is null)
+                return;
+
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+
+            var updates = new List<UpdateDefinition<FunnelDocument>>();
+            if (photoRecognition.HasValue)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.PhotoRecognition, photoRecognition.Value));
+            if (videoRecognition.HasValue)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.VideoRecognition, videoRecognition.Value));
+            if (voiceRecognition.HasValue)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.VoiceRecognition, voiceRecognition.Value));
+
+            var update = Builders<FunnelDocument>.Update.Combine(updates);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+        }
+
+        public async Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct)
+        {
+            if (readDelay is null && replyDelay is null)
+                return;
+
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+
+            var updates = new List<UpdateDefinition<FunnelDocument>>();
+            if (readDelay.HasValue)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.ReadDelay, readDelay.Value));
+            if (replyDelay.HasValue)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.ReplyDelay, replyDelay.Value));
 
             var update = Builders<FunnelDocument>.Update.Combine(updates);
 

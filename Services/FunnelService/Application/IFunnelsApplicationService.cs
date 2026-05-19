@@ -12,6 +12,8 @@ namespace states.Services.FunnelService.Application
         Task<IReadOnlyCollection<FunnelShortDto>> GetShort(Guid tenantId, Guid? spaceId, CancellationToken ct);
         Task SetIsActive(Guid funnelId, bool isActive, CancellationToken ct);
         Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
+        Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct);
+        Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct);
 
         Task<IReadOnlyCollection<Tag>> GetTagsByFunnel(Guid funnelId, CancellationToken ct);
         Task<IReadOnlyCollection<Tag>> GetTagsByTenant(Guid tenantId, Guid spaceId, CancellationToken ct);

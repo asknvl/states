@@ -80,6 +80,9 @@ public sealed class OutboxWorkerService(
                             Status: created.Status,
                             IsInputTranslatorOn: created.IsInputTranslatorOn,
                             IsOutputTranslatorOn: created.IsOutputTranslatorOn,
+                            PhotoRecognition: created.PhotoRecognition,
+                            VideoRecognition: created.VideoRecognition,
+                            VoiceRecognition: created.VoiceRecognition,
                             Version: created.Version);
 
                     await eventService.Publish(new LeadStateCreatedEvent(scp), ct);

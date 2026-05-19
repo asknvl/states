@@ -22,6 +22,7 @@ namespace states.Dtos.Nodes
     [JsonDerivedType(typeof(StartNodeData), nameof(NodeType.Start))]
     [JsonDerivedType(typeof(SendPresetNodeData), nameof(NodeType.SendPreset))]
     [JsonDerivedType(typeof(ManageTagNodeData), nameof(NodeType.ManageTag))]
+    [JsonDerivedType(typeof(AiReplyNodeData), nameof(NodeType.AiReply))]
     public abstract record NodeData(        
         string Label,
         LeadFunnelStatus FinishStatus

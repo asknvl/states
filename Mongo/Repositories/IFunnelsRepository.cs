@@ -1,4 +1,5 @@
 ﻿using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Repositories
 {
@@ -21,6 +22,8 @@ namespace states.Mongo.Repositories
 
         Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct);
         Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
+        Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct);
+        Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct);
 
         Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct);
     }

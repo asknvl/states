@@ -38,7 +38,12 @@ public static class FunnelDocumentMapper
             Flows: document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList(),
             IsActive: document.IsActive,
             IsInputTranslatorOn: document.IsInputTranslatorOn,
-            IsOutputTranslatorOn: document.IsOutputTranslatorOn
+            IsOutputTranslatorOn: document.IsOutputTranslatorOn,
+            PhotoRecognition: document.PhotoRecognition,
+            VideoRecognition: document.VideoRecognition,
+            VoiceRecognition: document.VoiceRecognition,
+            ReadDelay: document.ReadDelay,
+            ReplyDelay: document.ReplyDelay
         );
     }
 
@@ -55,7 +60,12 @@ public static class FunnelDocumentMapper
             PresetsFolderId: document.PresetsFolderId,
             IsActive: document.IsActive,
             IsInputTranslatorOn: document.IsInputTranslatorOn,
-            IsOutputTranslatorOn: document.IsOutputTranslatorOn
+            IsOutputTranslatorOn: document.IsOutputTranslatorOn,
+            PhotoRecognition: document.PhotoRecognition,
+            VideoRecognition: document.VideoRecognition,
+            VoiceRecognition: document.VoiceRecognition,
+            ReadDelay: document.ReadDelay,
+            ReplyDelay: document.ReplyDelay
         );
     }
     #endregion
@@ -172,6 +182,12 @@ public static class FunnelDocumentMapper
                 FinishStatus = x.FinishStatus
             },
 
+            AiReplyNodeData x => new AiReplyNodeDataDocument
+            {
+                Label = x.Label,
+                FinishStatus = x.FinishStatus
+            },
+
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
         };
     }
@@ -201,6 +217,11 @@ public static class FunnelDocumentMapper
                     .OfType<ManageTagActionDocument>()
                     .Select(ToDto)
                     .ToList()
+            ),
+
+            AiReplyNodeDataDocument x => new AiReplyNodeData(
+                Label: x.Label,
+                FinishStatus: x.FinishStatus
             ),
 
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")

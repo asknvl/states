@@ -1,4 +1,5 @@
 ﻿using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
 
 namespace states.Dtos.Funnels
 {
@@ -13,6 +14,11 @@ namespace states.Dtos.Funnels
             Guid PresetsFolderId,
             bool? IsActive,
             bool IsInputTranslatorOn,
-            bool IsOutputTranslatorOn
+            bool IsOutputTranslatorOn,
+            RecognitionType PhotoRecognition,
+            RecognitionType VideoRecognition,
+            RecognitionType VoiceRecognition,
+            int ReadDelay,
+            int ReplyDelay
         );
 }

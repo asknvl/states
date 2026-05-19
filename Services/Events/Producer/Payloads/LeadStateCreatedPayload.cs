@@ -1,3 +1,4 @@
+using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
 namespace states.Services.Events.Producer.Payloads
@@ -21,6 +22,9 @@ namespace states.Services.Events.Producer.Payloads
         LeadFunnelStatus Status,
         bool IsInputTranslatorOn,
         bool IsOutputTranslatorOn,
+        RecognitionType PhotoRecognition,
+        RecognitionType VideoRecognition,
+        RecognitionType VoiceRecognition,
         long Version
     ) : LeadStateChangeEventPayloadBase(
             TenantId: TenantId,

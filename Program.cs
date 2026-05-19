@@ -82,7 +82,7 @@ namespace states
                 options.SelectSubTypesUsing(baseType =>
                 {
                     if (baseType == typeof(NodeData))
-                        return [typeof(StartNodeData), typeof(SendPresetNodeData), typeof(ManageTagNodeData)];
+                        return [typeof(StartNodeData), typeof(SendPresetNodeData), typeof(ManageTagNodeData), typeof(AiReplyNodeData)];
                     if (baseType == typeof(Edge))
                         return [typeof(PassEdge), typeof(SplitEdge), typeof(AiRouterEdge)];
                     return [];
@@ -100,6 +100,7 @@ namespace states
                     if (subType == typeof(StartNodeData)) return nameof(NodeType.Start);
                     if (subType == typeof(SendPresetNodeData)) return nameof(NodeType.SendPreset);
                     if (subType == typeof(ManageTagNodeData)) return nameof(NodeType.ManageTag);
+                    if (subType == typeof(AiReplyNodeData)) return nameof(NodeType.AiReply);
                     if (subType == typeof(PassEdge)) return nameof(EdgeType.Pass);
                     if (subType == typeof(SplitEdge)) return nameof(EdgeType.Split);
                     if (subType == typeof(AiRouterEdge)) return nameof(EdgeType.AiRouter);

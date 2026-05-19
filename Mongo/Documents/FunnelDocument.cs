@@ -2,6 +2,7 @@
 using MongoDB.Bson.Serialization.Attributes;
 using states.Mongo.Documents.Edges;
 using states.Mongo.Documents.Nodes;
+using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents
 {
@@ -40,6 +41,24 @@ namespace states.Mongo.Documents
 
         [BsonElement("isOutputTranslatorOn")]
         public bool IsOutputTranslatorOn { get; set; }
+
+        [BsonElement("photoRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType PhotoRecognition { get; set; } = RecognitionType.Skip;
+
+        [BsonElement("videoRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType VideoRecognition { get; set; } = RecognitionType.Skip;
+
+        [BsonElement("voiceRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Skip;
+
+        [BsonElement("readDelay")]
+        public int ReadDelay { get; set; } = 5;
+
+        [BsonElement("replyDelay")]
+        public int ReplyDelay { get; set; } = 10;
     }
 
     public class FlowDocument

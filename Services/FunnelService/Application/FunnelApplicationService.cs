@@ -86,6 +86,18 @@ namespace states.Services.FunnelService.Application
             await funnelsRepository.SetIsTranslatorOn(funnelId, isInputTranslatorOn, isOutputTranslatorOn, ct);
             await RefreshCache(funnelId);
         }
+
+        public async Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct)
+        {
+            await funnelsRepository.SetRecognition(funnelId, photoRecognition, videoRecognition, voiceRecognition, ct);
+            await RefreshCache(funnelId);
+        }
+
+        public async Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct)
+        {
+            await funnelsRepository.SetDelays(funnelId, readDelay, replyDelay, ct);
+            await RefreshCache(funnelId);
+        }
         #endregion
 
         #region tags

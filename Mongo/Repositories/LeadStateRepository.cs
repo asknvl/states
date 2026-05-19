@@ -117,7 +117,10 @@ public class LeadStateRepository : ILeadStateRepository
                 NodeLabel = state.NodeLabel,
                 Status = state.Status,
                 IsInputTranslatorOn = state.IsInputTranslatorOn,
-                IsOutputTranslatorOn = state.IsOutputTranslatorOn
+                IsOutputTranslatorOn = state.IsOutputTranslatorOn,
+                PhotoRecognition = state.PhotoRecognition,
+                VideoRecognition = state.VideoRecognition,
+                VoiceRecognition = state.VoiceRecognition
             }, cancellationToken: ct);
         }, ct);
 

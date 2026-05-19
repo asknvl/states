@@ -65,6 +65,18 @@ namespace states.Mongo.Documents
         [BsonElement("isOutputTranslatorOn")]
         public bool IsOutputTranslatorOn { get; set; }
 
+        [BsonElement("photoRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType PhotoRecognition { get; set; } = RecognitionType.Enabled;
+
+        [BsonElement("videoRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType VideoRecognition { get; set; } = RecognitionType.Enabled;
+
+        [BsonElement("voiceRecognition")]
+        [BsonRepresentation(BsonType.String)]
+        public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Enabled;
+
         [BsonElement("version")]
         public long Version { get; set; }
 

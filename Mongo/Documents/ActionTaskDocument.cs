@@ -94,3 +94,8 @@ public sealed class ManageTagActionTaskDocument : ActionTaskDocument
     public Guid? ReplacementTagId { get; set; }    
     public ManageTagActionTaskDocument() : base(ActionType.ManageTag, isCritical: true) { }
 }
+
+public sealed class AiReplyActionTaskDocument : ActionTaskDocument
+{
+    public AiReplyActionTaskDocument() : base(ActionType.AiReply, isCritical: true) { }
+}

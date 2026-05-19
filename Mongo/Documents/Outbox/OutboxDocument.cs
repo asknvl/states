@@ -85,6 +85,18 @@ public sealed class LeadStateCreatedOutboxDocument : OutboxDocument
 
     [BsonElement("isOutputTranslatorOn")]
     public bool IsOutputTranslatorOn { get; set; }
+
+    [BsonElement("photoRecognition")]
+    [BsonRepresentation(BsonType.String)]
+    public RecognitionType PhotoRecognition { get; set; } = RecognitionType.Skip;
+
+    [BsonElement("videoRecognition")]
+    [BsonRepresentation(BsonType.String)]
+    public RecognitionType VideoRecognition { get; set; } = RecognitionType.Skip;
+
+    [BsonElement("voiceRecognition")]
+    [BsonRepresentation(BsonType.String)]
+    public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Skip;
 }
 
 public sealed class LeadStatusChangedOutboxDocument : OutboxDocument

@@ -7,6 +7,7 @@ namespace states.Services.FunnelService.Application
         Start,
         ManageTag,
         SendPreset,
+        AiReply,
         ChangeFlow
     }
 }

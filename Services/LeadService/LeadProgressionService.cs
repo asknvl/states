@@ -102,6 +102,26 @@ public class LeadProgressionService : ILeadProgressionService
                     });
                 }
                 break;
+
+                case AiReplyNodeData aiReply:
+
+                //tasks.Add(new AiReplyActionTaskDocument
+                //{
+                //    Id = Guid.CreateVersion7(),
+                //    TenantId = leadState.TenantId,
+                //    SpaceId = leadState.SpaceId,
+                //    LeadStateId = leadState.Id,
+                //    FunnelId = leadState.FunnelId.Value,
+                //    FlowId = leadState.FlowId.Value,
+                //    NodeId = node.Id,
+                //    ActionId = action.Id,
+                //    Order = 0,
+                //    Status = ActionStatus.Pending,
+                //    CreatedAt = now,
+
+                //});
+                //TODO поставить таск на автоответ при переходе в AIReply Ноду
+                break;
         }
 
         return tasks;
@@ -150,6 +170,10 @@ public class LeadProgressionService : ILeadProgressionService
 
             IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
             IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false,
+
+            PhotoRecognition = funnel?.PhotoRecognition ?? RecognitionType.Skip,
+            VideoRecognition = funnel?.VideoRecognition ?? RecognitionType.Skip,
+            VoiceRecognition = funnel?.VoiceRecognition ?? RecognitionType.Skip,
 
             StatesLog = []
         };

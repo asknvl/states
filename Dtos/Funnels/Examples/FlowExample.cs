@@ -96,6 +96,16 @@ namespace states.Dtos.Funnels.Examples
                             }
                         )
                     ),
+                    new Node(
+                        Id: new Guid("0196e0f3-6f2c-7b4a-9d8e-4f2c1a7b9e03"),
+                        Type: "custom",
+                        Position: new Position( 0, 0 ),
+                        Data: new AiReplyNodeData(
+                            Label: "Сообщение 2",
+                            FinishStatus: LeadFunnelStatus.Nothing                            
+                        )
+                    ),
+
                 },
                 Edges: new List<Edge>()
                 {
@@ -115,6 +125,16 @@ namespace states.Dtos.Funnels.Examples
                         Source: new Guid("0195e9f7-6c01-7f82-9c13-2a7b4d8e5f02"),
                         Target: new Guid("0195e9f7-6c03-7b95-8f21-4d9a6c2b8e04"),
                         Percentage: 50
+                    ),
+                    new PassEdge(
+                        Id: new Guid("0196e0f4-1a5b-7c2d-9f31-7a8c2d4e6b90"),
+                        Source: new Guid("0195e9f7-6c02-71d4-a6b9-3c8e5f1a7d03"),
+                        Target: new Guid("0196e0f3-6f2c-7b4a-9d8e-4f2c1a7b9e03")                        
+                    ),
+                    new PassEdge(
+                        Id: new Guid("0196e0f4-1a5c-739e-a2d7-5f1b8c0e3a64"),
+                        Source: new Guid("0195e9f7-6c03-7b95-8f21-4d9a6c2b8e04"),
+                        Target: new Guid("0196e0f3-6f2c-7b4a-9d8e-4f2c1a7b9e03")                        
                     )
                 }
             );

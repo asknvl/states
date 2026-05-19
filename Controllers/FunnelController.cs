@@ -107,6 +107,28 @@ namespace states.Controllers
             return NoContent();
         }
 
+        [HttpPatch("{funnelId:guid}/recognition")]
+        [SwaggerOperation(Summary = "Sets the recognition settings of a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SetRecognition([FromRoute] Guid funnelId, [FromBody] SetRecognitionRequest request, CancellationToken ct)
+        {
+            await funnelsApplicationService.SetRecognition(funnelId, request.PhotoRecognition, request.VideoRecognition, request.VoiceRecognition, ct);
+            return NoContent();
+        }
+
+        [HttpPatch("{funnelId:guid}/delays")]
+        [SwaggerOperation(Summary = "Sets the read and reply delays of a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SetDelays([FromRoute] Guid funnelId, [FromBody] SetDelaysRequest request, CancellationToken ct)
+        {
+            await funnelsApplicationService.SetDelays(funnelId, request.ReadDelay, request.ReplyDelay, ct);
+            return NoContent();
+        }
+
         #endregion
 
         #region flows

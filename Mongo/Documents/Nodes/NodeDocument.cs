@@ -32,7 +32,8 @@ namespace states.Mongo.Documents.Nodes
     [BsonDiscriminator("nodeData")]
     [BsonKnownTypes(typeof(StartNodeDataDocument),
         typeof(SendPresetNodeDataDocument),
-        typeof(ManageTagNodeDataDocument))]
+        typeof(ManageTagNodeDataDocument),
+        typeof(AiReplyNodeDataDocument))]
     public abstract record NodeDataDocument
     {
         [BsonElement("label")]

@@ -3,6 +3,7 @@
     public enum ActionType
     {
         SendPreset,
-        ManageTag
+        ManageTag,
+        AiReply
     }
 }
