@@ -5,12 +5,6 @@ namespace states.Services.LeadService.Routing;
 public class EdgeRouter : IEdgeRouter
 {
     private static readonly Random random = new();
-    private readonly IAiRouterClient aiClient;
-
-    public EdgeRouter(IAiRouterClient aiClient)
-    {
-        this.aiClient = aiClient;
-    }
 
     public async Task<Edge?> SelectEdge(Guid leadStateId, IReadOnlyList<Edge> edges, CancellationToken ct)
     {
@@ -20,8 +14,7 @@ public class EdgeRouter : IEdgeRouter
         return edges[0] switch
         {
             PassEdge => edges[0],
-            SplitEdge => SelectSplit(edges),
-            AiRouterEdge => await SelectAiRouter(leadStateId, edges, ct),
+            SplitEdge => SelectSplit(edges),            
             _ => null
         };
     }
@@ -47,15 +40,4 @@ public class EdgeRouter : IEdgeRouter
         return splits.Last();
     }
 
-    private async Task<Edge?> SelectAiRouter(Guid leadStateId, IReadOnlyList<Edge> edges, CancellationToken ct)
-    {
-        foreach (var edge in edges.OfType<AiRouterEdge>())
-        {
-            var match = await aiClient.CheckThesis(leadStateId, edge.Thesis, ct);
-            if (match)
-                return edge;
-        }
-
-        return null;
-    }
 }

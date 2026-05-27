@@ -166,7 +166,7 @@ public class LeadProgressionService : ILeadProgressionService
             NodeId = node?.Id,
             NodeLabel = node?.Data?.Label,
 
-            Status = node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual,
+            Status = node?.Data is AiReplyNodeData ? LeadFunnelStatus.Waiting : (node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual),
 
             IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
             IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false,
@@ -273,6 +273,36 @@ public class LeadProgressionService : ILeadProgressionService
             return;
         }
 
+        await ExecuteTransition(leadStateId, leadState, funnel, flow, selectedEdge, ct);
+    }
+
+    public async Task ExecuteTransitionByEdge(Guid leadStateId, Guid edgeId, CancellationToken ct)
+    {
+        var leadState = await leadStateRepository.GetLeadState(leadStateId, ct);
+
+        if (leadState.FunnelId == null)
+            throw new InvalidOperationException("Funnel id is null");
+
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value)
+            ?? throw new InvalidOperationException($"Funnel '{leadState.FunnelId}' not found in cache.");
+
+        var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId)
+            ?? throw new InvalidOperationException($"Flow '{leadState.FlowId}' not found.");
+
+        var edge = flow.Edges.FirstOrDefault(e => e.Id == edgeId)
+            ?? throw new InvalidOperationException($"Edge '{edgeId}' not found in flow.");
+
+        await ExecuteTransition(leadStateId, leadState, funnel, flow, edge, ct);
+    }
+
+    private async Task ExecuteTransition(
+        Guid leadStateId,
+        FunnelLeadState leadState,
+        Funnel funnel,
+        Flow flow,
+        Edge selectedEdge,
+        CancellationToken ct)
+    {
         var targetNode = flow.Nodes.FirstOrDefault(n => n.Id == selectedEdge.Target);
         if (targetNode == null)
         {
@@ -292,11 +322,11 @@ public class LeadProgressionService : ILeadProgressionService
             StatusChangedAt = DateTime.UtcNow
         }).ToList();
 
-
         //await leadStateRepository.UpdateLeadStateStatus(leadStateId, targetNode.Data.FinishStatus, ct);
-
         //await leadStateRepository.MoveToNode(leadStateId, selectedEdge.Id, targetNode.Id, actionStatusEntries, ct);
 
+        var isAiReply = targetNode.Data is AiReplyNodeData;
+        var nodeStatus = isAiReply ? LeadFunnelStatus.Waiting : targetNode.Data.FinishStatus;
 
         await leadStateRepository.SetLeadFunnelPosition(
                 leadStateId: leadStateId,
@@ -306,7 +336,7 @@ public class LeadProgressionService : ILeadProgressionService
                 flowName: flow.Name,
                 nodeId: targetNode.Id,
                 nodeLabel: targetNode.Data.Label,
-                status: targetNode.Data.FinishStatus,
+                status: nodeStatus,
                 actionStatusEntries,
                 ct
             );
@@ -316,7 +346,7 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead {LeadStateId} transitioned to node {NodeId} via edge {EdgeId}",
             leadStateId, targetNode.Id, selectedEdge.Id);
 
-        if (actionTasks.Count == 0)
+        if (!isAiReply && actionTasks.Count == 0)
             await TransitionToNextNode(leadStateId, ct);
     }
 
@@ -489,6 +519,43 @@ public class LeadProgressionService : ILeadProgressionService
             // Actions ещё не завершены — возвращаем статус Waiting, сигнал проигнорируем.
             await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
             return;
+        }
+
+        if (leadState.NodeId.HasValue && leadState.FunnelId.HasValue)
+        {
+            var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value);
+            var flow = funnel?.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
+            var currentNode = flow?.Nodes.FirstOrDefault(n => n.Id == leadState.NodeId);
+
+            if (currentNode?.Data is AiReplyNodeData && flow is not null)
+            {
+                var aiRouterEdges = flow.Edges
+                    .Where(e => e.Source == leadState.NodeId && e is AiRouterEdge)
+                    .ToList();
+
+                if (aiRouterEdges.Count > 0)
+                {
+                    var task = new AiRouterActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId!.Value,
+                        NodeId = leadState.NodeId.Value,
+                        ActionId = Guid.CreateVersion7(),
+                        BotId = leadState.BotId,
+                        ChatId = leadState.ChatId,
+                        ScheduledAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow,
+                        Order = 0
+                    };
+
+                    await actionTaskRepository.CreateMany([task], ct);
+                    return;
+                }
+            }
         }
 
         await TransitionToNextNode(leadState.Id, ct);

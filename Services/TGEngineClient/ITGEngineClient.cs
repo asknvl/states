@@ -1,3 +1,5 @@
+using states.Services.TGEngineClient.Dtos;
+
 namespace states.Services.TgEngineService;
 
 public interface ITGEngineClient
@@ -11,10 +13,11 @@ public interface ITGEngineClient
         Guid presetId,
         CancellationToken ct);
 
-    Task<ChatContextResponse> GetChatContext(
+    Task<List<ChatContextMessageDto>> GetContextMessages(
         Guid tenantId,
         Guid botId,
         Guid chatId,
-        int limit,
+        int lastMessagesNumber,
+        bool isImageDetailed,
         CancellationToken ct);
 }

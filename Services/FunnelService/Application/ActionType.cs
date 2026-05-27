@@ -4,6 +4,7 @@
     {
         SendPreset,
         ManageTag,
-        AiReply
+        AiReply,
+        AiRouter
     }
 }

@@ -25,6 +25,7 @@ using states.Swagger;
 using Swashbuckle.AspNetCore.Filters;
 using System.Reflection;
 using MongoDB.Bson.Serialization;
+using states.Services.AIServiceClient;
 
 namespace states
 {
@@ -148,8 +149,7 @@ namespace states
 
             // Lead service
             builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();
-            builder.Services.AddSingleton<IActionTaskRepository, ActionTaskRepository>();
-            builder.Services.AddSingleton<IAiRouterClient, AiRouterClientStub>();
+            builder.Services.AddSingleton<IActionTaskRepository, ActionTaskRepository>();            
             builder.Services.AddSingleton<IEdgeRouter, EdgeRouter>();
             builder.Services.AddSingleton<IActionExecutor, ActionExecutor>();
             builder.Services.AddSingleton<ILeadProgressionService, LeadProgressionService>();
@@ -168,6 +168,14 @@ namespace states
             {
                 var baseUrl = builder.Configuration["TgEngineClient:EndPoint"]
                     ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");
+                client.BaseAddress = new Uri(baseUrl);
+            });
+
+            // AI service
+            builder.Services.AddHttpClient<IAIServiceClient, AIServiceClient>(client =>
+            {
+                var baseUrl = builder.Configuration["AIServiceClient:EndPoint"]
+                    ?? throw new InvalidOperationException("AIServiceClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
             });
 

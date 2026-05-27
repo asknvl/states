@@ -78,16 +78,17 @@ public sealed class ActionWorkerService : BackgroundService
             logger.LogInformation("Action task {TaskId} completed for lead {LeadStateId}",
                 task.Id, task.LeadStateId);
 
-            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);          //TODO в асинхронном контексте тут может быть гонка  
+            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);          //TODO в асинхронном контексте тут может быть гонка
 
             if (allDone)
-            {                
+            {
                 logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, transitioning",
                     task.LeadStateId, task.NodeId);
 
                 var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
-                
-                if (leadState.Status == LeadFunnelStatus.Nothing)
+
+                // Если executor уже переместил лид на другую ноду (например, AiRouter), не делаем повторный переход.
+                if (leadState.NodeId == task.NodeId && leadState.Status == LeadFunnelStatus.Nothing)
                     await progressionService.TransitionToNextNode(task.LeadStateId, ct);
             }
         }

@@ -1,3 +1,4 @@
+using states.Services.TGEngineClient.Dtos;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
@@ -14,6 +15,39 @@ public class TGEngineClient : ITGEngineClient
         this.logger = logger;
     }
 
+    public async Task<List<ChatContextMessageDto>> GetContextMessages(
+        Guid tenantId,
+        Guid botId,
+        Guid chatId,
+        int lastMessagesNumber,
+        bool isImageDetailed,
+        CancellationToken ct)
+    {
+        var body = new GetContextMessagesRequestDto(
+            tenantId,
+            botId,
+            chatId,
+            lastMessagesNumber,
+            isImageDetailed);
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.PostAsJsonAsync("/chataicontext/getcontextmessages", body, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TgEngineClient GetContextMessages failed: chatId={ChatId}", chatId);
+            throw;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<List<ChatContextMessageDto>>(ct)
+            ?? throw new InvalidOperationException("GetContextMessages returned null");
+    }
+
     public async Task SendPreset(
         Guid tenantId,
         Guid spaceId,
@@ -23,7 +57,7 @@ public class TGEngineClient : ITGEngineClient
         Guid presetId,        
         CancellationToken ct)
     {
-        var body = new SendPresetRequest(
+        var body = new SendPresetRequestDto(
             tenantId,
             spaceId,
             botId,
@@ -44,48 +78,7 @@ public class TGEngineClient : ITGEngineClient
         }
 
         response.EnsureSuccessStatusCode();
-    }
+    }   
 
-    // TODO: уточнить реальный endpoint у TgEngine
-    public async Task<ChatContextResponse> GetChatContext(
-        Guid tenantId,
-        Guid botId,
-        Guid chatId,
-        int limit,
-        CancellationToken ct)
-    {
-        var url = $"/chats/context?tenantId={tenantId}&botId={botId}&chatId={chatId}&limit={limit}";
-
-        HttpResponseMessage response;
-
-        try
-        {
-            response = await http.GetAsync(url, ct);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "TgEngineClient GetChatContext failed: chatId={ChatId}", chatId);
-            throw;
-        }
-
-        response.EnsureSuccessStatusCode();
-
-        var result = await response.Content.ReadFromJsonAsync<ChatContextResponse>(ct);
-        return result ?? new ChatContextResponse([]);
-    }
-
-    private record SendPresetRequest(
-        [property: JsonPropertyName("tenantId")]
-        Guid TenantId,
-        [property: JsonPropertyName("spaceId")]
-        Guid SpaceId,
-        [property: JsonPropertyName("botId")]
-        Guid BotId,
-        [property: JsonPropertyName("chatId")]
-        Guid ChatId,
-        [property: JsonPropertyName("funnelId")]
-        Guid FunnelId,
-        [property: JsonPropertyName("presetId")]
-        Guid PresetId
-    );
+   
 }

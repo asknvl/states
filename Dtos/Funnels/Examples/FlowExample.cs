@@ -149,6 +149,110 @@ namespace states.Dtos.Funnels.Examples
                 Summary = "Add flow to funnel",
                 Value = flow
             };
+
+            // AiRouter flow: Start -> AiReply -> AddTag India / AddTag Russia
+            var nodeStartId   = new Guid("0197a1b2-0001-7000-8000-000000000001");
+            var nodeAiReplyId = new Guid("0197a1b2-0002-7000-8000-000000000002");
+            var nodeIndiaId   = new Guid("0197a1b2-0003-7000-8000-000000000003");
+            var nodeRussiaId  = new Guid("0197a1b2-0004-7000-8000-000000000004");
+
+            var tagIndiaId  = new Guid("0197a1b2-0010-7000-8000-000000000010");
+            var tagRussiaId = new Guid("0197a1b2-0011-7000-8000-000000000011");
+
+            var aiRouterFlow = new Flow(
+                Id: new Guid("0197a1b2-0000-7000-8000-000000000000"),
+                Name: "AiRouter флоу",
+                Nodes: new List<Node>()
+                {
+                    new Node(
+                        Id: nodeStartId,
+                        Type: "custom",
+                        Position: new Position(0, 0),
+                        Data: new StartNodeData(
+                            Label: "Старт",
+                            FinishStatus: LeadFunnelStatus.Nothing
+                        )
+                    ),
+                    new Node(
+                        Id: nodeAiReplyId,
+                        Type: "custom",
+                        Position: new Position(300, 0),
+                        Data: new AiReplyNodeData(
+                            Label: "ИИ ответ",
+                            FinishStatus: LeadFunnelStatus.Nothing,
+                            Goal: "Определить страну лида",
+                            Requirements: "Спросить откуда лид",
+                            Legend: null,
+                            AdditionalInfo: null
+                        )
+                    ),
+                    new Node(
+                        Id: nodeIndiaId,
+                        Type: "custom",
+                        Position: new Position(600, -100),
+                        Data: new ManageTagNodeData(
+                            Label: "Тег Инди",
+                            FinishStatus: LeadFunnelStatus.Nothing,
+                            Actions: new List<ManageTagAction>()
+                            {
+                                new ManageTagAction(
+                                    Id: new Guid("0197a1b2-0020-7000-8000-000000000020"),
+                                    Delay: null,
+                                    Operation: TagOperation.Add,
+                                    TagId: tagIndiaId,
+                                    ReplacementTagId: null
+                                )
+                            }
+                        )
+                    ),
+                    new Node(
+                        Id: nodeRussiaId,
+                        Type: "custom",
+                        Position: new Position(600, 100),
+                        Data: new ManageTagNodeData(
+                            Label: "Тег Россия",
+                            FinishStatus: LeadFunnelStatus.Nothing,
+                            Actions: new List<ManageTagAction>()
+                            {
+                                new ManageTagAction(
+                                    Id: new Guid("0197a1b2-0021-7000-8000-000000000021"),
+                                    Delay: null,
+                                    Operation: TagOperation.Add,
+                                    TagId: tagRussiaId,
+                                    ReplacementTagId: null
+                                )
+                            }
+                        )
+                    ),
+                },
+                Edges: new List<Edge>()
+                {
+                    new PassEdge(
+                        Id: new Guid("0197a1b2-0030-7000-8000-000000000030"),
+                        Source: nodeStartId,
+                        Target: nodeAiReplyId
+                    ),
+                    new AiRouterEdge(
+                        Id: new Guid("0197a1b2-0031-7000-8000-000000000031"),
+                        Source: nodeAiReplyId,
+                        Target: nodeIndiaId,
+                        Thesis: "Лид написал, что он из Индии"
+                    ),
+                    new AiRouterEdge(
+                        Id: new Guid("0197a1b2-0032-7000-8000-000000000032"),
+                        Source: nodeAiReplyId,
+                        Target: nodeRussiaId,
+                        Thesis: "Лид написал, что он из России"
+                    ),
+                }
+            );
+
+            yield return new SwaggerExample<object>
+            {
+                Name = "AiRouter Flow",
+                Summary = "AiReply с двумя AiRouter edges на AddTag (Инди / Россия)",
+                Value = aiRouterFlow
+            };
         }
     }
 }
