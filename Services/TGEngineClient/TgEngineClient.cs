@@ -34,7 +34,7 @@ public class TGEngineClient : ITGEngineClient
 
         try
         {
-            response = await http.PostAsJsonAsync("/chataicontext/getcontextmessages", body, ct);
+            response = await http.PostAsJsonAsync("/chat-ai-context", body, ct);
         }
         catch (Exception ex)
         {
