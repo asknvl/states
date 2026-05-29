@@ -59,6 +59,27 @@ namespace states.Mongo.Documents
 
         [BsonElement("replyDelay")]
         public int ReplyDelay { get; set; } = 10;
+
+
+        [BsonElement("AiRouterModelPresetId")]
+        public Guid AiRouterModelPresetId { get; set; } 
+
+        [BsonElement("AiReplyModelPresetId")]
+        public Guid AiReplyModelPresetId { get; set; }
+
+        [BsonElement("AiReplyTemperature")]
+        public int AiReplyTemperature { get; set; }
+
+
+        [BsonElement("GlobalLegend")]
+        public string? GlobalLegend { get; set; }
+
+        [BsonElement("Restrictions")]
+        public string? Restrictions { get; set; }
+
+        [BsonElement("ResponseStyle")]
+        public string? ResponseStyle { get; set; }
+
     }
 
     public class FlowDocument
