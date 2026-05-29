@@ -115,7 +115,7 @@ public class ActionExecutor : IActionExecutor
 
         var tgMessages = await tgengine.GetContextMessages(
             task.TenantId, task.BotId, task.ChatId,
-            lastMessagesNumber: 20, isImageDetailed: false, ct);
+            lastMessagesNumber: 1, isImageDetailed: false, ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(
