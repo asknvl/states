@@ -68,7 +68,7 @@ namespace states.Mongo.Documents
         public Guid AiReplyModelPresetId { get; set; }
 
         [BsonElement("AiReplyTemperature")]
-        public int AiReplyTemperature { get; set; }
+        public double AiReplyTemperature { get; set; }
 
 
         [BsonElement("GlobalLegend")]

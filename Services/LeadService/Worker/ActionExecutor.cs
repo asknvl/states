@@ -94,6 +94,8 @@ public class ActionExecutor : IActionExecutor
 
     private async Task ExecuteAiRouter(AiRouterActionTaskDocument task, CancellationToken ct)
     {
+        logger.LogInformation("AiRouter: Executing");
+
         var funnel = funnelCache.GetFunnel(task.FunnelId)
             ?? throw new KeyNotFoundException($"Funnel id={task.FunnelId} not found");
 

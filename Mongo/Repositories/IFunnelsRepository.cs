@@ -24,6 +24,7 @@ namespace states.Mongo.Repositories
         Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
         Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct);
         Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct);
+        Task SetAiModels(Guid funnelId, Guid? aiRouterModelPresetId, Guid? aiReplyModelPresetId, double? aiReplyTemperature, CancellationToken ct);
 
         Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct);
     }

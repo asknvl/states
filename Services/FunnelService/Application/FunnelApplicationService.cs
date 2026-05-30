@@ -87,7 +87,12 @@ namespace states.Services.FunnelService.Application
             await RefreshCache(funnelId);
         }
 
-        public async Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct)
+        public async Task SetRecognition(
+            Guid funnelId,
+            RecognitionType? photoRecognition,
+            RecognitionType? videoRecognition,
+            RecognitionType? voiceRecognition,
+            CancellationToken ct)
         {
             await funnelsRepository.SetRecognition(funnelId, photoRecognition, videoRecognition, voiceRecognition, ct);
             await RefreshCache(funnelId);
@@ -97,6 +102,17 @@ namespace states.Services.FunnelService.Application
         {
             await funnelsRepository.SetDelays(funnelId, readDelay, replyDelay, ct);
             await RefreshCache(funnelId);
+        }
+
+        public async Task SetAiModels(
+            Guid funnelId,
+            Guid? aiRouterModelPresetId,
+            Guid? aiReplyModelPresetId,
+            double? aiReplyTemperature,
+            CancellationToken ct)
+        {
+            await funnelsRepository.SetAiModels(funnelId, aiRouterModelPresetId, aiReplyModelPresetId, aiReplyTemperature, ct);
+            await RefreshCache(funnelId);             
         }
         #endregion
 

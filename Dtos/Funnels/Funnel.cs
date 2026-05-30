@@ -19,6 +19,9 @@ namespace states.Dtos.Funnels
             RecognitionType VideoRecognition,
             RecognitionType VoiceRecognition,
             int ReadDelay,
-            int ReplyDelay
+            int ReplyDelay,
+            Guid AiRouterModelPresetId,
+            Guid AiReplyModelPresetId,
+            double AiReplyTemperature
         );
 }

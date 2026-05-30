@@ -43,7 +43,10 @@ public static class FunnelDocumentMapper
             VideoRecognition: document.VideoRecognition,
             VoiceRecognition: document.VoiceRecognition,
             ReadDelay: document.ReadDelay,
-            ReplyDelay: document.ReplyDelay
+            ReplyDelay: document.ReplyDelay,
+            AiRouterModelPresetId: document.AiRouterModelPresetId,
+            AiReplyModelPresetId: document.AiReplyModelPresetId,
+            AiReplyTemperature: document.AiReplyTemperature
         );
     }
 
@@ -65,7 +68,10 @@ public static class FunnelDocumentMapper
             VideoRecognition: document.VideoRecognition,
             VoiceRecognition: document.VoiceRecognition,
             ReadDelay: document.ReadDelay,
-            ReplyDelay: document.ReplyDelay
+            ReplyDelay: document.ReplyDelay,
+            AiRouterModelPresetId: document.AiRouterModelPresetId,
+            AiReplyModelPresetId: document.AiReplyModelPresetId,
+            AiReplyTemperature: document.AiReplyTemperature
         );
     }
     #endregion

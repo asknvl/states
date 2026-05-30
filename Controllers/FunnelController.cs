@@ -129,6 +129,17 @@ namespace states.Controllers
             return NoContent();
         }
 
+        [HttpPatch("{funnelId:guid}/ai-models")]
+        [SwaggerOperation(Summary = "Sets the AI model presets and temperature of a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SetAiModels([FromRoute] Guid funnelId, [FromBody] SetAiModelsRequest request, CancellationToken ct)
+        {
+            await funnelsApplicationService.SetAiModels(funnelId, request.AiRouterModelPresetId, request.AiReplyModelPresetId, request.AiReplyTemperature, ct);
+            return NoContent();
+        }
+
         #endregion
 
         #region flows
