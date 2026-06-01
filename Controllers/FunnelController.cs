@@ -140,6 +140,17 @@ namespace states.Controllers
             return NoContent();
         }
 
+        [HttpPatch("{funnelId:guid}/ai-prompts")]
+        [SwaggerOperation(Summary = "Sets the AI prompt fields of a funnel")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> SetAiPrompts([FromRoute] Guid funnelId, [FromBody] SetAiPromptsRequest request, CancellationToken ct)
+        {
+            await funnelsApplicationService.SetAiPrompts(funnelId, request.GlobalLegend, request.Restrictions, request.ResponseStyle, ct);
+            return NoContent();
+        }
+
         #endregion
 
         #region flows

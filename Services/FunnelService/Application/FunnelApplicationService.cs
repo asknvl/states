@@ -11,23 +11,30 @@ namespace states.Services.FunnelService.Application
         private readonly IFunnelRuntimeSupervisor runtimeSupervisor;
         private readonly IFoldersRepository foldersRepository;
         private readonly ITenantTagsRepository tenantTagsRepository;
+        private readonly IConfiguration configuration;
 
         public FunnelApplicationService(
             IFunnelsRepository repository,
             IFunnelRuntimeSupervisor runtimeSupervisor,
             IFoldersRepository foldersRepository,
-            ITenantTagsRepository tenantTagsRepository)
+            ITenantTagsRepository tenantTagsRepository,
+            IConfiguration configuration)
         {
             this.funnelsRepository = repository;
             this.runtimeSupervisor = runtimeSupervisor;
             this.foldersRepository = foldersRepository;
             this.tenantTagsRepository = tenantTagsRepository;
+            this.configuration = configuration;
         }
 
         #region funnels
         public async Task<FunnelDto> Create(FunnelCreateDto dto, CancellationToken ct)
         {
             var funnel = dto.ToDocument();
+
+            funnel.AiRouterModelPresetId = configuration.GetValue<Guid>("AiDefaults:AiRouterModelPresetId");
+            funnel.AiReplyModelPresetId = configuration.GetValue<Guid>("AiDefaults:AiReplyModelPresetId");
+            funnel.AiReplyTemperature = configuration.GetValue<double>("AiDefaults:AiReplyTemperature");
 
             var folder = await foldersRepository.Create(
                 tenantId: dto.TenantId,
@@ -112,7 +119,13 @@ namespace states.Services.FunnelService.Application
             CancellationToken ct)
         {
             await funnelsRepository.SetAiModels(funnelId, aiRouterModelPresetId, aiReplyModelPresetId, aiReplyTemperature, ct);
-            await RefreshCache(funnelId);             
+            await RefreshCache(funnelId);
+        }
+
+        public async Task SetAiPrompts(Guid funnelId, string? globalLegend, string? restrictions, string? responseStyle, CancellationToken ct)
+        {
+            await funnelsRepository.SetAiPrompts(funnelId, globalLegend, restrictions, responseStyle, ct);
+            await RefreshCache(funnelId);
         }
         #endregion
 

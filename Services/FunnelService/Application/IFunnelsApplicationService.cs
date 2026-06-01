@@ -15,6 +15,7 @@ namespace states.Services.FunnelService.Application
         Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct);
         Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct);
         Task SetAiModels(Guid funnelId, Guid? aiRouterModelPresetId, Guid? aiReplyModelPresetId, double? aiReplyTemperature, CancellationToken ct);
+        Task SetAiPrompts(Guid funnelId, string? globalLegend, string? restrictions, string? responseStyle, CancellationToken ct);
 
         Task<IReadOnlyCollection<Tag>> GetTagsByFunnel(Guid funnelId, CancellationToken ct);
         Task<IReadOnlyCollection<Tag>> GetTagsByTenant(Guid tenantId, Guid spaceId, CancellationToken ct);

@@ -328,6 +328,29 @@ namespace states.Mongo.Repositories
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
         }
 
+        public async Task SetAiPrompts(Guid funnelId, string? globalLegend, string? restrictions, string? responseStyle, CancellationToken ct)
+        {
+            if (globalLegend is null && restrictions is null && responseStyle is null)
+                return;
+
+            var filter = Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId);
+
+            var updates = new List<UpdateDefinition<FunnelDocument>>();
+            if (globalLegend is not null)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.GlobalLegend, globalLegend));
+            if (restrictions is not null)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.Restrictions, restrictions));
+            if (responseStyle is not null)
+                updates.Add(Builders<FunnelDocument>.Update.Set(x => x.ResponseStyle, responseStyle));
+
+            var update = Builders<FunnelDocument>.Update.Combine(updates);
+
+            var result = await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+        }
+
         #endregion
     }
 }

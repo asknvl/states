@@ -25,6 +25,7 @@ namespace states.Mongo.Repositories
         Task SetRecognition(Guid funnelId, RecognitionType? photoRecognition, RecognitionType? videoRecognition, RecognitionType? voiceRecognition, CancellationToken ct);
         Task SetDelays(Guid funnelId, int? readDelay, int? replyDelay, CancellationToken ct);
         Task SetAiModels(Guid funnelId, Guid? aiRouterModelPresetId, Guid? aiReplyModelPresetId, double? aiReplyTemperature, CancellationToken ct);
+        Task SetAiPrompts(Guid funnelId, string? globalLegend, string? restrictions, string? responseStyle, CancellationToken ct);
 
         Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct);
     }

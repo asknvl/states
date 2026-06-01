@@ -93,14 +93,14 @@ public class ActionExecutor : IActionExecutor
     }
 
     private async Task ExecuteAiRouter(AiRouterActionTaskDocument task, CancellationToken ct)
-    {
-        logger.LogInformation("AiRouter: Executing");
-
+    {        
         var funnel = funnelCache.GetFunnel(task.FunnelId)
             ?? throw new KeyNotFoundException($"Funnel id={task.FunnelId} not found");
 
         var flow = funnel.Flows.FirstOrDefault(f => f.Id == task.FlowId)
             ?? throw new KeyNotFoundException($"Flow id={task.FlowId} not found");
+
+        logger.LogInformation($"AiRouter: Executing router ModelPreset={funnel.AiRouterModelPresetId}");
 
         var aiRouterEdges = flow.Edges
             .Where(e => e.Source == task.NodeId)
@@ -117,7 +117,7 @@ public class ActionExecutor : IActionExecutor
 
         var tgMessages = await tgengine.GetContextMessages(
             task.TenantId, task.BotId, task.ChatId,
-            lastMessagesNumber: 1, isImageDetailed: false, ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
+            lastMessagesNumber: 5, isImageDetailed: false, ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(
@@ -133,7 +133,7 @@ public class ActionExecutor : IActionExecutor
             TenantId: task.TenantId,
             ChatId: task.ChatId,
             BotId: task.BotId,
-            ModelPresetId: Guid.Parse("00000000-0000-7000-8000-000000000003"), // TODO: будет браться из Funnel
+            ModelPresetId: funnel.AiRouterModelPresetId, // TODO: будет браться из Funnel
             Routers: routers,
             Context: context,
             Options: new RouteOptionsDto(ReturnOnlyOne: true));
