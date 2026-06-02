@@ -22,6 +22,9 @@ namespace states.Dtos.Funnels
             int ReplyDelay,
             Guid AiRouterModelPresetId,
             Guid AiReplyModelPresetId,
-            double AiReplyTemperature
+            double AiReplyTemperature,
+            string? GlobalLegend,
+            string? Restrictions,
+            string? ResponseStyle
         );
 }

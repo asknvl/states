@@ -46,7 +46,10 @@ public static class FunnelDocumentMapper
             ReplyDelay: document.ReplyDelay,
             AiRouterModelPresetId: document.AiRouterModelPresetId,
             AiReplyModelPresetId: document.AiReplyModelPresetId,
-            AiReplyTemperature: document.AiReplyTemperature
+            AiReplyTemperature: document.AiReplyTemperature,
+            GlobalLegend: document.GlobalLegend,
+            Restrictions: document.Restrictions,
+            ResponseStyle: document.ResponseStyle
         );
     }
 
@@ -71,7 +74,10 @@ public static class FunnelDocumentMapper
             ReplyDelay: document.ReplyDelay,
             AiRouterModelPresetId: document.AiRouterModelPresetId,
             AiReplyModelPresetId: document.AiReplyModelPresetId,
-            AiReplyTemperature: document.AiReplyTemperature
+            AiReplyTemperature: document.AiReplyTemperature,
+            GlobalLegend: document.GlobalLegend,
+            Restrictions: document.Restrictions,
+            ResponseStyle: document.ResponseStyle
         );
     }
     #endregion

@@ -28,8 +28,11 @@ namespace states.Dtos.Funnels.Examples
                     AiReplyModelPresetId: Guid.Parse("00000000-0000-7000-8000-000000000002"),
                     AiRouterModelPresetId: Guid.Parse("00000000-0000-7000-8000-000000000003"),
                     AiReplyTemperature: 0.1,
+                    GlobalLegend: "",
+                    Restrictions: "",
+                    ResponseStyle: "",
                     ReadDelay: 1,
-                    ReplyDelay: 5
+                    ReplyDelay: 5                   
                 )
             };
         }
