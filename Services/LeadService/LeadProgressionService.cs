@@ -544,6 +544,31 @@ public class LeadProgressionService : ILeadProgressionService
                     await actionTaskRepository.CreateMany([task], ct);
                     return;
                 }
+
+                var hasPassOrSplit = flow.Edges.Any(e => e.Source == leadState.NodeId && e is PassEdge or SplitEdge);
+                if (hasPassOrSplit)
+                {
+                    var replyTask = new AiReplyActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId!.Value,
+                        NodeId = leadState.NodeId.Value,
+                        ActionId = Guid.CreateVersion7(),
+                        BotId = leadState.BotId,
+                        ChatId = leadState.ChatId,
+                        ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
+                        CreatedAt = DateTime.UtcNow,
+                        Order = 0,
+                        TransitionAfterReply = true
+                    };
+
+                    await actionTaskRepository.CreateMany([replyTask], ct);
+                    return;
+                }
             }
         }
 

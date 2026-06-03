@@ -7,6 +7,7 @@ namespace states.Mongo.Documents;
 [BsonDiscriminator(RootClass = true)]
 [BsonKnownTypes(typeof(SendPresetActionTaskDocument))]
 [BsonKnownTypes(typeof(ManageTagActionTaskDocument))]
+[BsonKnownTypes(typeof(AiReplyActionTaskDocument))]
 [BsonKnownTypes(typeof(AiRouterActionTaskDocument))]
 public abstract class ActionTaskDocument
 {
@@ -98,6 +99,15 @@ public sealed class ManageTagActionTaskDocument : ActionTaskDocument
 
 public sealed class AiReplyActionTaskDocument : ActionTaskDocument
 {
+    [BsonElement("botId")]
+    public Guid BotId { get; set; }
+
+    [BsonElement("chatId")]
+    public Guid ChatId { get; set; }
+
+    [BsonElement("transitionAfterReply")]
+    public bool TransitionAfterReply { get; set; }
+
     public AiReplyActionTaskDocument() : base(ActionType.AiReply, isCritical: true) { }
 }
 

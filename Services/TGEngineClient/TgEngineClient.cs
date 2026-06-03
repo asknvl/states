@@ -15,6 +15,31 @@ public class TGEngineClient : ITGEngineClient
         this.logger = logger;
     }
 
+    public async Task SendAiTextMessages(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        string text,
+        CancellationToken ct)
+    {
+        var body = new SendTextMessagesDto(tenantId, spaceId, botId, chatId, text);
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.PostAsJsonAsync("/send-ai-text", body, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TgEngineClient SendAiTextMessages failed: chatId={ChatId}", chatId);
+            throw;
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<List<ChatContextMessageDto>> GetContextMessages(
         Guid tenantId,
         Guid botId,

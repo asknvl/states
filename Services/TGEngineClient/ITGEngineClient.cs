@@ -13,6 +13,14 @@ public interface ITGEngineClient
         Guid presetId,
         CancellationToken ct);
 
+    Task SendAiTextMessages(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        string text,
+        CancellationToken ct);
+
     Task<List<ChatContextMessageDto>> GetContextMessages(
         Guid tenantId,
         Guid botId,
