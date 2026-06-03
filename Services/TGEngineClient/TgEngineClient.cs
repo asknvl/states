@@ -29,7 +29,7 @@ public class TGEngineClient : ITGEngineClient
 
         try
         {
-            response = await http.PostAsJsonAsync("/send-ai-text", body, ct);
+            response = await http.PostAsJsonAsync("/messages/send-ai-text", body, ct);
         }
         catch (Exception ex)
         {
