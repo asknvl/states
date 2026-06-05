@@ -119,5 +119,5 @@ public sealed class AiRouterActionTaskDocument : ActionTaskDocument
     [BsonElement("chatId")]
     public Guid ChatId { get; set; }
 
-    public AiRouterActionTaskDocument() : base(ActionType.AiRouter, isCritical: false) { }
+    public AiRouterActionTaskDocument() : base(ActionType.AiRouter, isCritical: true) { }
 }

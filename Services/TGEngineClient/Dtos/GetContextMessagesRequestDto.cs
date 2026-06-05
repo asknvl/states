@@ -5,5 +5,6 @@ namespace states.Services.TGEngineClient.Dtos
         Guid BotId,
         Guid ChatId,
         int LastMessagesNumber,
+        bool returnFromLastOutcoming,
         bool IsImageDetailed);
 }

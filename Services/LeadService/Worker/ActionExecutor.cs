@@ -125,8 +125,13 @@ public class ActionExecutor : IActionExecutor
         }
 
         var tgMessages = await tgengine.GetContextMessages(
-            task.TenantId, task.BotId, task.ChatId,
-            lastMessagesNumber: 5, isImageDetailed: false, ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
+            task.TenantId,
+            task.BotId,
+            task.ChatId,
+            lastMessagesNumber: 5,
+            returnFromLastOutcoming: true,
+            isImageDetailed: false,
+            ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(
@@ -196,8 +201,13 @@ public class ActionExecutor : IActionExecutor
         var nodeData = (AiReplyNodeData)node.Data;
 
         var tgMessages = await tgengine.GetContextMessages(
-            task.TenantId, task.BotId, task.ChatId,
-            lastMessagesNumber: 5, isImageDetailed: false, ct);
+            task.TenantId,
+            task.BotId,
+            task.ChatId,
+            lastMessagesNumber: 20,
+            returnFromLastOutcoming: false,
+            isImageDetailed: false,
+            ct);
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(

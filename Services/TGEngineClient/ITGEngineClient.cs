@@ -26,6 +26,7 @@ public interface ITGEngineClient
         Guid botId,
         Guid chatId,
         int lastMessagesNumber,
+        bool returnFromLastOutcoming,
         bool isImageDetailed,
         CancellationToken ct);
 }

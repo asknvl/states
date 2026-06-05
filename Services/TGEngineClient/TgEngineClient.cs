@@ -45,6 +45,7 @@ public class TGEngineClient : ITGEngineClient
         Guid botId,
         Guid chatId,
         int lastMessagesNumber,
+        bool returnFromLastOutcoming,
         bool isImageDetailed,
         CancellationToken ct)
     {
@@ -53,6 +54,7 @@ public class TGEngineClient : ITGEngineClient
             botId,
             chatId,
             lastMessagesNumber,
+            returnFromLastOutcoming,
             isImageDetailed);
 
         HttpResponseMessage response;
