@@ -1,5 +1,7 @@
 using MongoDB.Driver;
+using MongoDB.Bson;
 using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Repositories;
 
@@ -106,5 +108,41 @@ public class ActionTaskRepository : IActionTaskRepository
         var update = Builders<ActionTaskDocument>.Update.Set(x => x.Status, ActionStatus.Pending);
 
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+    }
+
+    public async Task TryInsertAiReplyTask(AiReplyActionTaskDocument task, CancellationToken ct)
+    {
+        try
+        {
+            await collection.InsertOneAsync(task, cancellationToken: ct);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
+        {
+            // Уже есть pending AiReply для этого лида — дубликат не нужен
+        }
+    }
+
+    public async Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct)
+    {
+        var filter = Builders<ActionTaskDocument>.Filter.And(
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, task.LeadStateId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.AiRouter),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+        );
+
+        var taskBson = task.ToBsonDocument();
+        taskBson.Remove("scheduledAt");
+
+        var update = new BsonDocument
+        {
+            { "$set", new BsonDocument("scheduledAt", new BsonDateTime(task.ScheduledAt)) },
+            { "$setOnInsert", taskBson }
+        };
+
+        await collection.UpdateOneAsync(
+            filter,
+            new BsonDocumentUpdateDefinition<ActionTaskDocument>(update),
+            new UpdateOptions { IsUpsert = true },
+            ct);
     }
 }

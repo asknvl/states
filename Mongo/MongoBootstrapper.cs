@@ -1,5 +1,6 @@
 ﻿using MongoDB.Driver;
 using states.Mongo.Documents;
+using states.Services.FunnelService.Application;
 using states.Mongo.Documents.Folders;
 using states.Mongo.Documents.Outbox;
 using states.Mongo.Documents.TenantTags;
@@ -214,7 +215,22 @@ namespace states.Mongo
                 new CreateIndexModel<ActionTaskDocument>(
                     Builders<ActionTaskDocument>.IndexKeys
                         .Ascending(x => x.LeadStateId)
-                        .Ascending(x => x.NodeId))
+                        .Ascending(x => x.NodeId)),
+
+                // Гарантирует не более одного Pending AiReply на лида
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys
+                        .Ascending(x => x.LeadStateId)
+                        .Ascending(x => x.Type),
+                    new CreateIndexOptions<ActionTaskDocument>
+                    {
+                        Unique = true,
+                        PartialFilterExpression = Builders<ActionTaskDocument>.Filter.And(
+                            Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.AiReply),
+                            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+                        ),
+                        Name = "unique_pending_ai_reply_per_lead"
+                    })
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

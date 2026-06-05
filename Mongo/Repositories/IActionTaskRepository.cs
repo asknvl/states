@@ -12,4 +12,6 @@ public interface IActionTaskRepository
     Task CancelPendingByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task CancelPendingByLead(Guid leadStateId, CancellationToken ct);
     Task UnlockNext(Guid leadStateId, Guid nodeId, int completedOrder, CancellationToken ct);
+    Task TryInsertAiReplyTask(AiReplyActionTaskDocument task, CancellationToken ct);
+    Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct);
 }

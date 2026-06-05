@@ -536,12 +536,12 @@ public class LeadProgressionService : ILeadProgressionService
                         ActionId = Guid.CreateVersion7(),
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
-                        ScheduledAt = DateTime.UtcNow,
+                        ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(5),
                         CreatedAt = DateTime.UtcNow,
                         Order = 0
                     };
 
-                    await actionTaskRepository.CreateMany([task], ct);
+                    await actionTaskRepository.UpsertPendingAiRouterTask(task, ct);
                     return;
                 }
 
@@ -566,7 +566,7 @@ public class LeadProgressionService : ILeadProgressionService
                         TransitionAfterReply = true
                     };
 
-                    await actionTaskRepository.CreateMany([replyTask], ct);
+                    await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
                     return;
                 }
             }
