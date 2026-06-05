@@ -19,10 +19,10 @@ namespace states.Mongo.Documents
         public Guid SpaceId { get; init; }       
 
         [BsonElement("name")]
-        public string Name { get; init; } = default!;
+        public string Name { get; set; } = default!;
 
         [BsonElement("description")]
-        public string? Description { get; init; }
+        public string? Description { get; set; }
 
         [BsonElement("tags")]
         public List<TagDocument> Tags { get; init; } = [];
@@ -110,12 +110,12 @@ namespace states.Mongo.Documents
     public class Variable
     {
         [BsonElement("id")]
-        public Guid Id { get; set; }
+        public Guid Id { get; set; } = Guid.CreateVersion7();
 
         [BsonElement("macros")]
-        public string Macros { get; set; }
+        public required string Macros { get; set; }
 
         [BsonElement("value")]
-        public string Value { get; set; }
+        public required string Value { get; set; }
     }
 }

@@ -223,6 +223,116 @@ namespace states.Mongo.Repositories
             return funnel.Tags;
         }
 
+        public async Task<IReadOnlyCollection<Variable>> GetVariables(Guid funnelId, CancellationToken ct)
+        {
+            var variables = await collection
+                .Find(x => x.Id == funnelId)
+                .Project(x => x.Variables)
+                .FirstOrDefaultAsync(ct);
+
+            if (variables is null)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+
+            return variables;
+        }
+
+        public async Task<IReadOnlyList<Variable>> AddVariable(Guid funnelId, Variable variable, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.And(
+                Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
+                Builders<FunnelDocument>.Filter.Not(
+                    Builders<FunnelDocument>.Filter.ElemMatch(x => x.Variables, v => v.Id == variable.Id)),
+                Builders<FunnelDocument>.Filter.Not(
+                    Builders<FunnelDocument>.Filter.ElemMatch(x => x.Variables, v => v.Macros == variable.Macros))
+            );
+            var update = Builders<FunnelDocument>.Update.Push(x => x.Variables, variable);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Variables)
+            };
+
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
+
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Variables;
+
+            var funnel = await collection
+                .Find(x => x.Id == funnelId)
+                .Project(x => new { x.Variables })
+                .FirstOrDefaultAsync(ct);
+
+            if (funnel is null)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+            if (funnel.Variables.Any(v => v.Id == variable.Id))
+                return funnel.Variables;
+            if (funnel.Variables.Any(v => v.Macros == variable.Macros))
+                throw new InvalidOperationException($"Variable with macros '{variable.Macros}' already exists in funnel '{funnelId}'.");
+
+            throw new InvalidOperationException($"Failed to add variable to funnel '{funnelId}'.");
+        }
+
+        public async Task<IReadOnlyList<Variable>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.And(
+                Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
+                Builders<FunnelDocument>.Filter.ElemMatch(x => x.Variables, v => v.Id == variableId)
+            );
+            var update = Builders<FunnelDocument>.Update.PullFilter(x => x.Variables, v => v.Id == variableId);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Variables)
+            };
+
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
+
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Variables;
+
+            var exists = await collection.Find(x => x.Id == funnelId).AnyAsync(ct);
+            if (!exists)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+            throw new KeyNotFoundException($"Variable with id '{variableId}' was not found in funnel '{funnelId}'.");
+        }
+
+        public async Task<IReadOnlyList<Variable>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct)
+        {
+            var filter = Builders<FunnelDocument>.Filter.And(
+                Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
+                Builders<FunnelDocument>.Filter.ElemMatch(x => x.Variables, v => v.Id == variableId),
+                Builders<FunnelDocument>.Filter.Not(
+                    Builders<FunnelDocument>.Filter.ElemMatch(x => x.Variables, v => v.Macros == macros && v.Id != variableId))
+            );
+            var update = Builders<FunnelDocument>.Update
+                .Set(x => x.Variables.FirstMatchingElement().Macros, macros)
+                .Set(x => x.Variables.FirstMatchingElement().Value, value);
+            var options = new FindOneAndUpdateOptions<FunnelDocument, BsonDocument>
+            {
+                ReturnDocument = ReturnDocument.After,
+                Projection = Builders<FunnelDocument>.Projection.Include(x => x.Variables)
+            };
+
+            var result = await collection.FindOneAndUpdateAsync<BsonDocument>(filter, update, options, ct);
+
+            if (result is not null)
+                return BsonSerializer.Deserialize<FunnelDocument>(result).Variables;
+
+            var funnel = await collection
+                .Find(x => x.Id == funnelId)
+                .Project(x => new { x.Variables })
+                .FirstOrDefaultAsync(ct);
+
+            if (funnel is null)
+                throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
+            if (funnel.Variables.All(v => v.Id != variableId))
+                throw new KeyNotFoundException($"Variable with id '{variableId}' was not found in funnel '{funnelId}'.");
+            if (funnel.Variables.Any(v => v.Macros == macros && v.Id != variableId))
+                throw new InvalidOperationException($"Variable with macros '{macros}' already exists in funnel '{funnelId}'.");
+
+            return funnel.Variables;
+        }
+
         public async Task<IReadOnlyCollection<FunnelDocument>> GetAllActive(CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.Eq(x => x.IsActive, true);

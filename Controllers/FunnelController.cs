@@ -283,5 +283,59 @@ namespace states.Controllers
         }
 
         #endregion
+
+        #region variables
+
+        [HttpGet("{funnelId:guid}/variables")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Gets all variables of a funnel")]
+        [ProducesResponseType(typeof(IReadOnlyCollection<FunnelVariable>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetVariables([FromRoute] Guid funnelId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.GetVariables(funnelId, ct);
+            return Ok(result);
+        }
+
+        [HttpPost("{funnelId:guid}/variables")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Adds a variable to a funnel")]
+        [ProducesResponseType(typeof(IReadOnlyList<FunnelVariable>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddVariable([FromRoute] Guid funnelId, [FromBody] VariableCreateDto dto, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.AddVariable(funnelId, dto.Macros, dto.Value, ct);
+            return Ok(result);
+        }
+
+        [HttpPatch("{funnelId:guid}/variables/{variableId:guid}")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Updates a variable in a funnel")]
+        [ProducesResponseType(typeof(IReadOnlyList<FunnelVariable>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> UpdateVariable([FromRoute] Guid funnelId, [FromRoute] Guid variableId, [FromBody] VariableUpdateDto dto, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.UpdateVariable(funnelId, variableId, dto.Macros, dto.Value, ct);
+            return Ok(result);
+        }
+
+        [HttpDelete("{funnelId:guid}/variables/{variableId:guid}")]
+        [Produces("application/json")]
+        [SwaggerOperation(Summary = "Removes a variable from a funnel")]
+        [ProducesResponseType(typeof(IReadOnlyList<FunnelVariable>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RemoveVariable([FromRoute] Guid funnelId, [FromRoute] Guid variableId, CancellationToken ct)
+        {
+            var result = await funnelsApplicationService.RemoveVariable(funnelId, variableId, ct);
+            return Ok(result);
+        }
+
+        #endregion
     }
 }

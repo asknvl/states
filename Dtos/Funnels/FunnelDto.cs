@@ -9,6 +9,7 @@ namespace states.Dtos.Funnels
         string Name,
         string? Description,
         List<Tag> Tags,
+        List<FunnelVariable> Variables,
         List<FlowShortDto> Flows,
         bool? IsActive,
         bool IsInputTranslatorOn,

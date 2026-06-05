@@ -23,6 +23,11 @@ namespace states.Services.FunnelService.Application
         Task<IReadOnlyList<Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
         Task<IReadOnlyList<Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
 
+        Task<IReadOnlyCollection<FunnelVariable>> GetVariables(Guid funnelId, CancellationToken ct);
+        Task<IReadOnlyList<FunnelVariable>> AddVariable(Guid funnelId, string macros, string value, CancellationToken ct);
+        Task<IReadOnlyList<FunnelVariable>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct);
+        Task<IReadOnlyList<FunnelVariable>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct);
+
         Task<Flow> GetFlow(Guid funnelId, Guid flowId, CancellationToken ct);
         Task<IReadOnlyCollection<FlowShortDto>> GetFlowsShort(Guid funnelId, CancellationToken ct);
         Task<Flow> AddFlow(Guid funnelId, Flow flow, CancellationToken ct);

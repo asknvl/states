@@ -1,5 +1,6 @@
 ﻿using states.Dtos.Funnels;
 using states.Dtos.Nodes;
+using states.Mongo.Documents;
 using states.Mongo.Mappers;
 using states.Mongo.Repositories;
 
@@ -175,6 +176,36 @@ namespace states.Services.FunnelService.Application
             await tenantTagsRepository.UpdateTenantTagName(tagId, name);
             await RefreshCache(funnelId);
             return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
+        }
+        #endregion
+
+        #region variables
+        public async Task<IReadOnlyCollection<FunnelVariable>> GetVariables(Guid funnelId, CancellationToken ct)
+        {
+            var variables = await funnelsRepository.GetVariables(funnelId, ct);
+            return variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList();
+        }
+
+        public async Task<IReadOnlyList<FunnelVariable>> AddVariable(Guid funnelId, string macros, string value, CancellationToken ct)
+        {
+            var variable = new Variable { Macros = macros, Value = value };
+            var variables = await funnelsRepository.AddVariable(funnelId, variable, ct);
+            await RefreshCache(funnelId);
+            return variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList();
+        }
+
+        public async Task<IReadOnlyList<FunnelVariable>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct)
+        {
+            var variables = await funnelsRepository.RemoveVariable(funnelId, variableId, ct);
+            await RefreshCache(funnelId);
+            return variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList();
+        }
+
+        public async Task<IReadOnlyList<FunnelVariable>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct)
+        {
+            var variables = await funnelsRepository.UpdateVariable(funnelId, variableId, macros, value, ct);
+            await RefreshCache(funnelId);
+            return variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList();
         }
         #endregion
 

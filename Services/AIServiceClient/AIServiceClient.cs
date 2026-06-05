@@ -21,6 +21,13 @@ namespace states.Services.AIServiceClient
             try
             {
                 response = await http.PostAsJsonAsync("/route", request, JsonOptions, ct);
+
+                var responseText = await response.Content.ReadAsStringAsync(ct);
+
+                logger.LogInformation(
+                    "AIServiceClient Route response: StatusCode={StatusCode}, Body={Body}",
+                    response.StatusCode,
+                    responseText);
             }
             catch (Exception ex)
             {
@@ -42,6 +49,13 @@ namespace states.Services.AIServiceClient
             try
             {
                 response = await http.PostAsJsonAsync("/reply", request, JsonOptions, ct);
+
+                var responseText = await response.Content.ReadAsStringAsync(ct);
+
+                logger.LogInformation(
+                    "AIServiceClient Reply response: StatusCode={StatusCode}, Body={Body}",
+                    response.StatusCode,
+                    responseText);
             }
             catch (Exception ex)
             {

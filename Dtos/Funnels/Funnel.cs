@@ -10,6 +10,7 @@ namespace states.Dtos.Funnels
             string Name,
             string? Description,
             List<Tag> Tags,
+            List<FunnelVariable> Variables,
             List<Flow> Flows,
             Guid PresetsFolderId,
             bool? IsActive,

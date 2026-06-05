@@ -62,6 +62,14 @@ public class TGEngineClient : ITGEngineClient
         try
         {
             response = await http.PostAsJsonAsync("/chat-ai-context", body, ct);
+
+            var responseText = await response.Content.ReadAsStringAsync(ct);
+
+            logger.LogInformation(
+                "TgEngineClient GetContextMessages response: StatusCode={StatusCode}, Body={Body}",
+                response.StatusCode,
+                responseText);
+
         }
         catch (Exception ex)
         {
