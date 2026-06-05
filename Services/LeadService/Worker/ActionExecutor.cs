@@ -174,7 +174,7 @@ public class ActionExecutor : IActionExecutor
                 CreatedAt = DateTime.UtcNow,
                 Order = 0
             };
-            await actionTaskRepository.CreateMany([replyTask], ct);
+            await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
             await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct);
             return;
         }
