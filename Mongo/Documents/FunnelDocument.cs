@@ -80,6 +80,8 @@ namespace states.Mongo.Documents
         [BsonElement("ResponseStyle")]
         public string? ResponseStyle { get; set; }
 
+        [BsonElement("variables")]
+        public List<Variable> Variables { get; set; } = [];
     }
 
     public class FlowDocument
@@ -96,13 +98,24 @@ namespace states.Mongo.Documents
         public List<EdgeDocument> Edges { get; set; } = [];
     }
 
-    public sealed record TagDocument
+    public class TagDocument
     {
         [BsonElement("id")]
-        public Guid Id { get; init; }
+        public Guid Id { get; set; }
 
         [BsonElement("name")]
-        public string Name { get; init; } = default!;
+        public string Name { get; set; } = default!;
     }
 
+    public class Variable
+    {
+        [BsonElement("id")]
+        public Guid Id { get; set; }
+
+        [BsonElement("macros")]
+        public string Macros { get; set; }
+
+        [BsonElement("value")]
+        public string Value { get; set; }
+    }
 }
