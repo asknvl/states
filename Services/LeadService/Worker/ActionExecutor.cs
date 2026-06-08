@@ -209,6 +209,8 @@ public class ActionExecutor : IActionExecutor
         var node = flow.Nodes.FirstOrDefault(n => n.Id == task.NodeId)
             ?? throw new KeyNotFoundException($"Node id={task.NodeId} not found");
 
+        logger.LogInformation($"ActionExecutor Node={node.Data.Label}");
+
         var nodeData = (AiReplyNodeData)node.Data;
 
         var tgMessages = await tgengine.GetContextMessages(
