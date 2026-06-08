@@ -117,7 +117,7 @@ public class LeadProgressionService : ILeadProgressionService
                         LeadStateId = leadState.Id,
                         FunnelId = leadState.FunnelId.Value,
                         FlowId = leadState.FlowId!.Value,
-                        NodeId = leadState.NodeId.Value,
+                        NodeId = node.Id,
                         ActionId = Guid.CreateVersion7(),
                         Order = 0,
                         Status = ActionStatus.Pending,
