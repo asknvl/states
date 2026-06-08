@@ -48,7 +48,7 @@ public sealed class ActionWorkerService : BackgroundService
                     continue;
                 }
 
-                _ = ProcessTask(task, semaphore, stoppingToken);
+                await ProcessTask(task, semaphore, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
