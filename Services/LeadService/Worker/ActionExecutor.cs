@@ -46,18 +46,22 @@ public class ActionExecutor : IActionExecutor
         switch (task)
         {
             case SendPresetActionTaskDocument sendPreset:
+                logger.LogInformation("ActionExecutor Execute ExecuteSendPreset");
                 await ExecuteSendPreset(sendPreset, ct);
                 break;
 
             case ManageTagActionTaskDocument manageTag:
+                logger.LogInformation("ActionExecutor Execute ExecuteManageTag");
                 await ExecuteManageTag(manageTag, ct);
                 break;
 
             case AiReplyActionTaskDocument aiReply:
+                logger.LogInformation("ActionExecutor Execute ExecuteAiReply");
                 await ExecuteAiReply(aiReply, ct);
                 break;
 
             case AiRouterActionTaskDocument aiRouter:
+                logger.LogInformation("ActionExecutor Execute ExecuteAiRouter");
                 await ExecuteAiRouter(aiRouter, ct);
                 break;
 
