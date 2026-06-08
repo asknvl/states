@@ -20,10 +20,17 @@ public class TGEngineClient : ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        List<Variable> variables,
         string text,
         CancellationToken ct)
     {
-        var body = new SendTextMessagesDto(tenantId, spaceId, botId, chatId, text);
+        var body = new SendTextMessagesDto(
+            tenantId,
+            spaceId,
+            botId,
+            chatId,
+            variables,
+            text);
 
         HttpResponseMessage response;
 
@@ -88,15 +95,17 @@ public class TGEngineClient : ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        List<Variable> variables,
         Guid funnelId,
         Guid presetId,        
         CancellationToken ct)
     {
-        var body = new SendPresetRequestDto(
+        var body = new SendPresetMessageDto(
             tenantId,
             spaceId,
             botId,
-            chatId,
+            chatId,        
+            variables,
             funnelId,
             presetId);
 

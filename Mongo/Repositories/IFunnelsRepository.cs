@@ -20,10 +20,10 @@ namespace states.Mongo.Repositories
         Task<IReadOnlyList<TagDocument>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
         Task<IReadOnlyList<TagDocument>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
 
-        Task<IReadOnlyCollection<Variable>> GetVariables(Guid funnelId, CancellationToken ct);
-        Task<IReadOnlyList<Variable>> AddVariable(Guid funnelId, Variable variable, CancellationToken ct);
-        Task<IReadOnlyList<Variable>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct);
-        Task<IReadOnlyList<Variable>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct);
+        Task<IReadOnlyCollection<VariableDocument>> GetVariables(Guid funnelId, CancellationToken ct);
+        Task<IReadOnlyList<VariableDocument>> AddVariable(Guid funnelId, VariableDocument variable, CancellationToken ct);
+        Task<IReadOnlyList<VariableDocument>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct);
+        Task<IReadOnlyList<VariableDocument>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct);
 
         Task SetIsActiveState(Guid funnelId, bool isActive, CancellationToken ct);
         Task SetIsTranslatorOn(Guid funnelId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);

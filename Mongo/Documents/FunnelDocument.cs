@@ -81,7 +81,7 @@ namespace states.Mongo.Documents
         public string? ResponseStyle { get; set; }
 
         [BsonElement("variables")]
-        public List<Variable> Variables { get; set; } = [];
+        public List<VariableDocument> Variables { get; set; } = [];
     }
 
     public class FlowDocument
@@ -107,7 +107,7 @@ namespace states.Mongo.Documents
         public string Name { get; set; } = default!;
     }
 
-    public class Variable
+    public class VariableDocument
     {
         [BsonElement("id")]
         public Guid Id { get; set; } = Guid.CreateVersion7();

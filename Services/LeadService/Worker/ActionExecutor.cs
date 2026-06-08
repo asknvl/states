@@ -8,6 +8,7 @@ using states.Mongo.Repositories;
 using states.Services.AIServiceClient;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
+using states.Services.TGEngineClient.Dtos;
 using states.Services.TgEngineService;
 
 namespace states.Services.LeadService.Worker;
@@ -67,11 +68,17 @@ public class ActionExecutor : IActionExecutor
 
     private async Task ExecuteSendPreset(SendPresetActionTaskDocument task, CancellationToken ct)
     {
+        var funnel = funnelCache.GetFunnel(task.FunnelId)
+            ?? throw new KeyNotFoundException($"Funnel id={task.FunnelId} not found");
+
+        var variables = funnel.Variables.Select(v => new Variable(Macros: v.Macros, Value: v.Value)).ToList();
+
         await tgengine.SendPreset(
             task.TenantId,
             task.SpaceId,
             task.BotId,
             task.ChatId,
+            variables,
             task.FunnelId,            
             task.PresetId,
             ct);
@@ -232,7 +239,16 @@ public class ActionExecutor : IActionExecutor
 
         var response = await aiServiceClient.ReplyAsync(request, ct);
 
-        await tgengine.SendAiTextMessages(task.TenantId, task.SpaceId, task.BotId, task.ChatId, response.Text, ct);
+        var variables = funnel.Variables.Select(v => new Variable(Macros: v.Macros, Value: v.Value)).ToList();
+
+        await tgengine.SendAiTextMessages(
+            task.TenantId,
+            task.SpaceId,
+            task.BotId,
+            task.ChatId,
+            variables,
+            response.Text,
+            ct);
 
         logger.LogInformation("AiReply: sent reply for lead {LeadStateId}", task.LeadStateId);
 

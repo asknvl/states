@@ -188,7 +188,7 @@ namespace states.Services.FunnelService.Application
 
         public async Task<IReadOnlyList<FunnelVariable>> AddVariable(Guid funnelId, string macros, string value, CancellationToken ct)
         {
-            var variable = new Variable { Macros = macros, Value = value };
+            var variable = new VariableDocument { Macros = macros, Value = value };
             var variables = await funnelsRepository.AddVariable(funnelId, variable, ct);
             await RefreshCache(funnelId);
             return variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList();

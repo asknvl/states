@@ -223,20 +223,20 @@ namespace states.Mongo.Repositories
             return funnel.Tags;
         }
 
-        public async Task<IReadOnlyCollection<Variable>> GetVariables(Guid funnelId, CancellationToken ct)
+        public async Task<IReadOnlyCollection<VariableDocument>> GetVariables(Guid funnelId, CancellationToken ct)
         {
-            var variables = await collection
+            var funnel = await collection
                 .Find(x => x.Id == funnelId)
-                .Project(x => x.Variables)
+                .Project(x => new { x.Variables })
                 .FirstOrDefaultAsync(ct);
 
-            if (variables is null)
+            if (funnel is null)
                 throw new KeyNotFoundException($"Funnel with id '{funnelId}' was not found.");
 
-            return variables;
+            return funnel.Variables ?? [];
         }
 
-        public async Task<IReadOnlyList<Variable>> AddVariable(Guid funnelId, Variable variable, CancellationToken ct)
+        public async Task<IReadOnlyList<VariableDocument>> AddVariable(Guid funnelId, VariableDocument variable, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
@@ -272,7 +272,7 @@ namespace states.Mongo.Repositories
             throw new InvalidOperationException($"Failed to add variable to funnel '{funnelId}'.");
         }
 
-        public async Task<IReadOnlyList<Variable>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct)
+        public async Task<IReadOnlyList<VariableDocument>> RemoveVariable(Guid funnelId, Guid variableId, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),
@@ -296,7 +296,7 @@ namespace states.Mongo.Repositories
             throw new KeyNotFoundException($"Variable with id '{variableId}' was not found in funnel '{funnelId}'.");
         }
 
-        public async Task<IReadOnlyList<Variable>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct)
+        public async Task<IReadOnlyList<VariableDocument>> UpdateVariable(Guid funnelId, Guid variableId, string macros, string value, CancellationToken ct)
         {
             var filter = Builders<FunnelDocument>.Filter.And(
                 Builders<FunnelDocument>.Filter.Eq(x => x.Id, funnelId),

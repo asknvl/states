@@ -9,6 +9,7 @@ public interface ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        List<Variable> variables,
         Guid funnelId,
         Guid presetId,
         CancellationToken ct);
@@ -18,6 +19,7 @@ public interface ITGEngineClient
         Guid spaceId,
         Guid botId,
         Guid chatId,
+        List<Variable> variables,
         string text,
         CancellationToken ct);
 

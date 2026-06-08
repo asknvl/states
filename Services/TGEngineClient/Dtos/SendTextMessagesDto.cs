@@ -2,16 +2,17 @@ using System.Text.Json.Serialization;
 
 namespace states.Services.TGEngineClient.Dtos
 {
-    internal record SendTextMessagesDto(
-        [property: JsonPropertyName("tenantId")]
-        Guid TenantId,
-        [property: JsonPropertyName("spaceId")]
-        Guid SpaceId,
-        [property: JsonPropertyName("botId")]
-        Guid BotId,
-        [property: JsonPropertyName("chatId")]
+    internal record SendTextMessagesDto(        
+        Guid TenantId,        
+        Guid SpaceId,        
+        Guid BotId,        
         Guid ChatId,
+        List<Variable> Variables,
         [property: JsonPropertyName("text")]
-        string Text
-    );
+        string Text) : SendMessageBaseDto(
+            TenantId: TenantId,
+            SpaceId: SpaceId,
+            BotId: BotId,
+            ChatId: ChatId,
+            Variables: Variables);
 }
