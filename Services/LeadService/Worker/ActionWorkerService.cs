@@ -69,6 +69,8 @@ public sealed class ActionWorkerService : BackgroundService
     {
         try
         {
+            logger.LogInformation($"ActionWorkerService Processing Task: {task}");
+
             await actionExecutor.Execute(task, ct);
             await taskRepository.Complete(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(
