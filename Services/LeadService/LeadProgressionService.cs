@@ -119,11 +119,14 @@ public class LeadProgressionService : ILeadProgressionService
                         FlowId = leadState.FlowId!.Value,
                         NodeId = leadState.NodeId.Value,
                         ActionId = Guid.CreateVersion7(),
+                        Order = 0,
+                        Status = ActionStatus.Pending,
+                        CreatedAt = DateTime.UtcNow,
+
                         BotId = leadState.BotId,
                         ChatId = leadState.ChatId,
                         ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
-                        CreatedAt = DateTime.UtcNow,
-                        Order = 0,
+                        
                         TransitionAfterReply = false
                     });
                 }                
