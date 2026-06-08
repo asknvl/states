@@ -105,22 +105,28 @@ public class LeadProgressionService : ILeadProgressionService
 
                 case AiReplyNodeData aiReply:
 
-                //tasks.Add(new AiReplyActionTaskDocument
-                //{
-                //    Id = Guid.CreateVersion7(),
-                //    TenantId = leadState.TenantId,
-                //    SpaceId = leadState.SpaceId,
-                //    LeadStateId = leadState.Id,
-                //    FunnelId = leadState.FunnelId.Value,
-                //    FlowId = leadState.FlowId.Value,
-                //    NodeId = node.Id,
-                //    ActionId = action.Id,
-                //    Order = 0,
-                //    Status = ActionStatus.Pending,
-                //    CreatedAt = now,
+                var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value);                
 
-                //});
-                //TODO поставить таск на автоответ при переходе в AIReply Ноду
+                if (funnel is not null)
+                {
+                    tasks.Add(new AiReplyActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId!.Value,
+                        NodeId = leadState.NodeId.Value,
+                        ActionId = Guid.CreateVersion7(),
+                        BotId = leadState.BotId,
+                        ChatId = leadState.ChatId,
+                        ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
+                        CreatedAt = DateTime.UtcNow,
+                        Order = 0,
+                        TransitionAfterReply = false
+                    });
+                }                
                 break;
         }
 
