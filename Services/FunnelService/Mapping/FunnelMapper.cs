@@ -206,6 +206,14 @@ public static class FunnelDocumentMapper
                 AdditionalInfo = x.AdditionalInfo
             },
 
+            ChangeFlowNodeData x => new ChangeFlowNodeDataDocument
+            {
+                Label = x.Label,
+                FinishStatus = x.FinishStatus,
+                FlowId = x.FlowId,
+                NodeId = x.NodeId
+            },
+
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
         };
     }
@@ -244,6 +252,13 @@ public static class FunnelDocumentMapper
                 Requirements: x.Requirements,
                 Legend: x.Legend,
                 AdditionalInfo: x.AdditionalInfo
+            ),
+
+            ChangeFlowNodeDataDocument x => new ChangeFlowNodeData(
+                Label: x.Label,
+                FinishStatus: x.FinishStatus,
+                FlowId: x.FlowId,
+                NodeId: x.NodeId
             ),
 
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")

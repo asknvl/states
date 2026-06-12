@@ -259,6 +259,22 @@ public class LeadProgressionService : ILeadProgressionService
         var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId)
             ?? throw new InvalidOperationException($"Flow '{leadState.FlowId}' not found.");
 
+        var currentNode = flow.Nodes.FirstOrDefault(n => n.Id == leadState.NodeId);
+        if (currentNode?.Data is ChangeFlowNodeData changeFlow)
+        {
+            var targetFlow = funnel.Flows.FirstOrDefault(f => f.Id == changeFlow.FlowId)
+                ?? throw new InvalidOperationException($"Flow '{changeFlow.FlowId}' not found in funnel '{funnel.Id}'.");
+
+            var targetNode = targetFlow.Nodes.FirstOrDefault(n => n.Id == changeFlow.NodeId)
+                ?? throw new InvalidOperationException($"Node '{changeFlow.NodeId}' not found in flow '{targetFlow.Id}'.");
+
+            leadState.FlowId = targetFlow.Id;
+
+            await ExecuteTransition(leadStateId, leadState, funnel, targetFlow,
+                new PassEdge(Id: Guid.Empty, Source: currentNode.Id, Target: targetNode.Id), ct);
+            return;
+        }
+
         var outgoingEdges = flow.Edges
             .Where(e => e.Source == leadState.NodeId)
             .ToList();
@@ -355,7 +371,7 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead {LeadStateId} transitioned to node {NodeId} via edge {EdgeId}",
             leadStateId, targetNode.Id, selectedEdge.Id);
 
-        if (!isAiReply && actionTasks.Count == 0)
+        if (!isAiReply && actionTasks.Count == 0 && nodeStatus != LeadFunnelStatus.Waiting)
             await TransitionToNextNode(leadStateId, ct);
     }
 
@@ -412,7 +428,7 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}",
             leadState.Id, flowId, nodeId);
 
-        if (actionTasks.Count == 0)
+        if (actionTasks.Count == 0 && node.Data.FinishStatus != LeadFunnelStatus.Waiting)
             await TransitionToNextNode(leadState.Id, ct);
     }
 
