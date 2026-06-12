@@ -30,7 +30,8 @@ public class GlobalEventConsumerService(
         var consumerConfig = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
-              AutoOffsetReset = AutoOffsetReset.Earliest,
+            GroupId = groupId,
+            AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             BrokerAddressFamily = BrokerAddressFamily.V4
         };
