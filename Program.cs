@@ -201,6 +201,10 @@ namespace states
             builder.Services.AddSingleton<IGlobalEventProcessor, GlobalEventProcessor>();
             builder.Services.AddHostedService<GlobalEventConsumerService>();
 
+            // Postback events Kafka consumer
+            builder.Services.AddSingleton<IPostbackEventProcessor, PostbackEventProcessor>();
+            builder.Services.AddHostedService<PostbackEventConsumerService>();
+
             builder.Services.AddControllers()
                 .AddJsonOptions(o =>
                     o.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));

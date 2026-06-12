@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using states.Services.Events.Consumer;
 
 namespace states.Services.CampaignService;
 
@@ -42,5 +43,35 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
 
         return await JsonSerializer.DeserializeAsync<FunnelEntryPoint>(stream, JsonOptions, ct); //TODO разобраться тут чтобы всегда что-то возврашало
+    }
+
+    public async Task<EntryPointDto?> GetAutoActionEntryPoint(
+        Guid tenantId,
+        Guid campaignId,
+        PostbackEventType postbackEventType,
+        CancellationToken ct)
+    {
+        var url = $"/leads/autoaction?tenantId={tenantId}&campaignId={campaignId}&postbackEvent={postbackEventType}";
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.GetAsync(url, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "CampaignClient request failed: {Url}", url);
+            throw;
+        }
+
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+
+        return await JsonSerializer.DeserializeAsync<EntryPointDto>(stream, JsonOptions, ct);
     }
 }

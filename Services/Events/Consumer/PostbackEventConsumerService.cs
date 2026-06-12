@@ -1,20 +1,13 @@
 using Confluent.Kafka;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace states.Services.Events.Consumer;
 
-public class GlobalEventConsumerService(
+public class PostbackEventConsumerService(
     IConfiguration config,
-    IGlobalEventProcessor processor,
-    ILogger<GlobalEventConsumerService> logger) : BackgroundService
+    IPostbackEventProcessor processor,
+    ILogger<PostbackEventConsumerService> logger) : BackgroundService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await Task.Yield(); // ensure host startup is not blocked by synchronous Consume()
@@ -22,15 +15,16 @@ public class GlobalEventConsumerService(
         var bootstrapServers = config["Kafka:BootstrapServers"]
             ?? throw new InvalidOperationException("Kafka:BootstrapServers not configured");
 
-        var topic = config["Kafka:Topics:GlobalEvents"]
-            ?? throw new InvalidOperationException("Kafka:Topics:GlobalEvents not configured");
+        var topic = config["Kafka:Topics:PostbackEvents"]
+            ?? throw new InvalidOperationException("Kafka:Topics:PostbackEvents not configured");
 
-        var groupId = config["Kafka:ConsumerGroup"] ?? "states-service";
+        var groupId = config["Kafka:PostbackConsumerGroup"] ?? "states-postback-service";
 
         var consumerConfig = new ConsumerConfig
         {
             BootstrapServers = bootstrapServers,
-              AutoOffsetReset = AutoOffsetReset.Earliest,
+            GroupId = groupId,
+            AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false,
             BrokerAddressFamily = BrokerAddressFamily.V4
         };
@@ -47,12 +41,12 @@ public class GlobalEventConsumerService(
             ConsumeResult<string, string>? result = null;
             try
             {
-                  result = consumer.Consume(stoppingToken);
+                result = consumer.Consume(stoppingToken);
 
                 var eventType = ExtractEventType(result.Message.Value);
                 if (eventType is null)
                 {
-                    logger.LogWarning("Could not extract event type from message, skipping");
+                    logger.LogWarning("Could not extract postback event type from message, skipping");
                     consumer.Commit(result);
                     continue;
                 }

@@ -1,3 +1,5 @@
+using states.Services.Events.Consumer;
+
 namespace states.Services.CampaignService;
 
 public class CampaignClientStub : ICampaignClient
@@ -18,6 +20,15 @@ public class CampaignClientStub : ICampaignClient
         //    FlowId: new Guid("0195930e-84a4-72c9-8f3b-6a1d4e7c0b95"),
         //    NodeId: new Guid("0195930e-84a5-7d37-a8b1-5c9e2f6d4a10"));
 
+        throw new NotImplementedException();
+    }
+
+    public Task<EntryPointDto?> GetAutoActionEntryPoint(
+        Guid tenantId,
+        Guid campaignId,
+        PostbackEventType postbackEventType,
+        CancellationToken ct)
+    {
         throw new NotImplementedException();
     }
 }
