@@ -551,6 +551,8 @@ public class LeadProgressionService : ILeadProgressionService
 
                 if (aiRouterEdges.Count > 0)
                 {
+                    logger.LogInformation($"AiRouter: Task enqueued");
+
                     var task = new AiRouterActionTaskDocument
                     {
                         Id = Guid.CreateVersion7(),
