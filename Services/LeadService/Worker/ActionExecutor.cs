@@ -166,7 +166,7 @@ public class ActionExecutor : IActionExecutor
             TenantId: task.TenantId,
             ChatId: task.ChatId,
             BotId: task.BotId,
-            ModelPresetId: funnel.AiRouterModelPresetId, // TODO: будет браться из Funnel
+            ModelPresetId: funnel.AiRouterModelPresetId, 
             Routers: routers,
             Context: context,
             Options: new RouteOptionsDto(ReturnOnlyOne: true));
