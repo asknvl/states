@@ -195,7 +195,7 @@ public class LeadStateRepository : ILeadStateRepository
 
     public async Task SetLeadFunnelPosition(
         Guid leadStateId,
-        Guid funnelId,        
+        Guid funnelId,
         string funnelName,
         Guid flowId,
         string flowName,
@@ -203,6 +203,7 @@ public class LeadStateRepository : ILeadStateRepository
         string nodeLabel,
         LeadFunnelStatus status,
         List<ActionStatusEntry> actions,
+        Guid? exitEdgeId,
         CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -211,12 +212,13 @@ public class LeadStateRepository : ILeadStateRepository
         var closeCurrentState = Builders<FunnelLeadState>.Update
             .Set(x => x.FunnelId, funnelId)
             .Set(x => x.FunnelName, funnelName)
-            .Set(x => x.FlowId, flowId)       
+            .Set(x => x.FlowId, flowId)
             .Set(x => x.FlowName, flowName)
             .Set(x => x.NodeId, nodeId)
             .Set(x => x.Status, status)
             .Set(x => x.NodeLabel, nodeLabel)
-            .Set("statesLog.$[currentState].leftAt", now);
+            .Set("statesLog.$[currentState].leftAt", now)
+            .Set("statesLog.$[currentState].exitEdgeId", exitEdgeId);
 
         var arrayFilters = new List<ArrayFilterDefinition>
         {

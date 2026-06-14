@@ -363,6 +363,7 @@ public class LeadProgressionService : ILeadProgressionService
                 nodeLabel: targetNode.Data.Label,
                 status: nodeStatus,
                 actionStatusEntries,
+                exitEdgeId: selectedEdge.Id,
                 ct
             );
 
@@ -421,6 +422,7 @@ public class LeadProgressionService : ILeadProgressionService
             node.Data.Label,
             node.Data.FinishStatus,
             actionStatusEntries,
+            exitEdgeId: null,
             ct);
 
         await actionTaskRepository.CreateMany(actionTasks, ct);

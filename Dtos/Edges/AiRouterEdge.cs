@@ -4,7 +4,8 @@
        Guid Id,
        Guid Source,
        Guid Target,
-       string Thesis
+       string Thesis,
+       bool TriggerOnce
    ) : Edge(
        Id: Id,
        Source: Source,

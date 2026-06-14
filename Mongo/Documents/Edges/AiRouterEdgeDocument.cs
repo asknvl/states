@@ -8,5 +8,8 @@ namespace states.Mongo.Documents.Edges
     {
         [BsonElement("thesis")]
         public string Thesis { get; init; } = default!;
+
+        [BsonElement("triggerOnce")]
+        public bool TriggerOnce { get; init; } = true;
     }
 }

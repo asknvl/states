@@ -25,6 +25,7 @@ public interface ILeadStateRepository
         string nodeLabel,
         LeadFunnelStatus status,
         List<ActionStatusEntry> actions,
+        Guid? exitEdgeId,
         CancellationToken ct);
 
     Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);    

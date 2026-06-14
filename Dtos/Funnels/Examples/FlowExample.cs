@@ -236,13 +236,15 @@ namespace states.Dtos.Funnels.Examples
                         Id: new Guid("0197a1b2-0031-7000-8000-000000000031"),
                         Source: nodeAiReplyId,
                         Target: nodeIndiaId,
-                        Thesis: "Лид написал, что он из Индии"
+                        Thesis: "Лид написал, что он из Индии",
+                        TriggerOnce: true
                     ),
                     new AiRouterEdge(
                         Id: new Guid("0197a1b2-0032-7000-8000-000000000032"),
                         Source: nodeAiReplyId,
                         Target: nodeRussiaId,
-                        Thesis: "Лид написал, что он из России"
+                        Thesis: "Лид написал, что он из России",
+                        TriggerOnce: true
                     ),
                 }
             );

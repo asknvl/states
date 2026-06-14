@@ -122,9 +122,17 @@ public class ActionExecutor : IActionExecutor
 
         logger.LogInformation($"AiRouter: Executing router ModelPreset={funnel.AiRouterModelPresetId}");
 
+        var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
+
+        var triggeredEdgeIds = leadState.StatesLog
+            .Where(s => s.ExitEdgeId.HasValue)
+            .Select(s => s.ExitEdgeId!.Value)
+            .ToHashSet();
+
         var aiRouterEdges = flow.Edges
             .Where(e => e.Source == task.NodeId)
             .OfType<AiRouterEdge>()
+            .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
             .ToList();
 
         if (aiRouterEdges.Count == 0)

@@ -291,7 +291,8 @@ public static class FunnelDocumentMapper
                 Id = x.Id,
                 Source = x.Source,
                 Target = x.Target,
-                Thesis = x.Thesis
+                Thesis = x.Thesis,
+                TriggerOnce = x.TriggerOnce
             },
 
             _ => throw new NotSupportedException($"Unsupported edge dto type: {dto.GetType().Name}")
@@ -319,7 +320,8 @@ public static class FunnelDocumentMapper
                 Id: x.Id,
                 Source: x.Source,
                 Target: x.Target,
-                Thesis: x.Thesis
+                Thesis: x.Thesis,
+                TriggerOnce: x.TriggerOnce
             ),
 
             _ => throw new NotSupportedException($"Unsupported edge document type: {document.GetType().Name}")
