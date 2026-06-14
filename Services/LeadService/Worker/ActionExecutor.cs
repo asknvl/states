@@ -139,8 +139,8 @@ public class ActionExecutor : IActionExecutor
             task.TenantId,
             task.BotId,
             task.ChatId,
-            lastMessagesNumber: 5,
-            returnFromLastOutcoming: true,
+            lastMessagesNumber: 30,
+            returnFromLastOutcoming: false,
             isImageDetailed: false,
             ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
 

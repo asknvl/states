@@ -11,7 +11,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Folder Include="Dtos\LeadEvents\" />
         <Folder Include="Services\FunnelService\Runtime\" />
+        <Folder Include="Services\LeadEventsService\Mapping\" />
     </ItemGroup>
 
     <ItemGroup>
