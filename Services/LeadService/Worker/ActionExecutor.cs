@@ -150,7 +150,7 @@ public class ActionExecutor : IActionExecutor
             lastMessagesNumber: 30,
             returnFromLastOutcoming: false,
             isImageDetailed: false,
-            ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику
+            ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику!!!
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(
