@@ -9,8 +9,7 @@ public record RouteRequestDto(
     Guid BotId,
     Guid ModelPresetId,
     List<RouterRuleDto> Routers,
-    List<ChatContextMessageDto> Context,
-    RouteOptionsDto? Options
+    List<ChatContextMessageDto> Context
 ) : AiServiceBaseRequestDto(
     TenantId: TenantId,
     BotId: BotId,
@@ -19,9 +18,4 @@ public record RouteRequestDto(
 public record RouterRuleDto(
     string Id,
     string Thesis
-);
-
-public record RouteOptionsDto(
-    bool ReturnOnlyOne = false,
-    bool IncludeReason = false
 );

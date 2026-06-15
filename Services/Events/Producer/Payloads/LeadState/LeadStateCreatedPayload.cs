@@ -1,7 +1,7 @@
 using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
-namespace states.Services.Events.Producer.Payloads
+namespace states.Services.Events.Producer.Payloads.LeadState
 {
     public record LeadStateCreatedPayload(
         Guid TenantId,

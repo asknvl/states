@@ -1,4 +1,4 @@
-using states.Services.Events.Producer.Payloads;
+using states.Services.Events.Producer.Payloads.LeadState;
 
 namespace states.Services.Events.Producer
 {

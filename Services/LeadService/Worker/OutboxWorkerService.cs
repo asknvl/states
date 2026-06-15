@@ -3,6 +3,7 @@ using states.Mongo.Mappers;
 using states.Mongo.Repositories;
 using states.Services.Events.Producer;
 using states.Services.Events.Producer.Payloads;
+using states.Services.Events.Producer.Payloads.LeadState;
 using states.Services.FunnelService.Runtime;
 using FunnelTag = states.Dtos.Funnels.Tag;
 

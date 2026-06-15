@@ -1,14 +1,13 @@
-using states.Services.LeadService;
-
-namespace states.Services.Events.Producer.Payloads
+namespace states.Services.Events.Producer.Payloads.LeadState
 {
-    public record LeadStatusChangedPayload(        
+    public record LeadTranslatorChangedPayload(
         Guid TenantId,
         Guid SpaceId,
         Guid BotId,
         Guid ChatId,
         string LeadId,
-        LeadFunnelStatus Status,
+        bool IsInputTranslatorOn,
+        bool IsOutputTranslatorOn,
         long Version
     ) : LeadStateChangeEventPayloadBase(
             TenantId: TenantId,

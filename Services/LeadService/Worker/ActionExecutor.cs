@@ -166,17 +166,17 @@ public class ActionExecutor : IActionExecutor
             TenantId: task.TenantId,
             ChatId: task.ChatId,
             BotId: task.BotId,
-            ModelPresetId: funnel.AiRouterModelPresetId, 
+            ModelPresetId: funnel.AiRouterModelPresetId,
             Routers: routers,
-            Context: context,
-            Options: new RouteOptionsDto(ReturnOnlyOne: true));
+            Context: context);
 
         var response = await aiServiceClient.RouteAsync(request, ct);
 
-        var matchedId = response.Results.FirstOrDefault(r => r.Matched)?.Id;
+        var matchedId = response.Id;
         if (matchedId is null)
         {
-            logger.LogInformation("AiRouter: no match for lead {LeadStateId}, scheduling AI reply", task.LeadStateId);
+            logger.LogInformation("AiRouter: no match for lead {LeadStateId}, reason: {Reason}, scheduling AI reply",
+                task.LeadStateId, response.Reason);
             var replyTask = new AiReplyActionTaskDocument
             {
                 Id = Guid.CreateVersion7(),
@@ -201,7 +201,8 @@ public class ActionExecutor : IActionExecutor
         var matchedEdge = aiRouterEdges.FirstOrDefault(e => e.Id.ToString() == matchedId)
             ?? throw new InvalidOperationException($"AiRouter matched edge '{matchedId}' not found in flow.");
 
-        logger.LogInformation("AiRouter: lead {LeadStateId} matched edge {EdgeId}", task.LeadStateId, matchedEdge.Id);
+        logger.LogInformation("AiRouter: lead {LeadStateId} matched edge {EdgeId}, reason: {Reason}",
+            task.LeadStateId, matchedEdge.Id, response.Reason);
 
         await progressionService.ExecuteTransitionByEdge(task.LeadStateId, matchedEdge.Id, ct);
     }
