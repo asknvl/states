@@ -149,7 +149,7 @@ public class ActionExecutor : IActionExecutor
             task.ChatId,
             lastMessagesNumber: 30,
             returnFromLastOutcoming: false,
-            isImageDetailed: false,
+            isImageDetailed: true,
             ct); //TODO сделать чтобы если уже есть такой таск, то было +1 сообщение и выбиралось количество сообщений по счетчику!!!
 
         var context = tgMessages
