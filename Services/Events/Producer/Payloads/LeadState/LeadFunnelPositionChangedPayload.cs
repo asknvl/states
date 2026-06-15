@@ -1,6 +1,6 @@
 using states.Services.LeadService;
 
-namespace states.Services.Events.Producer.Payloads
+namespace states.Services.Events.Producer.Payloads.LeadState
 {
     public record LeadFunnelPositionChangedPayload(        
         Guid TenantId,

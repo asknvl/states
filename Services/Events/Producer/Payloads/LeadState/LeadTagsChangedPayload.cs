@@ -1,7 +1,7 @@
 using states.Dtos.Funnels;
 using states.Services.FunnelService.Application;
 
-namespace states.Services.Events.Producer.Payloads
+namespace states.Services.Events.Producer.Payloads.LeadState
 {
     public record LeadTagsChangedPayload(
         Guid TenantId,

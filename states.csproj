@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <Folder Include="Dtos\LeadEvents\" />
+        <Folder Include="Services\Events\Producer\Payloads\SystemMessages\" />
         <Folder Include="Services\FunnelService\Runtime\" />
         <Folder Include="Services\LeadEventsService\Mapping\" />
     </ItemGroup>
