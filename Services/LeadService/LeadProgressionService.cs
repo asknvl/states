@@ -116,37 +116,42 @@ public class LeadProgressionService : ILeadProgressionService
                 if (funnel is not null)
                 {
                     var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
-                    var triggeredEdgeIds = GetTriggeredEdgeIds(leadState);
-                    var aiRouterEdges = flow?.Edges
-                        .Where(e => e.Source == node.Id)
-                        .OfType<AiRouterEdge>()
-                        .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
-                        .ToList() ?? [];
 
-                    if (aiRouterEdges.Count > 0)
+                    var routerTaskCreated = false;
+                    if (aiReply.FinishStatus == LeadFunnelStatus.Waiting)
                     {
-                        // У ноды есть роутеры — сначала проверяем их по уже имеющемуся контексту,
-                        // и только если ничего не подошло, ExecuteAiRouter задаст вопрос AiReply.
-                        tasks.Add(new AiRouterActionTaskDocument
-                        {
-                            Id = Guid.CreateVersion7(),
-                            TenantId = leadState.TenantId,
-                            SpaceId = leadState.SpaceId,
-                            LeadStateId = leadState.Id,
-                            FunnelId = leadState.FunnelId.Value,
-                            FlowId = leadState.FlowId.Value,
-                            NodeId = node.Id,
-                            ActionId = Guid.CreateVersion7(),
-                            Order = 0,
-                            Status = ActionStatus.Pending,
-                            CreatedAt = now,
+                        var triggeredEdgeIds = GetTriggeredEdgeIds(leadState);
+                        var aiRouterEdges = flow?.Edges
+                            .Where(e => e.Source == node.Id)
+                            .OfType<AiRouterEdge>()
+                            .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
+                            .ToList() ?? [];
 
-                            BotId = leadState.BotId,
-                            ChatId = leadState.ChatId,
-                            ScheduledAt = now
-                        });
+                        if (aiRouterEdges.Count > 0)
+                        {
+                            tasks.Add(new AiRouterActionTaskDocument
+                            {
+                                Id = Guid.CreateVersion7(),
+                                TenantId = leadState.TenantId,
+                                SpaceId = leadState.SpaceId,
+                                LeadStateId = leadState.Id,
+                                FunnelId = leadState.FunnelId.Value,
+                                FlowId = leadState.FlowId.Value,
+                                NodeId = node.Id,
+                                ActionId = Guid.CreateVersion7(),
+                                Order = 0,
+                                Status = ActionStatus.Pending,
+                                CreatedAt = now,
+
+                                BotId = leadState.BotId,
+                                ChatId = leadState.ChatId,
+                                ScheduledAt = now
+                            });
+                            routerTaskCreated = true;
+                        }
                     }
-                    else
+
+                    if (!routerTaskCreated)
                     {
                         tasks.Add(new AiReplyActionTaskDocument
                         {
