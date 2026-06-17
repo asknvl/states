@@ -1,4 +1,4 @@
-namespace states.Services.Events.Consumer;
+namespace states.Services.Events.Consumers.LeadPostbackEvents;
 
 public interface IPostbackEventProcessor
 {

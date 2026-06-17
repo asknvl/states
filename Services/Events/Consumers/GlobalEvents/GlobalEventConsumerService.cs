@@ -2,7 +2,7 @@ using Confluent.Kafka;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace states.Services.Events.Consumer;
+namespace states.Services.Events.Consumers.GlobalEvents;
 
 public class GlobalEventConsumerService(
     IConfiguration config,
@@ -25,7 +25,7 @@ public class GlobalEventConsumerService(
         var topic = config["Kafka:Topics:GlobalEvents"]
             ?? throw new InvalidOperationException("Kafka:Topics:GlobalEvents not configured");
 
-        var groupId = config["Kafka:ConsumerGroup"] ?? "states-service";
+        var groupId = config["Kafka:ClientId"] ?? "states-service";
 
         var consumerConfig = new ConsumerConfig
         {

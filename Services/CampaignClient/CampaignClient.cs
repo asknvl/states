@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using states.Services.Events.Consumer;
+using states.Services.Events.Consumers.LeadPostbackEvents;
 
 namespace states.Services.CampaignService;
 

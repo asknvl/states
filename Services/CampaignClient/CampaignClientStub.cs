@@ -1,4 +1,4 @@
-using states.Services.Events.Consumer;
+using states.Services.Events.Consumers.LeadPostbackEvents;
 
 namespace states.Services.CampaignService;
 

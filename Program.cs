@@ -18,7 +18,6 @@ using states.Services.LeadService.Routing;
 using states.Services.CampaignService;
 using states.Services.TgEngineService;
 using Confluent.Kafka;
-using states.Services.Events.Consumer;
 using states.Services.Events.Producer;
 using states.Services.LeadService.Worker;
 using states.Swagger;
@@ -26,6 +25,8 @@ using Swashbuckle.AspNetCore.Filters;
 using System.Reflection;
 using MongoDB.Bson.Serialization;
 using states.Services.AIServiceClient;
+using states.Services.Events.Consumers.LeadPostbackEvents;
+using states.Services.Events.Consumers.GlobalEvents;
 
 namespace states
 {

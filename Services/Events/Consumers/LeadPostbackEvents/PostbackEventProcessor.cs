@@ -2,10 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using states.Mongo.Repositories;
 using states.Services.CampaignService;
-using states.Services.Events.Consumer.Payloads;
+using states.Services.Events.Consumers.LeadPostbackEvents.Payloads;
 using states.Services.LeadService;
 
-namespace states.Services.Events.Consumer;
+namespace states.Services.Events.Consumers.LeadPostbackEvents;
 
 public class PostbackEventProcessor(
     ILeadStateRepository leadStateRepository,

@@ -1,4 +1,4 @@
-namespace states.Services.Events.Consumer;
+namespace states.Services.Events.Consumers.GlobalEvents;
 
 public interface IGlobalEventProcessor
 {

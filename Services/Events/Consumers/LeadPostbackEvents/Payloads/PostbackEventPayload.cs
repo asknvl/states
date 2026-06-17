@@ -1,4 +1,6 @@
-namespace states.Services.Events.Consumer.Payloads;
+using states.Services.Events.Consumers.LeadPostbackEvents;
+
+namespace states.Services.Events.Consumers.LeadPostbackEvents.Payloads;
 
 public sealed record PostbackEventPayload(
     string? Tid,

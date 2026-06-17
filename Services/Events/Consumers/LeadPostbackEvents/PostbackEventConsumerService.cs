@@ -1,7 +1,7 @@
 using Confluent.Kafka;
 using System.Text.Json;
 
-namespace states.Services.Events.Consumer;
+namespace states.Services.Events.Consumers.LeadPostbackEvents;
 
 public class PostbackEventConsumerService(
     IConfiguration config,
@@ -18,7 +18,7 @@ public class PostbackEventConsumerService(
         var topic = config["Kafka:Topics:PostbackEvents"]
             ?? throw new InvalidOperationException("Kafka:Topics:PostbackEvents not configured");
 
-        var groupId = config["Kafka:PostbackConsumerGroup"] ?? "states-postback-service";
+        var groupId = config["Kafka:ClientId"] ?? "states-service";
 
         var consumerConfig = new ConsumerConfig
         {
