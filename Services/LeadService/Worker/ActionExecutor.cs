@@ -10,6 +10,7 @@ using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
 using states.Services.TGEngineClient.Dtos;
 using states.Services.TgEngineService;
+using System.Text.Json;
 
 namespace states.Services.LeadService.Worker;
 
@@ -169,6 +170,14 @@ public class ActionExecutor : IActionExecutor
             ModelPresetId: funnel.AiRouterModelPresetId,
             Routers: routers,
             Context: context);
+
+        var requestJson = JsonSerializer.Serialize(request, new JsonSerializerOptions { WriteIndented = true });
+
+        logger.LogInformation(
+            "AiRouter: sending route request for ChatId {ChatId}. Request: {Request}",
+            task.ChatId,
+            requestJson);
+
 
         var response = await aiServiceClient.RouteAsync(request, ct);
 
