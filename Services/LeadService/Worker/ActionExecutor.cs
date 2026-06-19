@@ -130,10 +130,14 @@ public class ActionExecutor : IActionExecutor
             .Select(s => s.ExitEdgeId!.Value)
             .ToHashSet();
 
+        var nodeIds = flow.Nodes.Select(n => n.Id).ToHashSet();
+
         var aiRouterEdges = flow.Edges
             .Where(e => e.Source == task.NodeId)
             .OfType<AiRouterEdge>()
             .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
+            .Where(e => !string.IsNullOrWhiteSpace(e.Thesis))
+            .Where(e => nodeIds.Contains(e.Target))
             .ToList();
 
         if (aiRouterEdges.Count == 0)
