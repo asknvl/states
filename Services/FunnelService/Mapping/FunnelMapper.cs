@@ -214,6 +214,14 @@ public static class FunnelDocumentMapper
                 NodeId = x.NodeId
             },
 
+            SendWebhookNodeData x => new SendWebhookNodeDataDocument
+            {
+                Label = x.Label,
+                FinishStatus = x.FinishStatus,
+                Url = x.Url,
+                MethodType = x.MethodType
+            },
+
             _ => throw new NotSupportedException($"Unsupported node data dto type: {dto.GetType().Name}")
         };
     }
@@ -259,6 +267,13 @@ public static class FunnelDocumentMapper
                 FinishStatus: x.FinishStatus,
                 FlowId: x.FlowId,
                 NodeId: x.NodeId
+            ),
+
+            SendWebhookNodeDataDocument x => new SendWebhookNodeData(
+                Label: x.Label,
+                FinishStatus: x.FinishStatus,
+                Url: x.Url,
+                MethodType: x.MethodType
             ),
 
             _ => throw new NotSupportedException($"Unsupported node data document type: {document.GetType().Name}")

@@ -34,7 +34,8 @@ namespace states.Mongo.Documents.Nodes
         typeof(SendPresetNodeDataDocument),
         typeof(ManageTagNodeDataDocument),
         typeof(AiReplyNodeDataDocument),
-        typeof(ChangeFlowNodeDataDocument))]
+        typeof(ChangeFlowNodeDataDocument),
+        typeof(SendWebhookNodeDataDocument))]
     public abstract record NodeDataDocument
     {
         [BsonElement("label")]

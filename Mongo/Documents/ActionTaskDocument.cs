@@ -9,6 +9,7 @@ namespace states.Mongo.Documents;
 [BsonKnownTypes(typeof(ManageTagActionTaskDocument))]
 [BsonKnownTypes(typeof(AiReplyActionTaskDocument))]
 [BsonKnownTypes(typeof(AiRouterActionTaskDocument))]
+[BsonKnownTypes(typeof(SendWebhookActionTaskDocument))]
 public abstract class ActionTaskDocument
 {
     [BsonId]
@@ -120,4 +121,16 @@ public sealed class AiRouterActionTaskDocument : ActionTaskDocument
     public Guid ChatId { get; set; }
 
     public AiRouterActionTaskDocument() : base(ActionType.AiRouter, isCritical: true) { }
+}
+
+public sealed class SendWebhookActionTaskDocument : ActionTaskDocument
+{
+    [BsonElement("url")]
+    public string Url { get; set; } = default!;
+
+    [BsonElement("methodType")]
+    [BsonRepresentation(BsonType.String)]
+    public WebhookMethodType MethodType { get; set; }
+
+    public SendWebhookActionTaskDocument() : base(ActionType.SendWebhook, isCritical: false) { }
 }

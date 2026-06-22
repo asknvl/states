@@ -8,6 +8,7 @@ namespace states.Services.FunnelService.Application
         ManageTag,
         SendPreset,
         AiReply,
-        ChangeFlow
+        ChangeFlow,
+        SendWebhook
     }
 }

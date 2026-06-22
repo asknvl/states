@@ -5,6 +5,7 @@
         SendPreset,
         ManageTag,
         AiReply,
-        AiRouter
+        AiRouter,
+        SendWebhook
     }
 }

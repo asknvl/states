@@ -138,6 +138,27 @@ public class LeadProgressionService : ILeadProgressionService
 
                 }
                 break;
+
+            case SendWebhookNodeData sendWebhook:
+                tasks.Add(new SendWebhookActionTaskDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = leadState.TenantId,
+                    SpaceId = leadState.SpaceId,
+                    LeadStateId = leadState.Id,
+                    FunnelId = leadState.FunnelId.Value,
+                    FlowId = leadState.FlowId.Value,
+                    NodeId = node.Id,
+                    ActionId = Guid.CreateVersion7(),
+                    Order = 0,
+                    Status = ActionStatus.Pending,
+                    ScheduledAt = now,
+                    CreatedAt = now,
+
+                    Url = sendWebhook.Url,
+                    MethodType = sendWebhook.MethodType
+                });
+                break;
         }
 
         return tasks;

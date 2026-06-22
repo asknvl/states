@@ -10,6 +10,7 @@ using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
 using states.Services.TGEngineClient.Dtos;
 using states.Services.TgEngineService;
+using states.Utils;
 using System.Text.Json;
 
 namespace states.Services.LeadService.Worker;
@@ -22,6 +23,7 @@ public class ActionExecutor : IActionExecutor
     private readonly IActionTaskRepository actionTaskRepository;
     private readonly IFunnelRuntimeCache funnelCache;
     private readonly ILeadProgressionService progressionService;
+    private readonly IHttpClientFactory httpClientFactory;
     private readonly ILogger<ActionExecutor> logger;
 
     public ActionExecutor(
@@ -31,6 +33,7 @@ public class ActionExecutor : IActionExecutor
         IActionTaskRepository actionTaskRepository,
         IFunnelRuntimeCache funnelCache,
         ILeadProgressionService progressionService,
+        IHttpClientFactory httpClientFactory,
         ILogger<ActionExecutor> logger)
     {
         this.tgengine = tgengine;
@@ -39,6 +42,7 @@ public class ActionExecutor : IActionExecutor
         this.actionTaskRepository = actionTaskRepository;
         this.funnelCache = funnelCache;
         this.progressionService = progressionService;
+        this.httpClientFactory = httpClientFactory;
         this.logger = logger;
     }
 
@@ -64,6 +68,11 @@ public class ActionExecutor : IActionExecutor
             case AiRouterActionTaskDocument aiRouter:
                 logger.LogInformation("ActionExecutor Execute ExecuteAiRouter");
                 await ExecuteAiRouter(aiRouter, ct);
+                break;
+
+            case SendWebhookActionTaskDocument sendWebhook:
+                logger.LogInformation("ActionExecutor Execute ExecuteSendWebhook");
+                await ExecuteSendWebhook(sendWebhook, ct);
                 break;
 
             default:
@@ -284,5 +293,38 @@ public class ActionExecutor : IActionExecutor
             await progressionService.TransitionToNextNode(task.LeadStateId, ct);
         else
             await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct);
+    }
+
+    private async Task ExecuteSendWebhook(SendWebhookActionTaskDocument task, CancellationToken ct)
+    {
+        var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
+
+        var url = MacroResolver.Resolve(task.Url, leadState);
+
+        var method = task.MethodType switch
+        {
+            WebhookMethodType.Get => HttpMethod.Get,
+            WebhookMethodType.Post => HttpMethod.Post,
+            _ => throw new NotSupportedException($"Unsupported webhook method type: {task.MethodType}")
+        };
+
+        var http = httpClientFactory.CreateClient();
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.SendAsync(new HttpRequestMessage(method, url), ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "SendWebhook failed: url={Url}", url);
+            throw;
+        }
+
+        response.EnsureSuccessStatusCode();
+
+        logger.LogInformation("SendWebhook: sent {MethodType} request to {Url} for lead {LeadStateId}",
+            task.MethodType, url, task.LeadStateId);
     }
 }
