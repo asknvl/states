@@ -113,7 +113,9 @@ public class GlobalEventProcessor(
                 SourceName: entryPoint.SourceName,
                 FunnelId: entryPoint.FunnelId,
                 FlowId: entryPoint.FlowId,
-                NodeId: entryPoint.NodeId);         
+                NodeId: entryPoint.NodeId,
+                
+                StartParameter: p.StartParameter);         
         }
 
 

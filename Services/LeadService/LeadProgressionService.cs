@@ -212,7 +212,9 @@ public class LeadProgressionService : ILeadProgressionService
             VideoRecognition = funnel?.VideoRecognition ?? RecognitionType.Skip,
             VoiceRecognition = funnel?.VoiceRecognition ?? RecognitionType.Skip,
 
-            StatesLog = []
+            StatesLog = [],
+
+            StartParameter = request.StartParameter
         };
 
         List<ActionTaskDocument> actionTasks = [];

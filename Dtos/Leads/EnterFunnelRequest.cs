@@ -12,5 +12,7 @@ public sealed record EnterFunnelRequest(
     string? SourceName,
     Guid? FunnelId,    
     Guid? FlowId,    
-    Guid? NodeId    
+    Guid? NodeId,
+
+    string? StartParameter
 );

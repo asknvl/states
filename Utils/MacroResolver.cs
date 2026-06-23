@@ -32,8 +32,22 @@ namespace states.Utils
                 ["status"] = leadState.Status.ToString()
             };
 
+            if (!string.IsNullOrEmpty(leadState.StartParameter))
+            {
+                var startParts = parseStartParameter(leadState.StartParameter);
+                for (int i = 0; i <  startParts.Length; i++) {
+                    macros.Add($"start{i}", startParts[i]);
+                }
+            }
+
             return MacroPattern.Replace(template, match =>
                 macros.TryGetValue(match.Groups[1].Value, out var value) ? value ?? string.Empty : match.Value);
+        }
+
+        private static string[] parseStartParameter(string startParameter)
+        {
+            var splt = startParameter.Split('_');
+            return splt;
         }
     }
 }

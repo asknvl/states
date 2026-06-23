@@ -86,6 +86,9 @@ namespace states.Mongo.Documents
         [BsonElement("statesLog")]
         public List<StateLogEntry> StatesLog { get; set; } = [];
 
+        [BsonElement("startParameter")]
+        public string? StartParameter { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
