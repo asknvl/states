@@ -1,6 +1,5 @@
 using aiservice.Dtos.APIs.Reply;
 using aiservice.Dtos.APIs.Router;
-using states.Dtos.Edges;
 using states.Dtos.Funnels;
 using states.Dtos.Nodes;
 using states.Mongo.Documents;
@@ -8,6 +7,7 @@ using states.Mongo.Repositories;
 using states.Services.AIServiceClient;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
+using states.Services.LeadService.Routing;
 using states.Services.TGEngineClient.Dtos;
 using states.Services.TgEngineService;
 using states.Utils;
@@ -134,20 +134,7 @@ public class ActionExecutor : IActionExecutor
 
         var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
 
-        var triggeredEdgeIds = leadState.StatesLog
-            .Where(s => s.ExitEdgeId.HasValue)
-            .Select(s => s.ExitEdgeId!.Value)
-            .ToHashSet();
-
-        var nodeIds = flow.Nodes.Select(n => n.Id).ToHashSet();
-
-        var aiRouterEdges = flow.Edges
-            .Where(e => e.Source == task.NodeId)
-            .OfType<AiRouterEdge>()
-            .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
-            .Where(e => !string.IsNullOrWhiteSpace(e.Thesis))
-            .Where(e => nodeIds.Contains(e.Target))
-            .ToList();
+        var aiRouterEdges = AiRouterEdgeSelector.GetEligibleEdges(flow, task.NodeId, leadState);
 
         if (aiRouterEdges.Count == 0)
         {

@@ -37,12 +37,6 @@ public class LeadProgressionService : ILeadProgressionService
     }
 
     #region private
-    private static HashSet<Guid> GetTriggeredEdgeIds(FunnelLeadState leadState) =>
-        leadState.StatesLog
-            .Where(s => s.ExitEdgeId.HasValue)
-            .Select(s => s.ExitEdgeId!.Value)
-            .ToHashSet();
-
     private List<ActionTaskDocument> CreateActionTasks(FunnelLeadState leadState, Dtos.Nodes.Node node)
     {
         if (leadState.FunnelId is null || leadState.FlowId is null)
@@ -115,27 +109,61 @@ public class LeadProgressionService : ILeadProgressionService
 
                 if (funnel is not null)
                 {
-                    tasks.Add(new AiReplyActionTaskDocument
+                    var flow = funnel.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
+                    var isRevisit = leadState.StatesLog.Any(s => s.NodeId == node.Id);
+
+                    var aiRouterEdges = isRevisit && flow is not null
+                        ? AiRouterEdgeSelector.GetEligibleEdges(flow, node.Id, leadState)
+                        : [];
+
+                    if (aiRouterEdges.Count > 0)
                     {
-                        Id = Guid.CreateVersion7(),
-                        TenantId = leadState.TenantId,
-                        SpaceId = leadState.SpaceId,
-                        LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId.Value,
-                        FlowId = leadState.FlowId.Value,
-                        NodeId = node.Id,
-                        ActionId = Guid.CreateVersion7(),
-                        Order = 0,
-                        Status = ActionStatus.Pending,
-                        CreatedAt = now,
+                        // Лид уже был на этой AiReply-ноде раньше — значит контекст для роутинга уже есть,
+                        // сначала пробуем роутер и только при отсутствии матча генерируем новый ответ.
+                        tasks.Add(new AiRouterActionTaskDocument
+                        {
+                            Id = Guid.CreateVersion7(),
+                            TenantId = leadState.TenantId,
+                            SpaceId = leadState.SpaceId,
+                            LeadStateId = leadState.Id,
+                            FunnelId = leadState.FunnelId.Value,
+                            FlowId = leadState.FlowId.Value,
+                            NodeId = node.Id,
+                            ActionId = Guid.CreateVersion7(),
+                            Order = 0,
+                            CreatedAt = now,
 
-                        BotId = leadState.BotId,
-                        ChatId = leadState.ChatId,
-                        ScheduledAt = now + TimeSpan.FromSeconds(funnel.ReplyDelay),
+                            BotId = leadState.BotId,
+                            ChatId = leadState.ChatId,
+                            ScheduledAt = now
+                        });
+                    }
+                    else
+                    {
+                        var hasPassOrSplit = isRevisit && flow is not null &&
+                            flow.Edges.Any(e => e.Source == node.Id && e is PassEdge or SplitEdge);
 
-                        TransitionAfterReply = false
-                    });
+                        tasks.Add(new AiReplyActionTaskDocument
+                        {
+                            Id = Guid.CreateVersion7(),
+                            TenantId = leadState.TenantId,
+                            SpaceId = leadState.SpaceId,
+                            LeadStateId = leadState.Id,
+                            FunnelId = leadState.FunnelId.Value,
+                            FlowId = leadState.FlowId.Value,
+                            NodeId = node.Id,
+                            ActionId = Guid.CreateVersion7(),
+                            Order = 0,
+                            Status = ActionStatus.Pending,
+                            CreatedAt = now,
 
+                            BotId = leadState.BotId,
+                            ChatId = leadState.ChatId,
+                            ScheduledAt = now + TimeSpan.FromSeconds(funnel.ReplyDelay),
+
+                            TransitionAfterReply = hasPassOrSplit
+                        });
+                    }
                 }
                 break;
 
@@ -575,12 +603,7 @@ public class LeadProgressionService : ILeadProgressionService
 
             if (currentNode?.Data is AiReplyNodeData && flow is not null)
             {
-                var triggeredEdgeIds = GetTriggeredEdgeIds(leadState);
-                var aiRouterEdges = flow.Edges
-                    .Where(e => e.Source == leadState.NodeId)
-                    .OfType<AiRouterEdge>()
-                    .Where(e => !e.TriggerOnce || !triggeredEdgeIds.Contains(e.Id))
-                    .ToList();
+                var aiRouterEdges = AiRouterEdgeSelector.GetEligibleEdges(flow, leadState.NodeId.Value, leadState);
 
                 if (aiRouterEdges.Count > 0)
                 {

@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Nodes
@@ -8,7 +9,9 @@ namespace states.Mongo.Documents.Nodes
     {
         [BsonElement("url")]
         public string Url { get; set; }
+
         [BsonElement("methodType")]
+        [BsonRepresentation(BsonType.String)]
         public WebhookMethodType MethodType { get; set; }
 
     }
