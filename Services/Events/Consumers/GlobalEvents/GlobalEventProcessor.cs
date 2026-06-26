@@ -65,8 +65,10 @@ public class GlobalEventProcessor(
         if (!p.IsActive)
         {
             logger.LogInformation(
-                "Bot subscription deactivated for chat {ChatId}, bot {BotId} — skipping",
+                "Bot subscription deactivated for chat {ChatId}, bot {BotId} — marking lead as blocked",
                 p.ChatId, p.BotId);
+
+            await leadProgressionService.SetLeadStatus(p.TenantId, p.ChatId, LeadFunnelStatus.Blocked, ct);
             return;
         }
 
