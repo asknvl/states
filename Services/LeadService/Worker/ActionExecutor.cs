@@ -203,7 +203,7 @@ public class ActionExecutor : IActionExecutor
                 Order = 0
             };
             await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
-            await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct);
+            //await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); // ХЗ зачем тут добавлял
             return;
         }
 
@@ -277,9 +277,9 @@ public class ActionExecutor : IActionExecutor
         logger.LogInformation("AiReply: sent reply for lead {LeadStateId}", task.LeadStateId);
 
         if (task.TransitionAfterReply)
-            await progressionService.TransitionToNextNode(task.LeadStateId, ct);
-        else
-            await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct);
+            await progressionService.TransitionToNextNode(task.LeadStateId, ct); 
+        //else
+        //    await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); //Оно и так вроде в вейтинге всегда в этом месте
     }
 
     private async Task ExecuteSendWebhook(SendWebhookActionTaskDocument task, CancellationToken ct)

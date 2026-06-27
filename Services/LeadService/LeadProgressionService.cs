@@ -205,6 +205,12 @@ public class LeadProgressionService : ILeadProgressionService
         if (node is null)
             return;
 
+        // AiReply-ноды сами пересоздают себе AiRouter/AiReply задачу на каждый входящий сигнал
+        // (см. блок ниже в HandleIncomingSignal) — рармить их тут не нужно, иначе статус лишний
+        // раз дёргается Waiting → Nothing → Waiting на одном и том же сообщении.
+        if (node.Data is AiReplyNodeData)
+            return;
+
         var actionTasks = CreateActionTasks(leadState, node);
         if (actionTasks.Count == 0)
             return;
