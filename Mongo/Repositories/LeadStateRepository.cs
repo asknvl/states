@@ -291,6 +291,26 @@ public class LeadStateRepository : ILeadStateRepository
 
         return updated;
     }
+
+    // Перезаписывает actions у текущей (открытой, leftAt == null) ноды в statesLog.
+    // Используется при разблокировке лида: старые action tasks были отменены вместе с блокировкой,
+    // и их нужно пересоздать заново для ноды, на которой лид остановился.
+    public async Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set("statesLog.$[currentState].actions", actions)
+            .Inc(x => x.Version, 1);
+
+        var arrayFilters = new List<ArrayFilterDefinition>
+        {
+            new BsonDocumentArrayFilterDefinition<FunnelLeadState>(
+                new BsonDocument("currentState.leftAt", BsonNull.Value))
+        };
+
+        await collection.UpdateOneAsync(filter, update, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
+    }
     #endregion
 
     public async Task SetLeadFunnelPosition(

@@ -191,6 +191,39 @@ public class LeadProgressionService : ILeadProgressionService
 
         return tasks;
     }
+
+    // Action tasks текущей ноды были отменены при блокировке лида (см. MarkLeadBlocked) —
+    // после разблокировки пересоздаём их так же, как при первом входе в ноду.
+    private async Task RearmCurrentNodeActions(FunnelLeadState leadState, CancellationToken ct)
+    {
+        if (leadState.FunnelId is null || leadState.FlowId is null || leadState.NodeId is null)
+            return;
+
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value);
+        var flow = funnel?.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
+        var node = flow?.Nodes.FirstOrDefault(n => n.Id == leadState.NodeId);
+        if (node is null)
+            return;
+
+        var actionTasks = CreateActionTasks(leadState, node);
+        if (actionTasks.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+        {
+            ActionId = t.ActionId,
+            Type = t.Type,
+            Status = ActionStatus.Pending,
+            StatusChangedAt = now
+        }).ToList();
+
+        await leadStateRepository.ResetCurrentNodeActions(leadState.Id, actionStatusEntries, ct);
+        await actionTaskRepository.CreateMany(actionTasks, ct);
+
+        logger.LogInformation("Lead {LeadStateId} re-armed {Count} action task(s) for node {NodeId} after unblock",
+            leadState.Id, actionTasks.Count, node.Id);
+    }
     #endregion
 
     #region public   
@@ -610,6 +643,8 @@ public class LeadProgressionService : ILeadProgressionService
             // UnblockByChatId сам не делает ничего, если лид не Blocked — лишней записи в общем случае нет.
             var unblocked = await leadStateRepository.UnblockByChatId(tenantId, botId, chatId, ct);
             if (unblocked is null) return;
+
+            await RearmCurrentNodeActions(unblocked, ct);
 
             leadState = await leadStateRepository.ClaimWaitingLeadByChatId(tenantId, botId, chatId, ct);
             if (leadState is null) return;
