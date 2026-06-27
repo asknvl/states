@@ -36,6 +36,9 @@ public interface ILeadStateRepository
     Task SaveTags(Guid leadStateId, List<Tag> tags, CancellationToken ct);
     Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct);
 
+    Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct);
+    Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
+
     Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);    
     Task Delete(Guid leadStateId, CancellationToken ct);
 }

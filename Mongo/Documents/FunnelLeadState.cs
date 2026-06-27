@@ -59,6 +59,10 @@ namespace states.Mongo.Documents
         [BsonRepresentation(BsonType.String)]
         public LeadFunnelStatus Status {  get; set; }
 
+        [BsonElement("preBlockStatus")]
+        [BsonRepresentation(BsonType.String)]
+        public LeadFunnelStatus? PreBlockStatus { get; set; }
+
         [BsonElement("isInputTranslatorOn")]
         public bool IsInputTranslatorOn { get; set; }
 

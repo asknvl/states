@@ -507,6 +507,17 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead state chatId={LeadStateId} status manually set to {Status}", chatId, status);
     }
 
+    public async Task MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct)
+    {
+        var updated = await leadStateRepository.MarkBlockedByChatId(chatId, ct);
+        if (updated is null)
+            return;
+
+        await actionTaskRepository.CancelPendingByLead(updated.Id, ct);
+
+        logger.LogInformation("Lead state chatId={ChatId} blocked, preBlockStatus={PreBlockStatus}", chatId, updated.PreBlockStatus);
+    }
+
     public async Task UpdateLeadStateByChatId(
         Guid tenantId,
         Guid spaceId,
@@ -592,7 +603,17 @@ public class LeadProgressionService : ILeadProgressionService
         // Атомарно захватываем лид: переводим Waiting → Nothing только если статус ещё Waiting.
         // Если другой воркер уже захватил — вернётся null, и мы просто выходим.
         var leadState = await leadStateRepository.ClaimWaitingLeadByChatId(tenantId, botId, chatId, ct);
-        if (leadState is null) return;
+
+        if (leadState is null)
+        {
+            // Не Waiting — возможно лид был заблокирован, а это сообщение значит, что он разблокировал бота.
+            // UnblockByChatId сам не делает ничего, если лид не Blocked — лишней записи в общем случае нет.
+            var unblocked = await leadStateRepository.UnblockByChatId(tenantId, botId, chatId, ct);
+            if (unblocked is null) return;
+
+            leadState = await leadStateRepository.ClaimWaitingLeadByChatId(tenantId, botId, chatId, ct);
+            if (leadState is null) return;
+        }
 
 
         if (leadState.NodeId.HasValue && leadState.FunnelId.HasValue)

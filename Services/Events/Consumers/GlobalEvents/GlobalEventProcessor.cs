@@ -68,7 +68,7 @@ public class GlobalEventProcessor(
                 "Bot subscription deactivated for chat {ChatId}, bot {BotId} — marking lead as blocked",
                 p.ChatId, p.BotId);
 
-            await leadProgressionService.SetLeadStatus(p.TenantId, p.ChatId, LeadFunnelStatus.Blocked, ct);
+            await leadProgressionService.MarkLeadBlocked(p.TenantId, p.ChatId, ct);
             return;
         }
 

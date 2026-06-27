@@ -191,6 +191,106 @@ public class LeadStateRepository : ILeadStateRepository
             }, cancellationToken: ct);
         }, ct);
     }
+
+    // Сохраняем текущий статус в preBlockStatus перед тем, как затереть его на Blocked,
+    // чтобы при разблокировке можно было вернуть лида ровно туда, где он был.
+    // Если лид уже Blocked — ничего не делаем, чтобы не затереть уже сохранённый preBlockStatus.
+    public async Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct)
+    {
+        var existing = await collection.Find(x => x.ChatId == chatId).FirstOrDefaultAsync(ct);
+        if (existing is null || existing.Status == LeadFunnelStatus.Blocked)
+            return null;
+
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
+            Builders<FunnelLeadState>.Filter.Ne(x => x.Status, LeadFunnelStatus.Blocked));
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.PreBlockStatus, existing.Status)
+            .Set(x => x.Status, LeadFunnelStatus.Blocked)
+            .Inc(x => x.Version, 1);
+
+        FunnelLeadState? updated = null;
+
+        await InTransaction(async session =>
+        {
+            updated = await collection.FindOneAndUpdateAsync(
+                session, filter, update,
+                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                ct);
+
+            if (updated is null)
+                return;
+
+            await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CreatedAt = DateTime.UtcNow,
+                TenantId = updated.TenantId,
+                SpaceId = updated.SpaceId,
+                BotId = updated.BotId,
+                ChatId = updated.ChatId,
+                LeadId = updated.LeadId,
+                Version = updated.Version,
+                Status = updated.Status
+            }, cancellationToken: ct);
+        }, ct);
+
+        return updated;
+    }
+
+    // Возвращает лида в статус, в котором он был до блокировки (preBlockStatus).
+    // Если preBlockStatus не сохранён (документ заблокирован до появления этого поля) — откатываемся на Waiting.
+    public async Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    {
+        var existing = await collection
+            .Find(x => x.TenantId == tenantId && x.BotId == botId && x.ChatId == chatId)
+            .FirstOrDefaultAsync(ct);
+
+        if (existing is null || existing.Status != LeadFunnelStatus.Blocked)
+            return null;
+
+        var restoredStatus = existing.PreBlockStatus ?? LeadFunnelStatus.Waiting;
+
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.Status, LeadFunnelStatus.Blocked));
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Status, restoredStatus)
+            .Set(x => x.PreBlockStatus, (LeadFunnelStatus?)null)
+            .Inc(x => x.Version, 1);
+
+        FunnelLeadState? updated = null;
+
+        await InTransaction(async session =>
+        {
+            updated = await collection.FindOneAndUpdateAsync(
+                session, filter, update,
+                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                ct);
+
+            if (updated is null)
+                return;
+
+            await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CreatedAt = DateTime.UtcNow,
+                TenantId = updated.TenantId,
+                SpaceId = updated.SpaceId,
+                BotId = updated.BotId,
+                ChatId = updated.ChatId,
+                LeadId = updated.LeadId,
+                Version = updated.Version,
+                Status = updated.Status
+            }, cancellationToken: ct);
+        }, ct);
+
+        return updated;
+    }
     #endregion
 
     public async Task SetLeadFunnelPosition(
