@@ -28,7 +28,8 @@ public interface ILeadStateRepository
         Guid? exitEdgeId,
         CancellationToken ct);
 
-    Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);    
+    Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);
+    Task MarkPushCompleted(Guid leadStateId, Guid pushId, CancellationToken ct);
     Task UpdateTag(Guid leadStateId, TagOperation operation, Tag tagId, Tag replacementTag, CancellationToken ct);    
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
     Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);

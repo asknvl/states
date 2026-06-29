@@ -9,5 +9,7 @@ namespace states.Mongo.Documents.Nodes
     {
         [BsonElement("actions")]
         public List<SendPresetActionDocument> Actions { get; init; } = [];
+        [BsonElement("pushes")]
+        public List<SendPushActionDocument> Pushes { get; init; } = [];
     }
 }

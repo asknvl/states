@@ -6,6 +6,7 @@ namespace states.Dtos.Actions
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
     [JsonDerivedType(typeof(ManageTagAction), nameof(ActionType.ManageTag))]
     [JsonDerivedType(typeof(SendPresetAction), nameof(ActionType.SendPreset))]
+    [JsonDerivedType(typeof(SendPushAction), nameof(ActionType.SendPush))]
     public abstract record NodeAction(
             Guid Id,            
             TimeSpan? Delay

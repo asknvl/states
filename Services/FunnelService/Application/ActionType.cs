@@ -6,6 +6,7 @@
         ManageTag,
         AiReply,
         AiRouter,
-        SendWebhook
+        SendWebhook,
+        SendPush
     }
 }

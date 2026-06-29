@@ -90,6 +90,12 @@ namespace states.Mongo.Documents
         [BsonElement("statesLog")]
         public List<StateLogEntry> StatesLog { get; set; } = [];
 
+        // Id успешно отправленных пушей лида, не привязан к ноде/визиту — используется, чтобы не
+        // отправлять повторно уже доставленный пуш при повторном входе в ноду. Заполняется через
+        // $addToSet (атомарно, без дублей, без гонок при конкурентном завершении разных пушей).
+        [BsonElement("pushes")]
+        public List<Guid> Pushes { get; set; } = [];
+
         [BsonElement("startParameter")]
         public string? StartParameter { get; set; }
 

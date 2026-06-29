@@ -6,7 +6,8 @@ namespace states.Dtos.Nodes
     public sealed record SendPresetNodeData(
         string Label,
         LeadFunnelStatus FinishStatus,
-        List<SendPresetAction> Actions
+        List<SendPresetAction> Actions,
+        List<SendPushAction> Pushes
     ) : NodeData(
         Label,
         FinishStatus

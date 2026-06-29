@@ -627,6 +627,14 @@ public class LeadStateRepository : ILeadStateRepository
         await collection.UpdateOneAsync(filter, update, new UpdateOptions { ArrayFilters = arrayFilters }, ct);
     }
 
+    public async Task MarkPushCompleted(Guid leadStateId, Guid pushId, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId);
+        var update = Builders<FunnelLeadState>.Update.AddToSet(x => x.Pushes, pushId);
+
+        await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+    }
+
     public async Task Delete(Guid leadStateId, CancellationToken ct)
     {
         var result = await collection.DeleteOneAsync(x => x.Id == leadStateId, ct);

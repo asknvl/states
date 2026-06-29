@@ -75,6 +75,14 @@ namespace states.Dtos.Funnels.Examples
                                     PresetId: new Guid("4e53c6d3-199e-403b-bdbe-3b568d745647"),
                                     NeedPin: false
                                 )
+                            },
+                            Pushes: new List<SendPushAction>()
+                            {
+                                new SendPushAction(
+                                    Id: new Guid("0198e9f7-6c04-7a31-8b54-1f2c9d7e4a05"),
+                                    Delay: TimeSpan.FromSeconds(5),
+                                    PresetId: new Guid("4e53c6d3-199e-403b-bdbe-3b568d745647")
+                                )
                             }
                         )
                     ),
@@ -93,7 +101,8 @@ namespace states.Dtos.Funnels.Examples
                                     PresetId: new Guid("38d33986-f59e-40fd-aa83-9d220d5b62b3"),
                                     NeedPin: false
                                 )
-                            }
+                            },
+                            Pushes: new List<SendPushAction>()
                         )
                     ),
                     new Node(
@@ -106,7 +115,8 @@ namespace states.Dtos.Funnels.Examples
                             Goal: "Чтобы все было хорошо",
                             Requirements: "Чтобы это было дешево",
                             Legend: "Чтобы ничего за это не было",
-                            AdditionalInfo: "Ну все, приплыли"
+                            AdditionalInfo: "Ну все, приплыли",
+                            Pushes: new List<SendPushAction>()
                         )
                     ),
 
@@ -183,7 +193,8 @@ namespace states.Dtos.Funnels.Examples
                             Goal: "Определить страну лида",
                             Requirements: "Спросить откуда лид",
                             Legend: null,
-                            AdditionalInfo: null
+                            AdditionalInfo: null,
+                            Pushes: new List<SendPushAction>()
                         )
                     ),
                     new Node(

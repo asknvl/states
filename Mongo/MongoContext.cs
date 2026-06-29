@@ -11,6 +11,7 @@ namespace states.Mongo
         public IMongoCollection<FunnelDocument> Funnels { get; }
         public IMongoCollection<FunnelLeadState> LeadStates { get; }
         public IMongoCollection<ActionTaskDocument> ActionTasks { get; }
+        public IMongoCollection<PushTaskDocument> PushTasks { get; }
         public IMongoCollection<OutboxDocument> Outbox { get; }
         public IMongoCollection<FolderDocument> Folders { get; }
         public IMongoCollection<TenantTag> TenantTags { get; set; }
@@ -20,6 +21,7 @@ namespace states.Mongo
             Funnels = database.GetCollection<FunnelDocument>("funnels");
             LeadStates = database.GetCollection<FunnelLeadState>("lead_states");
             ActionTasks = database.GetCollection<ActionTaskDocument>("action_tasks");
+            PushTasks = database.GetCollection<PushTaskDocument>("push_tasks");
             Outbox = database.GetCollection<OutboxDocument>("outbox");
             Folders = database.GetCollection<FolderDocument>("folders");
             TenantTags = database.GetCollection<TenantTag>("tenant_tags");

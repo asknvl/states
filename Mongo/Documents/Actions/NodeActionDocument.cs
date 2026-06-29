@@ -7,6 +7,7 @@ namespace states.Mongo.Documents.Actions;
 [BsonDiscriminator(RootClass = true)]
 [BsonKnownTypes(typeof(ManageTagActionDocument))]
 [BsonKnownTypes(typeof(SendPresetActionDocument))]
+[BsonKnownTypes(typeof(SendPushActionDocument))]
 public abstract class NodeActionDocument
 {
     [BsonElement("id")]

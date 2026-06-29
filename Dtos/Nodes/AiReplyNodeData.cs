@@ -1,4 +1,5 @@
-﻿using states.Services.LeadService;
+﻿using states.Dtos.Actions;
+using states.Services.LeadService;
 
 namespace states.Dtos.Nodes
 {
@@ -8,10 +9,11 @@ namespace states.Dtos.Nodes
         string? Goal,
         string? Requirements,
         string? Legend,
-        string? AdditionalInfo
+        string? AdditionalInfo,
+        List<SendPushAction> Pushes
         ) : NodeData(
             Label: Label,
             FinishStatus: FinishStatus
         );
-    
+
 }

@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
+using states.Mongo.Documents.Actions;
 using states.Services.FunnelService.Application;
 
 namespace states.Mongo.Documents.Nodes
@@ -14,5 +15,7 @@ namespace states.Mongo.Documents.Nodes
         public string? Legend { get; init; }
         [BsonElement("additionalInfo")]
         public string? AdditionalInfo { get; init; }
+        [BsonElement("pushes")]
+        public List<SendPushActionDocument> Pushes { get; init; } = [];
     }
 }

@@ -18,6 +18,7 @@ public class LeadProgressionService : ILeadProgressionService
 {
     private readonly ILeadStateRepository leadStateRepository;
     private readonly IActionTaskRepository actionTaskRepository;
+    private readonly IPushTaskRepository pushTaskRepository;
     private readonly IFunnelRuntimeCache funnelCache;
     private readonly IEdgeRouter edgeRouter;
     private readonly ILogger<LeadProgressionService> logger;
@@ -25,12 +26,14 @@ public class LeadProgressionService : ILeadProgressionService
     public LeadProgressionService(
         ILeadStateRepository leadStateRepository,
         IActionTaskRepository actionTaskRepository,
+        IPushTaskRepository pushTaskRepository,
         IFunnelRuntimeCache funnelCache,
         IEdgeRouter edgeRouter,
         ILogger<LeadProgressionService> logger)
     {
         this.leadStateRepository = leadStateRepository;
         this.actionTaskRepository = actionTaskRepository;
+        this.pushTaskRepository = pushTaskRepository;
         this.funnelCache = funnelCache;
         this.edgeRouter = edgeRouter;
         this.logger = logger;
@@ -192,6 +195,88 @@ public class LeadProgressionService : ILeadProgressionService
         return tasks;
     }
 
+    // Пуши настраиваются на SendPreset- и AiReply-нодах, лежат в отдельной коллекции push_tasks
+    // со своей цепочкой Order и не участвуют в ActionsLog/переходе по воронке.
+    private List<PushTaskDocument> CreatePushTasks(FunnelLeadState leadState, Dtos.Nodes.Node node)
+    {
+        if (leadState.FunnelId is null || leadState.FlowId is null)
+            return [];
+
+        var nodePushes = node.Data switch
+        {
+            SendPresetNodeData sendPreset => sendPreset.Pushes,
+            AiReplyNodeData aiReply => aiReply.Pushes,
+            _ => []
+        };
+
+        if (nodePushes.Count == 0)
+            return [];
+
+        // Уже успешно отправленные пуши (см. FunnelLeadState.Pushes) не пересоздаём при повторном
+        // входе в ноду — иначе при каждом revisit лид получал бы один и тот же пуш заново.
+        var pushes = nodePushes.Where(p => !leadState.Pushes.Contains(p.Id)).ToList();
+        if (pushes.Count == 0)
+            return [];
+
+        var now = DateTime.UtcNow;
+
+        // Расписание считаем от первого входа в ноду, а не от текущего возвращения — иначе повторный
+        // переход в ту же ноду сдвигал бы тайминг оставшихся пушей вперёд на каждый revisit.
+        var firstEnteredAt = leadState.StatesLog
+            .Where(s => s.NodeId == node.Id)
+            .Select(s => s.EnteredAt)
+            .DefaultIfEmpty(now)
+            .Min();
+
+        // Накопление задержки считаем по полному конфигу пушей ноды (включая уже отправленные),
+        // чтобы delay каждого пуша остался отсчитан от предыдущего так же, как при первом входе.
+        var scheduleByPushId = new Dictionary<Guid, DateTime>();
+        var cumulative = firstEnteredAt;
+        foreach (var p in nodePushes)
+        {
+            if (p.Delay.HasValue)
+                cumulative += p.Delay.Value;
+            scheduleByPushId[p.Id] = cumulative;
+        }
+
+        var pushTasks = new List<PushTaskDocument>();
+
+        for (var i = 0; i < pushes.Count; i++)
+        {
+            var push = pushes[i];
+
+            pushTasks.Add(new PushTaskDocument
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = leadState.TenantId,
+                SpaceId = leadState.SpaceId,
+                LeadStateId = leadState.Id,
+                FunnelId = leadState.FunnelId.Value,
+                FlowId = leadState.FlowId.Value,
+                NodeId = node.Id,
+                PushId = push.Id,
+                Order = i,
+                Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
+                ScheduledAt = scheduleByPushId[push.Id],
+                CreatedAt = now,
+
+                BotId = leadState.BotId,
+                ChatId = leadState.ChatId,
+                PresetId = push.PresetId
+            });
+        }
+
+        return pushTasks;
+    }
+
+    // Push-таски лежат в отдельной коллекции (своя цепочка Order, свой воркер) и не влияют
+    // на ActionsLog/переход по воронке — отмена pending тасков лида затрагивает обе коллекции.
+    private async Task CancelPendingTasks(Guid leadStateId, CancellationToken ct)
+    {
+        await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
+        await pushTaskRepository.CancelPendingByLead(leadStateId, ct);
+    }
+
     // Action tasks текущей ноды были отменены при блокировке лида (см. MarkLeadBlocked) —
     // после разблокировки пересоздаём их так же, как при первом входе в ноду.
     private async Task RearmCurrentNodeActions(FunnelLeadState leadState, CancellationToken ct)
@@ -212,23 +297,31 @@ public class LeadProgressionService : ILeadProgressionService
             return;
 
         var actionTasks = CreateActionTasks(leadState, node);
-        if (actionTasks.Count == 0)
+        var pushTasks = CreatePushTasks(leadState, node);
+        if (actionTasks.Count == 0 && pushTasks.Count == 0)
             return;
 
         var now = DateTime.UtcNow;
-        var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+
+        if (actionTasks.Count > 0)
         {
-            ActionId = t.ActionId,
-            Type = t.Type,
-            Status = ActionStatus.Pending,
-            StatusChangedAt = now
-        }).ToList();
+            var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
+            {
+                ActionId = t.ActionId,
+                Type = t.Type,
+                Status = ActionStatus.Pending,
+                StatusChangedAt = now
+            }).ToList();
 
-        await leadStateRepository.ResetCurrentNodeActions(leadState.Id, actionStatusEntries, ct);
-        await actionTaskRepository.CreateMany(actionTasks, ct);
+            await leadStateRepository.ResetCurrentNodeActions(leadState.Id, actionStatusEntries, ct);
+            await actionTaskRepository.CreateMany(actionTasks, ct);
+        }
 
-        logger.LogInformation("Lead {LeadStateId} re-armed {Count} action task(s) for node {NodeId} after unblock",
-            leadState.Id, actionTasks.Count, node.Id);
+        if (pushTasks.Count > 0)
+            await pushTaskRepository.CreateMany(pushTasks, ct);
+
+        logger.LogInformation("Lead {LeadStateId} re-armed {ActionCount} action task(s) and {PushCount} push task(s) for node {NodeId} after unblock",
+            leadState.Id, actionTasks.Count, pushTasks.Count, node.Id);
     }
     #endregion
 
@@ -285,10 +378,12 @@ public class LeadProgressionService : ILeadProgressionService
         };
 
         List<ActionTaskDocument> actionTasks = [];
+        List<PushTaskDocument> pushTasks = [];
 
         if (node != null)
         {
             actionTasks = CreateActionTasks(leadState, node);
+            pushTasks = CreatePushTasks(leadState, node);
 
             var now = DateTime.UtcNow;
 
@@ -328,6 +423,11 @@ public class LeadProgressionService : ILeadProgressionService
         if (actionTasks.Count > 0)
         {
             await actionTaskRepository.CreateMany(actionTasks, ct);
+        }
+
+        if (pushTasks.Count > 0)
+        {
+            await pushTaskRepository.CreateMany(pushTasks, ct);
         }
 
         logger.LogInformation(
@@ -432,9 +532,10 @@ public class LeadProgressionService : ILeadProgressionService
             throw new InvalidOperationException($"Target node '{selectedEdge.Target}' not found.");
         }
 
-        await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
+        await CancelPendingTasks(leadStateId, ct);
 
         var actionTasks = CreateActionTasks(leadState, targetNode);
+        var pushTasks = CreatePushTasks(leadState, targetNode);
 
         var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
         {
@@ -465,6 +566,7 @@ public class LeadProgressionService : ILeadProgressionService
             );
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
+        await pushTaskRepository.CreateMany(pushTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} transitioned to node {NodeId} via edge {EdgeId}",
             leadStateId, targetNode.Id, selectedEdge.Id);
@@ -493,13 +595,14 @@ public class LeadProgressionService : ILeadProgressionService
         var node = flow.Nodes.FirstOrDefault(n => n.Id == nodeId)
             ?? throw new InvalidOperationException($"Node '{nodeId}' not found in flow '{flow.Id}'.");
 
-        await actionTaskRepository.CancelPendingByLead(leadState.Id, ct);
+        await CancelPendingTasks(leadState.Id, ct);
 
         leadState.FunnelId = funnelId;
         leadState.FlowId = flowId;
         leadState.NodeId = nodeId;
 
         var actionTasks = CreateActionTasks(leadState, node);
+        var pushTasks = CreatePushTasks(leadState, node);
 
         var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
         {
@@ -523,6 +626,7 @@ public class LeadProgressionService : ILeadProgressionService
             ct);
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
+        await pushTaskRepository.CreateMany(pushTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}",
             leadState.Id, flowId, nodeId);
@@ -552,7 +656,7 @@ public class LeadProgressionService : ILeadProgressionService
         if (updated is null)
             return;
 
-        await actionTaskRepository.CancelPendingByLead(updated.Id, ct);
+        await CancelPendingTasks(updated.Id, ct);
 
         logger.LogInformation("Lead state chatId={ChatId} blocked, preBlockStatus={PreBlockStatus}", chatId, updated.PreBlockStatus);
     }
@@ -743,7 +847,7 @@ public class LeadProgressionService : ILeadProgressionService
         if (leadState is null)
             return;
 
-        await actionTaskRepository.CancelPendingByLead(leadState.Id, CancellationToken.None);
+        await CancelPendingTasks(leadState.Id, CancellationToken.None);
         await leadStateRepository.Delete(leadState.Id, CancellationToken.None);
 
         logger.LogInformation("Lead state {LeadStateId} cleared for chat {ChatId}", leadState.Id, chatId);

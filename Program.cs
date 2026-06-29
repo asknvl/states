@@ -152,11 +152,14 @@ namespace states
 
             // Lead service
             builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();
-            builder.Services.AddSingleton<IActionTaskRepository, ActionTaskRepository>();            
+            builder.Services.AddSingleton<IActionTaskRepository, ActionTaskRepository>();
+            builder.Services.AddSingleton<IPushTaskRepository, PushTaskRepository>();
             builder.Services.AddSingleton<IEdgeRouter, EdgeRouter>();
             builder.Services.AddSingleton<IActionExecutor, ActionExecutor>();
+            builder.Services.AddSingleton<IPushExecutor, PushExecutor>();
             builder.Services.AddSingleton<ILeadProgressionService, LeadProgressionService>();
             builder.Services.AddHostedService<ActionWorkerService>();
+            builder.Services.AddHostedService<PushWorkerService>();
 
             // Campaign service
             builder.Services.AddHttpClient<ICampaignClient, CampaignClient>(client =>

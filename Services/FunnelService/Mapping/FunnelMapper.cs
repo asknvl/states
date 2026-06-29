@@ -186,6 +186,7 @@ public static class FunnelDocumentMapper
             {
                 Label = x.Label,
                 Actions = x.Actions.Select(ToDocument).ToList(),
+                Pushes = x.Pushes.Select(ToDocument).ToList(),
                 FinishStatus = x.FinishStatus
             },
 
@@ -203,7 +204,8 @@ public static class FunnelDocumentMapper
                 Goal = x.Goal,
                 Requirements = x.Requirements,
                 Legend = x.Legend,
-                AdditionalInfo = x.AdditionalInfo
+                AdditionalInfo = x.AdditionalInfo,
+                Pushes = x.Pushes.Select(ToDocument).ToList()
             },
 
             ChangeFlowNodeData x => new ChangeFlowNodeDataDocument
@@ -241,6 +243,10 @@ public static class FunnelDocumentMapper
                 Actions: x.Actions
                     .OfType<SendPresetActionDocument>()
                     .Select(ToDto)
+                    .ToList(),
+                Pushes: x.Pushes
+                    .OfType<SendPushActionDocument>()
+                    .Select(ToDto)
                     .ToList()
             ),
 
@@ -259,7 +265,11 @@ public static class FunnelDocumentMapper
                 Goal: x.Goal,
                 Requirements: x.Requirements,
                 Legend: x.Legend,
-                AdditionalInfo: x.AdditionalInfo
+                AdditionalInfo: x.AdditionalInfo,
+                Pushes: x.Pushes
+                    .OfType<SendPushActionDocument>()
+                    .Select(ToDto)
+                    .ToList()
             ),
 
             ChangeFlowNodeDataDocument x => new ChangeFlowNodeData(
@@ -363,6 +373,25 @@ public static class FunnelDocumentMapper
             PresetId: document.PresetId,
             Delay: document.Delay,
             NeedPin: document.NeedPin
+        );
+    }
+
+    private static SendPushActionDocument ToDocument(SendPushAction dto)
+    {
+        return new SendPushActionDocument
+        {
+            Id = dto.Id,
+            PresetId = dto.PresetId,
+            Delay = dto.Delay
+        };
+    }
+
+    private static SendPushAction ToDto(SendPushActionDocument document)
+    {
+        return new SendPushAction(
+            Id: document.Id,
+            PresetId: document.PresetId,
+            Delay: document.Delay
         );
     }
 
