@@ -186,7 +186,7 @@ public static class FunnelDocumentMapper
             {
                 Label = x.Label,
                 Actions = x.Actions.Select(ToDocument).ToList(),
-                Pushes = x.Pushes.Select(ToDocument).ToList(),
+                Pushes = (x.Pushes ?? []).Select(ToDocument).ToList(),
                 FinishStatus = x.FinishStatus
             },
 
@@ -205,7 +205,7 @@ public static class FunnelDocumentMapper
                 Requirements = x.Requirements,
                 Legend = x.Legend,
                 AdditionalInfo = x.AdditionalInfo,
-                Pushes = x.Pushes.Select(ToDocument).ToList()
+                Pushes = (x.Pushes ?? []).Select(ToDocument).ToList()
             },
 
             ChangeFlowNodeData x => new ChangeFlowNodeDataDocument
