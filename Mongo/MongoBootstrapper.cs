@@ -151,7 +151,7 @@ namespace states.Mongo
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.ChatId)),
 
-                // GetLeadStateByLeadId(tenantId, leadId)
+                // GetLeadStatesByLeadId(tenantId, leadId)
                 new CreateIndexModel<FunnelLeadState>(
                     Builders<FunnelLeadState>.IndexKeys
                         .Ascending(x => x.TenantId)

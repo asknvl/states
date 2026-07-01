@@ -66,11 +66,13 @@ public class LeadStateRepository : ILeadStateRepository
             new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.Before }, ct);
     }
 
-    public async Task<FunnelLeadState?> GetLeadStateByLeadId(Guid tenantId, string leadId, CancellationToken ct)
+    // Один leadId может встречаться в нескольких FunnelLeadState — кампания может вести лида
+    // через несколько ботов одновременно, и у каждого бота свой документ состояния.
+    public async Task<List<FunnelLeadState>> GetLeadStatesByLeadId(Guid tenantId, string leadId, CancellationToken ct)
     {
         return await collection
             .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
-            .FirstOrDefaultAsync(ct);
+            .ToListAsync(ct);
     }
 
     public async Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct)
@@ -554,6 +556,59 @@ public class LeadStateRepository : ILeadStateRepository
                 Operation = TagOperation.Manual,
                 Tag = null
             }, cancellationToken: ct);
+        }, ct);
+    }
+
+    // Постбеки от трекера дополняют postbackParameters, а не заменяют его целиком: значения из
+    // нового постбека перекрывают совпадающие ключи, остальные ключи сохраняются как есть.
+    // Применяется ко всем FunnelLeadState с данным leadId — кампания может вести лида через
+    // несколько ботов одновременно, и параметры относятся к лиду, а не к конкретному боту.
+    public async Task MergePostbackParameters(Guid tenantId, string leadId, Dictionary<string, string> parameters, CancellationToken ct)
+    {
+        if (parameters.Count == 0)
+            return;
+
+        var states = await collection
+            .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
+            .ToListAsync(ct);
+
+        if (states.Count == 0)
+            return;
+
+        await InTransaction(async session =>
+        {
+            foreach (var state in states)
+            {
+                var merged = new Dictionary<string, string>(state.PostbackParameters);
+                foreach (var (key, value) in parameters)
+                    merged[key] = value;
+
+                var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, state.Id);
+                var update = Builders<FunnelLeadState>.Update
+                    .Set(x => x.PostbackParameters, merged)
+                    .Inc(x => x.Version, 1);
+
+                var updated = await collection.FindOneAndUpdateAsync(
+                    session, filter, update,
+                    new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                    ct);
+
+                if (updated is null)
+                    continue;
+
+                await outbox.InsertOneAsync(session, new LeadPostbackParametersChangedOutboxDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = updated.TenantId,
+                    SpaceId = updated.SpaceId,
+                    BotId = updated.BotId,
+                    ChatId = updated.ChatId,
+                    LeadId = updated.LeadId,
+                    Version = updated.Version,
+                    PostbackParameters = updated.PostbackParameters
+                }, cancellationToken: ct);
+            }
         }, ct);
     }
 

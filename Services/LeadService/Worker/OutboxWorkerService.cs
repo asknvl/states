@@ -158,6 +158,20 @@ public sealed class OutboxWorkerService(
 
                     await eventService.Publish(new LeadTranslatorChangedEvent(ltr), ct);
                     break;
+
+                case LeadPostbackParametersChangedOutboxDocument postbackParameters:
+
+                    var lpp = new LeadPostbackParametersChangedPayload(
+                        TenantId: postbackParameters.TenantId,
+                        SpaceId: postbackParameters.SpaceId,
+                        BotId: postbackParameters.BotId,
+                        ChatId: postbackParameters.ChatId,
+                        LeadId: postbackParameters.LeadId,
+                        PostbackParameters: postbackParameters.PostbackParameters,
+                        Version: postbackParameters.Version);
+
+                    await eventService.Publish(new LeadPostbackParametersChangedEvent(lpp), ct);
+                    break;
             }
 
             await outboxRepository.Delete(doc.Id, ct);

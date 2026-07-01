@@ -44,14 +44,28 @@ public class PostbackEventProcessor(
             return;
         }
 
-        var leadState = await leadStateRepository.GetLeadStateByLeadId(payload.TenantId, payload.LeadId, ct);
-        if (leadState is null)
+        var leadStates = await leadStateRepository.GetLeadStatesByLeadId(payload.TenantId, payload.LeadId, ct);
+        if (leadStates.Count == 0)
         {
             logger.LogWarning(
                 "Lead '{LeadId}' not found for tenant {TenantId}, skipping postback {EventType}",
                 payload.LeadId, payload.TenantId, postbackEventType);
             return;
         }
+
+        if (leadStates.Count > 1)
+        {
+            // Кампания может вести лида через несколько ботов — пока обрабатываем только первый
+            // найденный leadState, остальные боты этого лида постбэк не получат.
+            logger.LogWarning(
+                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the first one",
+                payload.LeadId, payload.TenantId, leadStates.Count);
+        }
+
+        var leadState = leadStates[0];
+
+        if (payload.CustomFields is { Count: > 0 })
+            await leadStateRepository.MergePostbackParameters(payload.TenantId, payload.LeadId, payload.CustomFields, ct);
 
         if (leadState.CampaignId is null)
         {

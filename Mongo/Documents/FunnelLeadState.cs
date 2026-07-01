@@ -99,6 +99,11 @@ namespace states.Mongo.Documents
         [BsonElement("startParameter")]
         public string? StartParameter { get; set; }
 
+        // Произвольные параметры, накопленные из постбеков трекера (по leadId). Новые постбеки
+        // дополняют словарь, а не заменяют его целиком — см. LeadStateRepository.MergePostbackParameters.
+        [BsonElement("postbackParameters")]
+        public Dictionary<string, string> PostbackParameters { get; set; } = [];
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }

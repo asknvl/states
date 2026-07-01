@@ -12,7 +12,8 @@ namespace states.Mongo.Documents.Outbox;
     typeof(LeadStatusChangedOutboxDocument),
     typeof(LeadFunnelPositionChangedOutboxDocument),
     typeof(LeadTagChangedOutboxDocument),
-    typeof(LeadTranslatorChangedOutboxDocument))]
+    typeof(LeadTranslatorChangedOutboxDocument),
+    typeof(LeadPostbackParametersChangedOutboxDocument))]
 public abstract class OutboxDocument
 {
     [BsonId]
@@ -150,4 +151,10 @@ public sealed class LeadTranslatorChangedOutboxDocument : OutboxDocument
 
     [BsonElement("isOutputTranslatorOn")]
     public bool IsOutputTranslatorOn { get; set; }
+}
+
+public sealed class LeadPostbackParametersChangedOutboxDocument : OutboxDocument
+{
+    [BsonElement("postbackParameters")]
+    public Dictionary<string, string> PostbackParameters { get; set; } = [];
 }

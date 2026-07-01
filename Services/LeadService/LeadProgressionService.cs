@@ -583,8 +583,20 @@ public class LeadProgressionService : ILeadProgressionService
         Guid nodeId,
         CancellationToken ct)
     {
-        var leadState = await leadStateRepository.GetLeadStateByLeadId(tenantId, leadId, ct)
-            ?? throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
+        var leadStates = await leadStateRepository.GetLeadStatesByLeadId(tenantId, leadId, ct);
+        if (leadStates.Count == 0)
+            throw new KeyNotFoundException($"Lead state for lead '{leadId}' not found.");
+
+        if (leadStates.Count > 1)
+        {
+            // Кампания может вести лида через несколько ботов — пока обрабатываем только первый
+            // найденный leadState, остальные боты этого лида не переместятся.
+            logger.LogWarning(
+                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the first one",
+                leadId, tenantId, leadStates.Count);
+        }
+
+        var leadState = leadStates[0];
 
         var funnel = funnelCache.GetFunnel(funnelId)
             ?? throw new InvalidOperationException($"Funnel '{funnelId}' not found in cache.");
