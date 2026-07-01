@@ -5,7 +5,7 @@ namespace states.Utils
 {
     public static class MacroResolver
     {
-        private static readonly Regex MacroPattern = new(@"\{(\w+)\}", RegexOptions.Compiled);
+        private static readonly Regex MacroPattern = new(@"\{([\w.]+)\}", RegexOptions.Compiled);
 
         public static string Resolve(string template, FunnelLeadState leadState)
         {
@@ -31,6 +31,9 @@ namespace states.Utils
                 ["nodeLabel"] = leadState.NodeLabel,
                 ["status"] = leadState.Status.ToString()
             };
+
+            foreach (var kv in leadState.PostbackParameters)
+                macros[$"pb.{kv.Key}"] = kv.Value;
 
             if (!string.IsNullOrEmpty(leadState.StartParameter))
             {
