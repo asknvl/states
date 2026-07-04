@@ -286,7 +286,7 @@ public class ActionExecutor : IActionExecutor
     {
         var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
 
-        var url = MacroResolver.Resolve(task.Url, leadState);
+        var url = MacrosResolver.Resolve(task.Url, leadState);
 
         var method = task.MethodType switch
         {

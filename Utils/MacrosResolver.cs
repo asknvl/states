@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 
 namespace states.Utils
 {
-    public static class MacroResolver
+    public static class MacrosResolver
     {
         private static readonly Regex MacroPattern = new(@"\{([\w.]+)\}", RegexOptions.Compiled);
 

@@ -104,8 +104,29 @@ namespace states.Mongo.Documents
         [BsonElement("postbackParameters")]
         public Dictionary<string, string> PostbackParameters { get; set; } = [];
 
+        // [BsonElement("totalDepositAmount")]
+        // public decimal TotalDepositAmount { get; set; }
+
+        // [BsonElement("firstDepositAmount")]
+        // public decimal FirstDepositAmount { get; set; }
+
+        // [BsonElement("lastDepositAmount")]
+        // public decimal LastDepositAmount { get; set; }
+
+        // [BsonElement("depositCount")]
+        // public int DepositCount { get; set; }
+
+        // [BsonElement("currencyCode")]
+        // public string CurrencyCode { get; set; } = string.Empty;
+
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        //[BsonElement("depSum")]
+        //public Decimal DepSum { get; set; } = 0;
+
+        //public 
     }
 
     public class StateLogEntry

@@ -809,31 +809,32 @@ public class LeadProgressionService : ILeadProgressionService
                     return;
                 }
 
+                // Нет ни одного исходящего AiRouter-edge. Если есть обычный Pass/Split — отвечаем и
+                // переходим дальше по флоу; если исходящих edges нет вообще — это терминальная
+                // AI-нода, лид остаётся на ней и продолжает общаться с ИИ (не Finished).
                 var hasPassOrSplit = flow.Edges.Any(e => e.Source == leadState.NodeId && e is PassEdge or SplitEdge);
-                if (hasPassOrSplit)
-                {
-                    var replyTask = new AiReplyActionTaskDocument
-                    {
-                        Id = Guid.CreateVersion7(),
-                        TenantId = leadState.TenantId,
-                        SpaceId = leadState.SpaceId,
-                        LeadStateId = leadState.Id,
-                        FunnelId = leadState.FunnelId.Value,
-                        FlowId = leadState.FlowId!.Value,
-                        NodeId = leadState.NodeId.Value,
-                        ActionId = Guid.CreateVersion7(),
-                        BotId = leadState.BotId,
-                        ChatId = leadState.ChatId,
-                        ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
-                        CreatedAt = DateTime.UtcNow,
-                        Order = 0,
-                        TransitionAfterReply = true
-                    };
 
-                    await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
-                    await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
-                    return;
-                }
+                var replyTask = new AiReplyActionTaskDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = leadState.TenantId,
+                    SpaceId = leadState.SpaceId,
+                    LeadStateId = leadState.Id,
+                    FunnelId = leadState.FunnelId.Value,
+                    FlowId = leadState.FlowId!.Value,
+                    NodeId = leadState.NodeId.Value,
+                    ActionId = Guid.CreateVersion7(),
+                    BotId = leadState.BotId,
+                    ChatId = leadState.ChatId,
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
+                    CreatedAt = DateTime.UtcNow,
+                    Order = 0,
+                    TransitionAfterReply = hasPassOrSplit
+                };
+
+                await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
+                await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
+                return;
             }
         }
 
