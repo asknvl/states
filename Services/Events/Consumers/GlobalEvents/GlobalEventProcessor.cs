@@ -1,9 +1,12 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using states.Dtos.Leads;
+using states.Mongo.Documents.LeadEvents;
+using states.Mongo.Repositories;
 using states.Services.CampaignService;
 using states.Services.Events.Consumer;
 using states.Services.Events.Consumers.GlobalEvents.Payloads;
+using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
 
 namespace states.Services.Events.Consumers.GlobalEvents;
@@ -11,6 +14,8 @@ namespace states.Services.Events.Consumers.GlobalEvents;
 public class GlobalEventProcessor(
     ILeadProgressionService leadProgressionService,
     ICampaignClient campaignClient,
+    ILeadStateRepository leadStateRepository,
+    ILeadEventsRepository leadEventsRepository,
     ILogger<GlobalEventProcessor> logger) : IGlobalEventProcessor
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -68,6 +73,22 @@ public class GlobalEventProcessor(
                 "Bot subscription deactivated for chat {ChatId}, bot {BotId} — marking lead as blocked",
                 p.ChatId, p.BotId);
 
+            var existingLeadState = await leadStateRepository.GetLeadStateByChatId(p.TenantId, p.ChatId, ct);
+            if (existingLeadState is not null)
+            {
+                await leadEventsRepository.Create(new BotDeactivationEventDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = p.TenantId,
+                    SpaceId = p.SpaceId,
+                    LeadId = existingLeadState.LeadId,
+                    EventId = Guid.CreateVersion7(),
+                    Status = LeadEventStatus.Accepted,
+                    CreatedAt = DateTime.UtcNow,
+                    BotId = p.BotId
+                }, ct);
+            }
+
             await leadProgressionService.MarkLeadBlocked(p.TenantId, p.ChatId, ct);
             return;
         }
@@ -117,9 +138,20 @@ public class GlobalEventProcessor(
                 FlowId: entryPoint.FlowId,
                 NodeId: entryPoint.NodeId,
                 
-                StartParameter: p.StartParameter);         
+                StartParameter: p.StartParameter);
         }
 
+        await leadEventsRepository.Create(new BotActivationEventDocument
+        {
+            Id = Guid.CreateVersion7(),
+            TenantId = p.TenantId,
+            SpaceId = p.SpaceId,
+            LeadId = entryPoint.LeadId,
+            EventId = Guid.CreateVersion7(),
+            Status = LeadEventStatus.Accepted,
+            CreatedAt = DateTime.UtcNow,
+            BotId = p.BotId
+        }, ct);
 
         await leadProgressionService.EnterFunnel(request, ct);
 

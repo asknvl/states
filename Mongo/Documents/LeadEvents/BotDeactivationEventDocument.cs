@@ -2,7 +2,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace states.Mongo.Documents.LeadEvents
 {
-    public sealed record BotActivationEventDocument : LeadEventBaseDocument
+    public sealed record BotDeactivationEventDocument : LeadEventBaseDocument
     {
         [BsonElement("botId")]
         public Guid BotId { get; set; }

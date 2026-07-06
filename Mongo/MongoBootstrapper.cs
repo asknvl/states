@@ -2,6 +2,7 @@
 using states.Mongo.Documents;
 using states.Services.FunnelService.Application;
 using states.Mongo.Documents.Folders;
+using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Documents.Outbox;
 using states.Mongo.Documents.TenantTags;
 
@@ -32,6 +33,8 @@ namespace states.Mongo
             await CreateActionTasksIndexes(ct);
             await CreatePushTasksCollection(ct);
             await CreatePushTasksIndexes(ct);
+            await CreateLeadEventsCollection(ct);
+            await CreateLeadEventsIndexes(ct);
         }
 
         #region collections
@@ -106,6 +109,14 @@ namespace states.Mongo
             if (collectionNames.Contains("push_tasks"))
                 return;
             await database.CreateCollectionAsync("push_tasks", cancellationToken: ct);
+        }
+
+        private async Task CreateLeadEventsCollection(CancellationToken ct)
+        {
+            var collectionNames = await database.ListCollectionNames().ToListAsync(ct);
+            if (collectionNames.Contains("lead_events"))
+                return;
+            await database.CreateCollectionAsync("lead_events", cancellationToken: ct);
         }
 
         #region indexes
@@ -263,6 +274,24 @@ namespace states.Mongo
                     Builders<PushTaskDocument>.IndexKeys
                         .Ascending(x => x.LeadStateId)
                         .Ascending(x => x.NodeId))
+            };
+
+            await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+        }
+
+        private async Task CreateLeadEventsIndexes(CancellationToken ct)
+        {
+            var collection = database.GetCollection<LeadEventBaseDocument>("lead_events");
+
+            var indexes = new List<CreateIndexModel<LeadEventBaseDocument>>
+            {
+                // GetByLead(tenantId, spaceId, leadId): покрывает фильтр и сортировку по createdAt в одном проходе
+                new CreateIndexModel<LeadEventBaseDocument>(
+                    Builders<LeadEventBaseDocument>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.SpaceId)
+                        .Ascending(x => x.LeadId)
+                        .Ascending(x => x.CreatedAt))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

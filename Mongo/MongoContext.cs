@@ -1,6 +1,7 @@
 ﻿using MongoDB.Driver;
 using states.Mongo.Documents;
 using states.Mongo.Documents.Folders;
+using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Documents.Outbox;
 using states.Mongo.Documents.TenantTags;
 
@@ -15,6 +16,7 @@ namespace states.Mongo
         public IMongoCollection<OutboxDocument> Outbox { get; }
         public IMongoCollection<FolderDocument> Folders { get; }
         public IMongoCollection<TenantTag> TenantTags { get; set; }
+        public IMongoCollection<LeadEventBaseDocument> LeadEvents { get; }
 
         public MongoContext(IMongoDatabase database)
         {
@@ -25,6 +27,7 @@ namespace states.Mongo
             Outbox = database.GetCollection<OutboxDocument>("outbox");
             Folders = database.GetCollection<FolderDocument>("folders");
             TenantTags = database.GetCollection<TenantTag>("tenant_tags");
+            LeadEvents = database.GetCollection<LeadEventBaseDocument>("lead_events");
         }
     }
 }

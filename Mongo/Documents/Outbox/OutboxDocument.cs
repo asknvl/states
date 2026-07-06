@@ -13,7 +13,8 @@ namespace states.Mongo.Documents.Outbox;
     typeof(LeadFunnelPositionChangedOutboxDocument),
     typeof(LeadTagChangedOutboxDocument),
     typeof(LeadTranslatorChangedOutboxDocument),
-    typeof(LeadPostbackParametersChangedOutboxDocument))]
+    typeof(LeadPostbackParametersChangedOutboxDocument),
+    typeof(LeadDepositChangedOutboxDocument))]
 public abstract class OutboxDocument
 {
     [BsonId]
@@ -157,4 +158,22 @@ public sealed class LeadPostbackParametersChangedOutboxDocument : OutboxDocument
 {
     [BsonElement("postbackParameters")]
     public Dictionary<string, string> PostbackParameters { get; set; } = [];
+}
+
+public sealed class LeadDepositChangedOutboxDocument : OutboxDocument
+{
+    [BsonElement("totalDepositAmount")]
+    public decimal TotalDepositAmount { get; set; }
+
+    [BsonElement("firstDepositAmount")]
+    public decimal FirstDepositAmount { get; set; }
+
+    [BsonElement("lastDepositAmount")]
+    public decimal LastDepositAmount { get; set; }
+
+    [BsonElement("depositCount")]
+    public int DepositCount { get; set; }
+
+    [BsonElement("currencyCode")]
+    public string CurrencyCode { get; set; } = string.Empty;
 }

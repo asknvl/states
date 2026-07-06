@@ -172,6 +172,24 @@ public sealed class OutboxWorkerService(
 
                     await eventService.Publish(new LeadPostbackParametersChangedEvent(lpp), ct);
                     break;
+
+                case LeadDepositChangedOutboxDocument deposit:
+
+                    var ldc = new LeadDepositChangedPayload(
+                        TenantId: deposit.TenantId,
+                        SpaceId: deposit.SpaceId,
+                        BotId: deposit.BotId,
+                        ChatId: deposit.ChatId,
+                        LeadId: deposit.LeadId,
+                        TotalDepositAmount: deposit.TotalDepositAmount,
+                        FirstDepositAmount: deposit.FirstDepositAmount,
+                        LastDepositAmount: deposit.LastDepositAmount,
+                        DepositCount: deposit.DepositCount,
+                        CurrencyCode: deposit.CurrencyCode,
+                        Version: deposit.Version);
+
+                    await eventService.Publish(new LeadDepositChangedEvent(ldc), ct);
+                    break;
             }
 
             await outboxRepository.Delete(doc.Id, ct);

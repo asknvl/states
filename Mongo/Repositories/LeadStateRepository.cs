@@ -612,6 +612,60 @@ public class LeadStateRepository : ILeadStateRepository
         }, ct);
     }
 
+    // Депозитные постбеки (SALE/RESALE) применяются ко всем FunnelLeadState с данным leadId —
+    // как и postbackParameters, депозит относится к лиду, а не к конкретному боту.
+    public async Task UpdateDeposit(Guid tenantId, string leadId, decimal amount, string currencyCode, CancellationToken ct)
+    {
+        var states = await collection
+            .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
+            .ToListAsync(ct);
+
+        if (states.Count == 0)
+            return;
+
+        await InTransaction(async session =>
+        {
+            foreach (var state in states)
+            {
+                var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, state.Id);
+                var update = Builders<FunnelLeadState>.Update
+                    .Inc(x => x.TotalDepositAmount, amount)
+                    .Set(x => x.LastDepositAmount, amount)
+                    .Set(x => x.CurrencyCode, currencyCode)
+                    .Inc(x => x.DepositCount, 1)
+                    .Inc(x => x.Version, 1);
+
+                if (state.DepositCount == 0)
+                    update = update.Set(x => x.FirstDepositAmount, amount);
+
+                var updated = await collection.FindOneAndUpdateAsync(
+                    session, filter, update,
+                    new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                    ct);
+
+                if (updated is null)
+                    continue;
+
+                await outbox.InsertOneAsync(session, new LeadDepositChangedOutboxDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = updated.TenantId,
+                    SpaceId = updated.SpaceId,
+                    BotId = updated.BotId,
+                    ChatId = updated.ChatId,
+                    LeadId = updated.LeadId,
+                    Version = updated.Version,
+                    TotalDepositAmount = updated.TotalDepositAmount,
+                    FirstDepositAmount = updated.FirstDepositAmount,
+                    LastDepositAmount = updated.LastDepositAmount,
+                    DepositCount = updated.DepositCount,
+                    CurrencyCode = updated.CurrencyCode
+                }, cancellationToken: ct);
+            }
+        }, ct);
+    }
+
     public async Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct)
     {
         if (isInputTranslatorOn is null && isOutputTranslatorOn is null)

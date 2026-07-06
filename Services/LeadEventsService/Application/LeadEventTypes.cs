@@ -3,6 +3,7 @@
     public enum LeadEventTypes
     {
         BotActivation,
+        BotDeactivation,
         Contact,
         ChannelSubscribtion,
         Registration,

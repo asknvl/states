@@ -11,6 +11,7 @@ using states.Mongo;
 using states.Mongo.Repositories;
 using states.Services.Folders.Application;
 using states.Services.FunnelService;
+using states.Services.LeadEventsService.Application;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
 using states.Services.LeadService;
@@ -137,6 +138,7 @@ namespace states
             builder.Services.AddSingleton<IFunnelsRepository, FunnelsRepository>();
             builder.Services.AddSingleton<ITenantTagsRepository, TenantTagsRepository>();
             builder.Services.AddSingleton<IFoldersRepository, FoldersRepository>();
+            builder.Services.AddSingleton<ILeadEventsRepository, LeadEventsRepository>();
 
 
             builder.Services.AddMemoryCache();
@@ -149,6 +151,7 @@ namespace states
 
             builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>();
             builder.Services.AddScoped<IFoldersApplicationService, FoldersApplicationService>();
+            builder.Services.AddScoped<ILeadEventsApplicationService, LeadEventsApplicationService>();
 
             // Lead service
             builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();

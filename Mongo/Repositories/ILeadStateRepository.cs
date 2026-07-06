@@ -17,6 +17,10 @@ public interface ILeadStateRepository
     // Дополняет postbackParameters во всех FunnelLeadState с данным leadId (их может быть несколько,
     // если кампания ведёт лида через несколько ботов) значениями из очередного постбека.
     Task MergePostbackParameters(Guid tenantId, string leadId, Dictionary<string, string> parameters, CancellationToken ct);
+
+    // Обновляет депозитные счётчики (total/first/last/count/currency) во всех FunnelLeadState
+    // с данным leadId по очередному депозитному постбеку (SALE/RESALE).
+    Task UpdateDeposit(Guid tenantId, string leadId, decimal amount, string currencyCode, CancellationToken ct);
     //Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct);
 
     Task SetLeadFunnelPosition(

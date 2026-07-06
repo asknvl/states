@@ -1,14 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Repositories;
 using states.Services.CampaignService;
 using states.Services.Events.Consumers.LeadPostbackEvents.Payloads;
+using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
 
 namespace states.Services.Events.Consumers.LeadPostbackEvents;
 
 public class PostbackEventProcessor(
     ILeadStateRepository leadStateRepository,
+    ILeadEventsRepository leadEventsRepository,
     ILeadProgressionService leadProgressionService,
     ICampaignClient campaignClient,
     ILogger<PostbackEventProcessor> logger) : IPostbackEventProcessor
@@ -67,6 +70,16 @@ public class PostbackEventProcessor(
         if (payload.CustomFields is { Count: > 0 })
             await leadStateRepository.MergePostbackParameters(payload.TenantId, payload.LeadId, payload.CustomFields, ct);
 
+        var leadEventDocument = BuildLeadEventDocument(postbackEventType, payload, leadState.SpaceId);
+        if (leadEventDocument is not null)
+        {
+            await leadEventsRepository.Create(leadEventDocument, ct);
+
+            var isDeposit = postbackEventType is PostbackEventType.SALE or PostbackEventType.RESALE;
+            if (isDeposit && payload.Payout.HasValue)
+                await leadStateRepository.UpdateDeposit(payload.TenantId, payload.LeadId, payload.Payout.Value, payload.Currency ?? string.Empty, ct);
+        }
+
         if (leadState.CampaignId is null)
         {
             logger.LogInformation(
@@ -97,5 +110,51 @@ public class PostbackEventProcessor(
         logger.LogInformation(
             "Lead '{LeadId}' moved to funnel {FunnelId} flow {FlowId} node {NodeId} by postback {EventType}",
             payload.LeadId, entryPoint.FunnelId, entryPoint.FlowId, entryPoint.NodeId, postbackEventType);
+    }
+
+    private static LeadEventBaseDocument? BuildLeadEventDocument(PostbackEventType type, PostbackEventPayload payload, Guid spaceId)
+    {
+        return type switch
+        {
+            PostbackEventType.REGISTRATION => new RegistrationLeadEvent
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = payload.TenantId,
+                SpaceId = spaceId,
+                LeadId = payload.LeadId,
+                EventId = payload.EventId,
+                Status = LeadEventStatus.Accepted,
+                CreatedAt = payload.ReceivedAt,
+                CurrencyCode = payload.Currency ?? string.Empty
+            },
+
+            PostbackEventType.SALE => new SaleLeadEvent
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = payload.TenantId,
+                SpaceId = spaceId,
+                LeadId = payload.LeadId,
+                EventId = payload.EventId,
+                Status = LeadEventStatus.Accepted,
+                CreatedAt = payload.ReceivedAt,
+                DepositAmount = payload.Payout ?? 0m,
+                CurrencyCode = payload.Currency ?? string.Empty
+            },
+
+            PostbackEventType.RESALE => new ResaleLeadEvent
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = payload.TenantId,
+                SpaceId = spaceId,
+                LeadId = payload.LeadId,
+                EventId = payload.EventId,
+                Status = LeadEventStatus.Accepted,
+                CreatedAt = payload.ReceivedAt,
+                DepositAmount = payload.Payout ?? 0m,
+                CurrencyCode = payload.Currency ?? string.Empty
+            },
+
+            _ => null
+        };
     }
 }
