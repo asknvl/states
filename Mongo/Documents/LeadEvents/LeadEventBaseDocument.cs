@@ -5,6 +5,7 @@ using states.Services.LeadEventsService.Application;
 namespace states.Mongo.Documents.LeadEvents
 {
     [BsonDiscriminator("leadEvent")]
+    [BsonIgnoreExtraElements(Inherited = true)]
     [BsonKnownTypes(
         typeof(BotActivationEventDocument),
         typeof(BotDeactivationEventDocument),
@@ -24,13 +25,6 @@ namespace states.Mongo.Documents.LeadEvents
         public Guid SpaceId { get; set; }
         [BsonElement("leadId")]
         public string LeadId { get; set; } = string.Empty;
-        [BsonElement("eventId")]
-        public Guid EventId { get; set; }
-
-        [BsonElement("status")]
-        [BsonRepresentation(BsonType.String)]
-        public LeadEventStatus Status { get; set; }
-
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; }

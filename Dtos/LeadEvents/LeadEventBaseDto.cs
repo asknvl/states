@@ -1,5 +1,4 @@
 using System.Text.Json.Serialization;
-using states.Services.LeadEventsService.Application;
 
 namespace states.Dtos.LeadEvents
 {
@@ -16,7 +15,5 @@ namespace states.Dtos.LeadEvents
         Guid TenantId,
         Guid SpaceId,
         string LeadId,
-        Guid EventId,
-        LeadEventStatus Status,
         DateTime CreatedAt);
 }

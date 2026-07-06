@@ -7,9 +7,9 @@ namespace states.Dtos.LeadEvents
         Guid TenantId,
         Guid SpaceId,
         string LeadId,
+        DateTime CreatedAt,
         Guid EventId,
         LeadEventStatus Status,
-        DateTime CreatedAt,
         string CurrencyCode
-    ) : LeadEventBaseDto(Id, TenantId, SpaceId, LeadId, EventId, Status, CreatedAt);
+    ) : LeadEventBaseDto(Id, TenantId, SpaceId, LeadId, CreatedAt);
 }

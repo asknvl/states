@@ -6,6 +6,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using states.Dtos.Funnels.Examples;
 using states.Dtos.Edges;
+using states.Dtos.LeadEvents;
 using states.Dtos.Nodes;
 using states.Mongo;
 using states.Mongo.Repositories;
@@ -88,6 +89,8 @@ namespace states
                         return [typeof(StartNodeData), typeof(SendPresetNodeData), typeof(ManageTagNodeData), typeof(AiReplyNodeData), typeof(ChangeFlowNodeData), typeof(SendWebhookNodeData)];
                     if (baseType == typeof(Edge))
                         return [typeof(PassEdge), typeof(SplitEdge), typeof(AiRouterEdge)];
+                    if (baseType == typeof(LeadEventBaseDto))
+                        return [typeof(BotActivationEventDto), typeof(BotDeactivationEventDto), typeof(ChannelSubscriptionEventDto), typeof(ContactEventDto), typeof(RegistrationEventDto), typeof(SaleEventDto), typeof(ResaleEventDto)];
                     return [];
                 });
 
@@ -95,6 +98,7 @@ namespace states
                 {
                     if (baseType == typeof(NodeData)) return "nodeType";
                     if (baseType == typeof(Edge)) return "edgeType";
+                    if (baseType == typeof(LeadEventBaseDto)) return "eventType";
                     return null;
                 });
 
@@ -109,6 +113,13 @@ namespace states
                     if (subType == typeof(PassEdge)) return nameof(EdgeType.Pass);
                     if (subType == typeof(SplitEdge)) return nameof(EdgeType.Split);
                     if (subType == typeof(AiRouterEdge)) return nameof(EdgeType.AiRouter);
+                    if (subType == typeof(BotActivationEventDto)) return "BotActivation";
+                    if (subType == typeof(BotDeactivationEventDto)) return "BotDeactivation";
+                    if (subType == typeof(ChannelSubscriptionEventDto)) return "ChannelSubscribtion";
+                    if (subType == typeof(ContactEventDto)) return "Contact";
+                    if (subType == typeof(RegistrationEventDto)) return "Registration";
+                    if (subType == typeof(SaleEventDto)) return "Sale";
+                    if (subType == typeof(ResaleEventDto)) return "Resale";
                     return null;
                 });
             });

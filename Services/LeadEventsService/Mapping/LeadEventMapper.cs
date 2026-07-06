@@ -10,29 +10,29 @@ namespace states.Services.LeadEventsService.Mapping
             return document switch
             {
                 BotActivationEventDocument x => new BotActivationEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt,
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt,
                     x.BotId),
 
                 BotDeactivationEventDocument x => new BotDeactivationEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt,
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt,
                     x.BotId),
 
                 ChannelSubscriptionEventDocument x => new ChannelSubscriptionEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt),
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt),
 
                 ContactEventDocument x => new ContactEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt),
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt),
 
                 RegistrationLeadEvent x => new RegistrationEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt,
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt, x.EventId, x.Status,
                     x.CurrencyCode),
 
                 ResaleLeadEvent x => new ResaleEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt,
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt, x.EventId, x.Status,
                     x.DepositAmount, x.CurrencyCode),
 
                 SaleLeadEvent x => new SaleEventDto(
-                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.EventId, x.Status, x.CreatedAt,
+                    x.Id, x.TenantId, x.SpaceId, x.LeadId, x.CreatedAt, x.EventId, x.Status,
                     x.DepositAmount, x.CurrencyCode),
 
                 _ => throw new NotSupportedException($"Unsupported lead event document type: {document.GetType().Name}")

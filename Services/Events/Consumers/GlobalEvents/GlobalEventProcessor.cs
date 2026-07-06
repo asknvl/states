@@ -6,7 +6,6 @@ using states.Mongo.Repositories;
 using states.Services.CampaignService;
 using states.Services.Events.Consumer;
 using states.Services.Events.Consumers.GlobalEvents.Payloads;
-using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
 
 namespace states.Services.Events.Consumers.GlobalEvents;
@@ -82,8 +81,6 @@ public class GlobalEventProcessor(
                     TenantId = p.TenantId,
                     SpaceId = p.SpaceId,
                     LeadId = existingLeadState.LeadId,
-                    EventId = Guid.CreateVersion7(),
-                    Status = LeadEventStatus.Accepted,
                     CreatedAt = DateTime.UtcNow,
                     BotId = p.BotId
                 }, ct);
@@ -147,8 +144,6 @@ public class GlobalEventProcessor(
             TenantId = p.TenantId,
             SpaceId = p.SpaceId,
             LeadId = entryPoint.LeadId,
-            EventId = Guid.CreateVersion7(),
-            Status = LeadEventStatus.Accepted,
             CreatedAt = DateTime.UtcNow,
             BotId = p.BotId
         }, ct);

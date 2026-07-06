@@ -1,5 +1,3 @@
-using states.Services.LeadEventsService.Application;
-
 namespace states.Dtos.LeadEvents
 {
     public sealed record ContactEventDto(
@@ -7,8 +5,6 @@ namespace states.Dtos.LeadEvents
         Guid TenantId,
         Guid SpaceId,
         string LeadId,
-        Guid EventId,
-        LeadEventStatus Status,
         DateTime CreatedAt
-    ) : LeadEventBaseDto(Id, TenantId, SpaceId, LeadId, EventId, Status, CreatedAt);
+    ) : LeadEventBaseDto(Id, TenantId, SpaceId, LeadId, CreatedAt);
 }
