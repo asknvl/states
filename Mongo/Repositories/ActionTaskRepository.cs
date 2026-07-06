@@ -118,7 +118,7 @@ public class ActionTaskRepository : IActionTaskRepository
         }
         catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
         {
-            // Уже есть pending AiReply для этого лида — дубликат не нужен
+            // Уже есть активный (pending/in-progress) AiReply для этого лида — дубликат не нужен
         }
     }
 

@@ -224,6 +224,18 @@ namespace states.Mongo
         {
             var collection = database.GetCollection<ActionTaskDocument>("action_tasks");
 
+            // Индекс переименован (был unique_pending_ai_reply_per_lead): старый покрывал только
+            // Pending и оставлял дыру, пока задача уже забрана в работу (InProgress) — за это время
+            // мог создаться дублирующий AiReply. Дропаем старый по имени, если ещё остался.
+            try
+            {
+                await collection.Indexes.DropOneAsync("unique_pending_ai_reply_per_lead", ct);
+            }
+            catch (MongoCommandException)
+            {
+                // индекса уже нет — ничего страшного
+            }
+
             var indexes = new List<CreateIndexModel<ActionTaskDocument>>
             {
                 // ClaimNext: фильтр Status=Pending + ScheduledAt<=Now, сортировка по ScheduledAt
@@ -238,7 +250,7 @@ namespace states.Mongo
                         .Ascending(x => x.LeadStateId)
                         .Ascending(x => x.NodeId)),
 
-                // Гарантирует не более одного Pending AiReply на лида
+                // Гарантирует не более одного активного (Pending или уже забранного в работу) AiReply на лида
                 new CreateIndexModel<ActionTaskDocument>(
                     Builders<ActionTaskDocument>.IndexKeys
                         .Ascending(x => x.LeadStateId)
@@ -246,11 +258,15 @@ namespace states.Mongo
                     new CreateIndexOptions<ActionTaskDocument>
                     {
                         Unique = true,
-                        PartialFilterExpression = Builders<ActionTaskDocument>.Filter.And(
-                            Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.AiReply),
-                            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+                        PartialFilterExpression = Builders<ActionTaskDocument>.Filter.Or(
+                            Builders<ActionTaskDocument>.Filter.And(
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.AiReply),
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)),
+                            Builders<ActionTaskDocument>.Filter.And(
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.AiReply),
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress))
                         ),
-                        Name = "unique_pending_ai_reply_per_lead"
+                        Name = "unique_active_ai_reply_per_lead"
                     })
             };
 
