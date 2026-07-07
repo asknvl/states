@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using states.Dtos.LeadEvents;
+using states.Dtos.LeadEvents.Examples;
 using states.Services.LeadEventsService.Application;
 using Swashbuckle.AspNetCore.Annotations;
+using Swashbuckle.AspNetCore.Filters;
 
 namespace states.Controllers
 {
@@ -17,7 +19,8 @@ namespace states.Controllers
         }
 
         [HttpPost("filter")]
-        [SwaggerOperation(Summary = "Returns lead events for a lead, optionally filtered by event type")]
+        [SwaggerOperation(Summary = "Returns lead events for a lead filtered by event type")]
+        [SwaggerRequestExample(typeof(GetLeadEventsRequest), typeof(GetLeadEventsRequestExample))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyCollection<LeadEventBaseDto>>> GetLeadEvents(
             [FromBody] GetLeadEventsRequest request,

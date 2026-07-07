@@ -9,7 +9,7 @@ namespace states.Mongo.Repositories
             Guid tenantId,
             Guid spaceId,
             string leadId,
-            IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
+            IReadOnlyCollection<LeadEventTypes> eventTypes,
             CancellationToken ct = default);
 
         Task Create(LeadEventBaseDocument document, CancellationToken ct = default);

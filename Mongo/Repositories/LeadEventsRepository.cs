@@ -17,10 +17,10 @@ namespace states.Mongo.Repositories
             Guid tenantId,
             Guid spaceId,
             string leadId,
-            IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
+            IReadOnlyCollection<LeadEventTypes> eventTypes,
             CancellationToken ct = default)
         {
-            if (eventTypes is not { Count: > 0 })
+            if (eventTypes.Count == 0)
             {
                 return Array.Empty<LeadEventBaseDocument>();
             }
