@@ -646,22 +646,22 @@ public class LeadStateRepository : ILeadStateRepository
                 if (updated is null)
                     continue;
 
-                await outbox.InsertOneAsync(session, new LeadDepositChangedOutboxDocument
-                {
-                    Id = Guid.CreateVersion7(),
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = updated.TenantId,
-                    SpaceId = updated.SpaceId,
-                    BotId = updated.BotId,
-                    ChatId = updated.ChatId,
-                    LeadId = updated.LeadId,
-                    Version = updated.Version,
-                    TotalDepositAmount = updated.TotalDepositAmount,
-                    FirstDepositAmount = updated.FirstDepositAmount,
-                    LastDepositAmount = updated.LastDepositAmount,
-                    DepositCount = updated.DepositCount,
-                    CurrencyCode = updated.CurrencyCode
-                }, cancellationToken: ct);
+                //await outbox.InsertOneAsync(session, new LeadDepositChangedOutboxDocument
+                //{
+                //    Id = Guid.CreateVersion7(),
+                //    CreatedAt = DateTime.UtcNow,
+                //    TenantId = updated.TenantId,
+                //    SpaceId = updated.SpaceId,
+                //    BotId = updated.BotId,
+                //    ChatId = updated.ChatId,
+                //    LeadId = updated.LeadId,
+                //    Version = updated.Version,
+                //    TotalDepositAmount = updated.TotalDepositAmount,
+                //    FirstDepositAmount = updated.FirstDepositAmount,
+                //    LastDepositAmount = updated.LastDepositAmount,
+                //    DepositCount = updated.DepositCount,
+                //    CurrencyCode = updated.CurrencyCode
+                //}, cancellationToken: ct);
             }
         }, ct);
     }
