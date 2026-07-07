@@ -12,6 +12,7 @@ public interface ITGEngineClient
         List<Variable> variables,
         Guid funnelId,
         Guid presetId,
+        bool needPin,
         CancellationToken ct);
 
     Task SendAiTextMessages(

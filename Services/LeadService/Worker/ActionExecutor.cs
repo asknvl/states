@@ -95,6 +95,7 @@ public class ActionExecutor : IActionExecutor
             variables,
             task.FunnelId,            
             task.PresetId,
+            task.NeedPin,
             ct);
     }
 

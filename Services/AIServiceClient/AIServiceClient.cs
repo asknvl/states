@@ -17,12 +17,13 @@ namespace states.Services.AIServiceClient
         public async Task<RouteResponseDto> RouteAsync(RouteRequestDto request, CancellationToken ct)
         {
             HttpResponseMessage response;
+            string responseText;
 
             try
             {
                 response = await http.PostAsJsonAsync("/route", request, JsonOptions, ct);
 
-                var responseText = await response.Content.ReadAsStringAsync(ct);
+                responseText = await response.Content.ReadAsStringAsync(ct);
 
                 logger.LogInformation(
                     "AIServiceClient Route response: StatusCode={StatusCode}, Body={Body}",
@@ -37,20 +38,29 @@ namespace states.Services.AIServiceClient
 
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            return await JsonSerializer.DeserializeAsync<RouteResponseDto>(stream, JsonOptions, ct)
+            if (string.IsNullOrWhiteSpace(responseText))
+            {
+                logger.LogError(
+                    "AIServiceClient /route returned success status {StatusCode} but an empty body",
+                    response.StatusCode);
+                throw new InvalidOperationException(
+                    $"AIServiceClient /route returned an empty body with status {(int)response.StatusCode}");
+            }
+
+            return JsonSerializer.Deserialize<RouteResponseDto>(responseText, JsonOptions)
                    ?? throw new InvalidOperationException("AIServiceClient /route returned null response");
         }
 
         public async Task<ReplyResponseDto> ReplyAsync(ReplyRequestDto request, CancellationToken ct)
         {
             HttpResponseMessage response;
+            string responseText;
 
             try
             {
                 response = await http.PostAsJsonAsync("/reply", request, JsonOptions, ct);
 
-                var responseText = await response.Content.ReadAsStringAsync(ct);
+                responseText = await response.Content.ReadAsStringAsync(ct);
 
                 logger.LogInformation(
                     "AIServiceClient Reply response: StatusCode={StatusCode}, Body={Body}",
@@ -65,8 +75,16 @@ namespace states.Services.AIServiceClient
 
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            return await JsonSerializer.DeserializeAsync<ReplyResponseDto>(stream, JsonOptions, ct)
+            if (string.IsNullOrWhiteSpace(responseText))
+            {
+                logger.LogError(
+                    "AIServiceClient /reply returned success status {StatusCode} but an empty body",
+                    response.StatusCode);
+                throw new InvalidOperationException(
+                    $"AIServiceClient /reply returned an empty body with status {(int)response.StatusCode}");
+            }
+
+            return JsonSerializer.Deserialize<ReplyResponseDto>(responseText, JsonOptions)
                    ?? throw new InvalidOperationException("AIServiceClient /reply returned null response");
         }
     }

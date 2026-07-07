@@ -39,6 +39,7 @@ public class PushExecutor : IPushExecutor
             variables,
             task.FunnelId,
             task.PresetId,
+            needPin: false,
             ct);
     }
 }

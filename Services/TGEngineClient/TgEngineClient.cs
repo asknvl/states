@@ -97,7 +97,8 @@ public class TGEngineClient : ITGEngineClient
         Guid chatId,
         List<Variable> variables,
         Guid funnelId,
-        Guid presetId,        
+        Guid presetId,    
+        bool needPin,
         CancellationToken ct)
     {
         var body = new SendPresetMessageDto(
@@ -106,8 +107,9 @@ public class TGEngineClient : ITGEngineClient
             botId,
             chatId,        
             variables,
-            funnelId,
-            presetId);
+            funnelId,            
+            presetId,
+            needPin);
 
         HttpResponseMessage response;
 

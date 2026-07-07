@@ -11,7 +11,8 @@ namespace states.Services.TGEngineClient.Dtos
        [property: JsonPropertyName("funnelId")]
        Guid FunnelId,
        [property: JsonPropertyName("presetId")]
-       Guid PresetId) : SendMessageBaseDto(
+       Guid PresetId,
+       bool NeedPin) : SendMessageBaseDto(
            TenantId: TenantId,
            SpaceId: SpaceId,
            BotId: BotId,
