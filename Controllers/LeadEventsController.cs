@@ -16,7 +16,7 @@ namespace states.Controllers
             this.leadEventsApplicationService = leadEventsApplicationService;
         }
 
-        [HttpPost("search")]
+        [HttpPost("filter")]
         [SwaggerOperation(Summary = "Returns lead events for a lead, optionally filtered by event type")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyCollection<LeadEventBaseDto>>> GetLeadEvents(

@@ -20,26 +20,26 @@ namespace states.Mongo.Repositories
             IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
             CancellationToken ct = default)
         {
-            var filters = new List<FilterDefinition<LeadEventBaseDocument>>
+            if (eventTypes is not { Count: > 0 })
             {
-                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
-                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.SpaceId, spaceId),
-                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId)
-            };
-
-            if (eventTypes is { Count: > 0 })
-            {
-                var typeFilters = eventTypes
-                    .Select(BuildTypeFilter)
-                    .OfType<FilterDefinition<LeadEventBaseDocument>>()
-                    .ToList();
-
-                filters.Add(typeFilters.Count > 0
-                    ? Builders<LeadEventBaseDocument>.Filter.Or(typeFilters)
-                    : Builders<LeadEventBaseDocument>.Filter.In(x => x.Id, Array.Empty<Guid>()));
+                return Array.Empty<LeadEventBaseDocument>();
             }
 
-            var filter = Builders<LeadEventBaseDocument>.Filter.And(filters);
+            var typeFilters = eventTypes
+                .Select(BuildTypeFilter)
+                .OfType<FilterDefinition<LeadEventBaseDocument>>()
+                .ToList();
+
+            if (typeFilters.Count == 0)
+            {
+                return Array.Empty<LeadEventBaseDocument>();
+            }
+
+            var filter = Builders<LeadEventBaseDocument>.Filter.And(
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.SpaceId, spaceId),
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId),
+                Builders<LeadEventBaseDocument>.Filter.Or(typeFilters));
 
             return await collection
                 .Find(filter)
