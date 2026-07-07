@@ -1,5 +1,6 @@
 using MongoDB.Driver;
 using states.Mongo.Documents.LeadEvents;
+using states.Services.LeadEventsService.Application;
 
 namespace states.Mongo.Repositories
 {
@@ -16,17 +17,49 @@ namespace states.Mongo.Repositories
             Guid tenantId,
             Guid spaceId,
             string leadId,
+            IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
             CancellationToken ct = default)
         {
-            var filter = Builders<LeadEventBaseDocument>.Filter.And(
+            var filters = new List<FilterDefinition<LeadEventBaseDocument>>
+            {
                 Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
                 Builders<LeadEventBaseDocument>.Filter.Eq(x => x.SpaceId, spaceId),
-                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId));
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId)
+            };
+
+            if (eventTypes is { Count: > 0 })
+            {
+                var typeFilters = eventTypes
+                    .Select(BuildTypeFilter)
+                    .OfType<FilterDefinition<LeadEventBaseDocument>>()
+                    .ToList();
+
+                filters.Add(typeFilters.Count > 0
+                    ? Builders<LeadEventBaseDocument>.Filter.Or(typeFilters)
+                    : Builders<LeadEventBaseDocument>.Filter.In(x => x.Id, Array.Empty<Guid>()));
+            }
+
+            var filter = Builders<LeadEventBaseDocument>.Filter.And(filters);
 
             return await collection
                 .Find(filter)
-                .SortBy(x => x.CreatedAt)
+                .SortByDescending(x => x.CreatedAt)
                 .ToListAsync(ct);
+        }
+
+        private static FilterDefinition<LeadEventBaseDocument>? BuildTypeFilter(LeadEventTypes type)
+        {
+            return type switch
+            {
+                LeadEventTypes.BotActivation => Builders<LeadEventBaseDocument>.Filter.OfType<BotActivationEventDocument>(),
+                LeadEventTypes.BotDeactivation => Builders<LeadEventBaseDocument>.Filter.OfType<BotDeactivationEventDocument>(),
+                LeadEventTypes.Contact => Builders<LeadEventBaseDocument>.Filter.OfType<ContactEventDocument>(),
+                LeadEventTypes.ChannelSubscribtion => Builders<LeadEventBaseDocument>.Filter.OfType<ChannelSubscriptionEventDocument>(),
+                LeadEventTypes.Registration => Builders<LeadEventBaseDocument>.Filter.OfType<RegistrationLeadEvent>(),
+                LeadEventTypes.Sale => Builders<LeadEventBaseDocument>.Filter.OfType<SaleLeadEvent>(),
+                LeadEventTypes.Resale => Builders<LeadEventBaseDocument>.Filter.OfType<ResaleLeadEvent>(),
+                _ => null
+            };
         }
 
         public async Task Create(LeadEventBaseDocument document, CancellationToken ct = default)

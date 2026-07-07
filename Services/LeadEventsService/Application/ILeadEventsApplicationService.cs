@@ -8,6 +8,9 @@ namespace states.Services.LeadEventsService.Application
             Guid tenantId,
             Guid spaceId,
             string leadId,
+            IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
             CancellationToken ct = default);
+
+        IReadOnlyCollection<LeadEventTypes> GetLeadEventTypes();
     }
 }

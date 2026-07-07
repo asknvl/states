@@ -11,10 +11,16 @@ namespace states.Services.LeadEventsService.Application
             Guid tenantId,
             Guid spaceId,
             string leadId,
+            IReadOnlyCollection<LeadEventTypes>? eventTypes = null,
             CancellationToken ct = default)
         {
-            var documents = await leadEventsRepository.GetByLead(tenantId, spaceId, leadId, ct);
+            var documents = await leadEventsRepository.GetByLead(tenantId, spaceId, leadId, eventTypes, ct);
             return documents.Select(d => d.ToDto()).ToList();
+        }
+
+        public IReadOnlyCollection<LeadEventTypes> GetLeadEventTypes()
+        {
+            return Enum.GetValues<LeadEventTypes>();
         }
     }
 }

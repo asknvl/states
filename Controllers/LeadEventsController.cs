@@ -16,17 +16,29 @@ namespace states.Controllers
             this.leadEventsApplicationService = leadEventsApplicationService;
         }
 
-        [HttpGet("{tenantId:guid}/spaces/{spaceId:guid}/leads/{leadId}")]
-        [SwaggerOperation(Summary = "Returns all lead events for a lead")]
+        [HttpPost("search")]
+        [SwaggerOperation(Summary = "Returns lead events for a lead, optionally filtered by event type")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IReadOnlyCollection<LeadEventBaseDto>>> GetLeadEvents(
-            [FromRoute] Guid tenantId,
-            [FromRoute] Guid spaceId,
-            [FromRoute] string leadId,
+            [FromBody] GetLeadEventsRequest request,
             CancellationToken ct)
         {
-            var events = await leadEventsApplicationService.GetLeadEvents(tenantId, spaceId, leadId, ct);
+            var events = await leadEventsApplicationService.GetLeadEvents(
+                request.TenantId,
+                request.SpaceId,
+                request.LeadId,
+                request.EventTypes,
+                ct);
             return Ok(events);
+        }
+
+        [HttpGet("event-types")]
+        [SwaggerOperation(Summary = "Returns all lead event types")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<IReadOnlyCollection<LeadEventTypes>> GetLeadEventTypes()
+        {
+            var eventTypes = leadEventsApplicationService.GetLeadEventTypes();
+            return Ok(eventTypes);
         }
     }
 }
