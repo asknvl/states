@@ -167,6 +167,12 @@ namespace states.Mongo
                     Builders<FunnelLeadState>.IndexKeys
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.LeadId)),
+
+                // UpdateLeadStateStatusByChatId / MarkBlockedByChatId фильтруют только по chatId,
+                // без tenantId — составной (tenantId, chatId) здесь не работает, нужен отдельный индекс
+                new CreateIndexModel<FunnelLeadState>(
+                    Builders<FunnelLeadState>.IndexKeys
+                        .Ascending(x => x.ChatId)),
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
@@ -176,12 +182,23 @@ namespace states.Mongo
         {
             var collection = database.GetCollection<OutboxDocument>("outbox");
 
+            // Старый индекс (claimedAt, createdAt) не давал сортировку по createdAt для $or-фильтра
+            // TakeNext — каждый поллинг сортировал весь бэклог в памяти. Дропаем по имени, если остался.
+            try
+            {
+                await collection.Indexes.DropOneAsync("claimedAt_1_createdAt_1", ct);
+            }
+            catch (MongoCommandException)
+            {
+                // индекса уже нет — ничего страшного
+            }
+
             var indexes = new List<CreateIndexModel<OutboxDocument>>
             {
-                // покрывает фильтр по claimedAt и сортировку по createdAt в одном проходе
+                // TakeNext: скан в порядке createdAt, фильтр по claimedAt residual — первый матч
+                // забирается сразу, без in-memory сортировки бэклога
                 new CreateIndexModel<OutboxDocument>(
                     Builders<OutboxDocument>.IndexKeys
-                        .Ascending(x => x.ClaimedAt)
                         .Ascending(x => x.CreatedAt))
             };
 
@@ -211,10 +228,19 @@ namespace states.Mongo
 
             var indexes = new List<CreateIndexModel<TenantTag>>
             {
+                // TODO: сделать уникальным — CreateIfNeed полагается на upsert, и конкурентные вызовы
+                // могут создать дубликат (tenantId, tagName). Риск низкий: операция редкая, выполняется
+                // оператором вручную. Перевод в unique требует дропа/пересоздания индекса и проверки
+                // базы на уже существующие дубликаты.
                 new CreateIndexModel<TenantTag>(
                     Builders<TenantTag>.IndexKeys
                         .Ascending(x => x.TenantId)
-                        .Ascending(x => x.TagName))
+                        .Ascending(x => x.TagName)),
+
+                // UpdateTenantTagName / DecreaseTenantTagUsage фильтруют по tagId (не по _id)
+                new CreateIndexModel<TenantTag>(
+                    Builders<TenantTag>.IndexKeys
+                        .Ascending(x => x.TagId))
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
