@@ -45,6 +45,10 @@ public interface ILeadStateRepository
     Task SaveTags(Guid leadStateId, List<Tag> tags, CancellationToken ct);
     Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct);
 
+    // Атомарно помечает первый контакт лида (FirstContactAt == null → now). Возвращает обновлённый
+    // документ только при первом вызове; если контакт уже был или лид не найден — null.
+    Task<FunnelLeadState?> TryMarkFirstContact(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
+
     Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct);

@@ -197,6 +197,23 @@ public class LeadStateRepository : ILeadStateRepository
     // Сохраняем текущий статус в preBlockStatus перед тем, как затереть его на Blocked,
     // чтобы при разблокировке можно было вернуть лида ровно туда, где он был.
     // Если лид уже Blocked — ничего не делаем, чтобы не затереть уже сохранённый preBlockStatus.
+    public async Task<FunnelLeadState?> TryMarkFirstContact(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.FirstContactAt, null));
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.FirstContactAt, DateTime.UtcNow);
+
+        // Если контакт уже отмечен (или лид не найден) — filter не совпадёт и вернётся null,
+        // так что событие Contact пишется ровно один раз даже при конкурентных сигналах.
+        return await collection.FindOneAndUpdateAsync(filter, update,
+            new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After }, ct);
+    }
+
     public async Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct)
     {
         var existing = await collection.Find(x => x.ChatId == chatId).FirstOrDefaultAsync(ct);

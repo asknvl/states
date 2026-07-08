@@ -119,6 +119,11 @@ namespace states.Mongo.Documents
         [BsonElement("postbackParameters")]
         public Dictionary<string, string> PostbackParameters { get; set; } = [];
 
+        // Момент первого входящего сообщения лида. Пока null — событие Contact ещё не записано;
+        // выставляется атомарно один раз (см. LeadStateRepository.TryMarkFirstContact).
+        [BsonElement("firstContactAt")]
+        public DateTime? FirstContactAt { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

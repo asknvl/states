@@ -173,6 +173,21 @@ public class GlobalEventProcessor(
 
         var p = incoming.Payload;
 
+        // Первое входящее сообщение лида — событие Contact. TryMarkFirstContact атомарно
+        // выставляет FirstContactAt и возвращает документ только один раз, повторные сигналы дают null.
+        var firstContact = await leadStateRepository.TryMarkFirstContact(p.TenantId, p.BotId, p.ChatId, ct);
+        if (firstContact is not null)
+        {
+            await leadEventsRepository.Create(new ContactEventDocument
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = firstContact.TenantId,
+                SpaceId = firstContact.SpaceId,
+                LeadId = firstContact.LeadId,
+                CreatedAt = firstContact.FirstContactAt ?? DateTime.UtcNow
+            }, ct);
+        }
+
         await leadProgressionService.HandleIncomingSignal(p.TenantId, p.BotId, p.ChatId, ct);
     }
 
