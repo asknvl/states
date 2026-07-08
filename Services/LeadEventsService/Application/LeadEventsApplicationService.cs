@@ -11,7 +11,7 @@ namespace states.Services.LeadEventsService.Application
             Guid tenantId,
             Guid spaceId,
             string leadId,
-            IReadOnlyCollection<LeadEventTypes> eventTypes,
+            IReadOnlyCollection<LeadEventTypes>? eventTypes,
             CancellationToken ct = default)
         {
             var documents = await leadEventsRepository.GetByLead(tenantId, spaceId, leadId, eventTypes, ct);

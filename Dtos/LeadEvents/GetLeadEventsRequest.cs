@@ -6,6 +6,6 @@ namespace states.Dtos.LeadEvents
         Guid TenantId,
         Guid SpaceId,
         string LeadId,
-        IReadOnlyCollection<LeadEventTypes> EventTypes
+        IReadOnlyCollection<LeadEventTypes>? EventTypes = null
     );
 }
