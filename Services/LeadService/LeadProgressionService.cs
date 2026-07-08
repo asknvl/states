@@ -829,7 +829,8 @@ public class LeadProgressionService : ILeadProgressionService
                     ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
                     CreatedAt = DateTime.UtcNow,
                     Order = 0,
-                    TransitionAfterReply = hasPassOrSplit
+                    TransitionAfterReply = hasPassOrSplit,
+                    ReplyOnlyIfLastIncoming = true
                 };
 
                 await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);

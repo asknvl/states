@@ -50,6 +50,13 @@ public abstract class ActionTaskDocument
     [BsonElement("claimedAt")]
     public DateTime? ClaimedAt { get; set; }
 
+    // Проставляется при переходе в терминальный статус (Completed/Failed/Cancelled).
+    // По этому полю работает TTL-индекс ttl_finished_action_tasks — Mongo сам удаляет
+    // завершённые таски спустя retention-срок, активные (без поля) под TTL не попадают.
+    [BsonElement("finishedAt")]
+    [BsonIgnoreIfNull]
+    public DateTime? FinishedAt { get; set; }
+
     [BsonElement("order")]
     public int Order { get; set; }
 
@@ -108,6 +115,14 @@ public sealed class AiReplyActionTaskDocument : ActionTaskDocument
 
     [BsonElement("transitionAfterReply")]
     public bool TransitionAfterReply { get; set; }
+
+    // Только для реактивных тасков (созданных по входящему сигналу или AiRouter no-match):
+    // отправлять ответ, лишь если последнее сообщение контекста — входящее от юзера.
+    // Защита от дубля: опоздавший/повторный сигнал на уже отвеченное сообщение создаёт таск,
+    // который иначе сгенерировал бы тот же ответ ещё раз. Для проактивных тасков (вход в ноду
+    // через переход) флаг false — там последним в контексте законно может быть наше сообщение.
+    [BsonElement("replyOnlyIfLastIncoming")]
+    public bool ReplyOnlyIfLastIncoming { get; set; }
 
     public AiReplyActionTaskDocument() : base(ActionType.AiReply, isCritical: true) { }
 }

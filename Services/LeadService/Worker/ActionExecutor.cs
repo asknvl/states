@@ -201,7 +201,8 @@ public class ActionExecutor : IActionExecutor
                 ChatId = task.ChatId,
                 ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel.ReplyDelay),
                 CreatedAt = DateTime.UtcNow,
-                Order = 0
+                Order = 0,
+                ReplyOnlyIfLastIncoming = true
             };
             await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
             //await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); // ХЗ зачем тут добавлял
@@ -240,6 +241,18 @@ public class ActionExecutor : IActionExecutor
             returnFromLastOutcoming: false,
             isImageDetailed: false,
             ct);
+
+        if (task.ReplyOnlyIfLastIncoming)
+        {
+            var lastRole = tgMessages.LastOrDefault()?.Role;
+            if (lastRole != "user")
+            {
+                logger.LogInformation(
+                    "AiReply: skip for lead {LeadStateId} — last context message role is '{Role}', nothing unanswered (duplicate guard)",
+                    task.LeadStateId, lastRole ?? "none");
+                return;
+            }
+        }
 
         var context = tgMessages
             .Select(m => new aiservice.Dtos.APIs.Chat.ChatContextMessageDto(

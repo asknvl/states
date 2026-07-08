@@ -267,10 +267,34 @@ namespace states.Mongo
                                 Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress))
                         ),
                         Name = "unique_active_ai_reply_per_lead"
+                    }),
+
+                // TTL: терминальные таски (Completed/Failed/Cancelled) получают finishedAt и удаляются
+                // Mongo автоматически спустя retention — коллекция не растёт бесконечно. Активные таски
+                // поля не имеют и под TTL не попадают. При изменении срока Mongo кинет IndexOptionsConflict —
+                // тогда сначала дропнуть индекс по имени (или collMod), как сделано выше для переименованного.
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys.Ascending(x => x.FinishedAt),
+                    new CreateIndexOptions
+                    {
+                        ExpireAfter = TimeSpan.FromDays(7),
+                        Name = "ttl_finished_action_tasks"
                     })
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
+
+            // Бэкфилл: терминальные таски, созданные до появления finishedAt, без него не удалятся
+            // никогда. Идемпотентно — повторный старт ничего не перезапишет.
+            var backfillFilter = Builders<ActionTaskDocument>.Filter.And(
+                Builders<ActionTaskDocument>.Filter.In(x => x.Status,
+                    new[] { ActionStatus.Completed, ActionStatus.Failed, ActionStatus.Cancelled }),
+                Builders<ActionTaskDocument>.Filter.Eq(x => x.FinishedAt, null));
+
+            await collection.UpdateManyAsync(
+                backfillFilter,
+                Builders<ActionTaskDocument>.Update.Set(x => x.FinishedAt, DateTime.UtcNow),
+                cancellationToken: ct);
         }
 
         private async Task CreatePushTasksIndexes(CancellationToken ct)

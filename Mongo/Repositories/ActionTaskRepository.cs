@@ -45,7 +45,8 @@ public class ActionTaskRepository : IActionTaskRepository
     {
         var filter = Builders<ActionTaskDocument>.Filter.Eq(x => x.Id, taskId);
         var update = Builders<ActionTaskDocument>.Update
-            .Set(x => x.Status, ActionStatus.Completed);
+            .Set(x => x.Status, ActionStatus.Completed)
+            .Set(x => x.FinishedAt, DateTime.UtcNow);
 
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
     }
@@ -54,7 +55,8 @@ public class ActionTaskRepository : IActionTaskRepository
     {
         var filter = Builders<ActionTaskDocument>.Filter.Eq(x => x.Id, taskId);
         var update = Builders<ActionTaskDocument>.Update
-            .Set(x => x.Status, ActionStatus.Failed);
+            .Set(x => x.Status, ActionStatus.Failed)
+            .Set(x => x.FinishedAt, DateTime.UtcNow);
 
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
     }
@@ -78,7 +80,8 @@ public class ActionTaskRepository : IActionTaskRepository
         );
 
         var update = Builders<ActionTaskDocument>.Update
-            .Set(x => x.Status, ActionStatus.Cancelled);
+            .Set(x => x.Status, ActionStatus.Cancelled)
+            .Set(x => x.FinishedAt, DateTime.UtcNow);
 
         await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
     }
@@ -91,7 +94,8 @@ public class ActionTaskRepository : IActionTaskRepository
         );
 
         var update = Builders<ActionTaskDocument>.Update
-            .Set(x => x.Status, ActionStatus.Cancelled);
+            .Set(x => x.Status, ActionStatus.Cancelled)
+            .Set(x => x.FinishedAt, DateTime.UtcNow);
 
         await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
     }
