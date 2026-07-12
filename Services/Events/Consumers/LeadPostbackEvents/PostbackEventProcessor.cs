@@ -76,8 +76,8 @@ public class PostbackEventProcessor(
             await leadEventsRepository.Create(leadEventDocument, ct);
 
             var isDeposit = postbackEventType is PostbackEventType.SALE or PostbackEventType.RESALE;
-            if (isDeposit && payload.Payout.HasValue)
-                await leadStateRepository.UpdateDeposit(payload.TenantId, payload.LeadId, payload.Payout.Value, payload.Currency ?? string.Empty, ct);
+            if (isDeposit)
+                await leadStateRepository.RecalculateDeposits(payload.TenantId, payload.LeadId, ct);
         }
 
         if (leadState.CampaignId is null)

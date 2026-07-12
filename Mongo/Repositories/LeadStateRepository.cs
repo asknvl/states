@@ -2,9 +2,11 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using states.Dtos.Funnels;
 using states.Mongo.Documents;
+using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Documents.Outbox;
 using states.Mongo.Mappers;
 using states.Services.FunnelService.Application;
+using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
 
 namespace states.Mongo.Repositories;
@@ -13,11 +15,13 @@ public class LeadStateRepository : ILeadStateRepository
 {
     private readonly IMongoCollection<FunnelLeadState> collection;
     private readonly IMongoCollection<OutboxDocument> outbox;
+    private readonly IMongoCollection<LeadEventBaseDocument> leadEvents;
 
     public LeadStateRepository(MongoContext context)
     {
         collection = context.LeadStates;
         outbox = context.Outbox;
+        leadEvents = context.LeadEvents;
     }
 
     #region reads
@@ -96,6 +100,26 @@ public class LeadStateRepository : ILeadStateRepository
     {
         await InTransaction(async session =>
         {
+            // Депозиты и postback-параметры относятся к лиду, а не к боту, поэтому новый документ
+            // не стартует с нуля: депозитные агрегаты пересчитываем из leadEvents (источник истины
+            // по депозитам), параметры копируем из уже существующего состояния этого лида.
+            var deposits = await ComputeDepositAggregates(session, state.TenantId, state.LeadId, ct);
+            if (deposits is not null)
+            {
+                state.TotalDepositAmount = deposits.Total;
+                state.FirstDepositAmount = deposits.First;
+                state.LastDepositAmount = deposits.Last;
+                state.DepositCount = deposits.Count;
+                state.CurrencyCode = deposits.CurrencyCode;
+            }
+
+            var sibling = await collection
+                .Find(session, x => x.TenantId == state.TenantId && x.LeadId == state.LeadId)
+                .FirstOrDefaultAsync(ct);
+
+            if (sibling is not null)
+                state.PostbackParameters = new Dictionary<string, string>(sibling.PostbackParameters);
+
             await collection.InsertOneAsync(session, state, cancellationToken: ct);
             await outbox.InsertOneAsync(session, new LeadStateCreatedOutboxDocument
             {
@@ -585,15 +609,12 @@ public class LeadStateRepository : ILeadStateRepository
         if (parameters.Count == 0)
             return;
 
-        var states = await collection
-            .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
-            .ToListAsync(ct);
-
-        if (states.Count == 0)
-            return;
-
         await InTransaction(async session =>
         {
+            var states = await collection
+                .Find(session, x => x.TenantId == tenantId && x.LeadId == leadId)
+                .ToListAsync(ct);
+
             foreach (var state in states)
             {
                 var merged = new Dictionary<string, string>(state.PostbackParameters);
@@ -629,58 +650,71 @@ public class LeadStateRepository : ILeadStateRepository
         }, ct);
     }
 
-    // Депозитные постбеки (SALE/RESALE) применяются ко всем FunnelLeadState с данным leadId —
-    // как и postbackParameters, депозит относится к лиду, а не к конкретному боту.
-    public async Task UpdateDeposit(Guid tenantId, string leadId, decimal amount, string currencyCode, CancellationToken ct)
+    // Депозитные агрегаты — проекция из leadEvents (SALE/RESALE): не инкрементим счётчики,
+    // а пересчитываем их из лога событий и проставляем одинаковые значения во все
+    // FunnelLeadState лида (депозит относится к лиду, а не к конкретному боту).
+    // Заодно это чинит уже разъехавшиеся документы при следующем депозите.
+    public async Task RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct)
     {
-        var states = await collection
-            .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
-            .ToListAsync(ct);
-
-        if (states.Count == 0)
-            return;
-
         await InTransaction(async session =>
         {
-            foreach (var state in states)
-            {
-                var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, state.Id);
-                var update = Builders<FunnelLeadState>.Update
-                    .Inc(x => x.TotalDepositAmount, amount)
-                    .Set(x => x.LastDepositAmount, amount)
-                    .Set(x => x.CurrencyCode, currencyCode)
-                    .Inc(x => x.DepositCount, 1)
-                    .Inc(x => x.Version, 1);
+            var deposits = await ComputeDepositAggregates(session, tenantId, leadId, ct);
+            if (deposits is null)
+                return;
 
-                if (state.DepositCount == 0)
-                    update = update.Set(x => x.FirstDepositAmount, amount);
+            var filter = Builders<FunnelLeadState>.Filter.And(
+                Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+                Builders<FunnelLeadState>.Filter.Eq(x => x.LeadId, leadId));
 
-                var updated = await collection.FindOneAndUpdateAsync(
-                    session, filter, update,
-                    new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
-                    ct);
+            var update = Builders<FunnelLeadState>.Update
+                .Set(x => x.TotalDepositAmount, deposits.Total)
+                .Set(x => x.FirstDepositAmount, deposits.First)
+                .Set(x => x.LastDepositAmount, deposits.Last)
+                .Set(x => x.DepositCount, deposits.Count)
+                .Set(x => x.CurrencyCode, deposits.CurrencyCode)
+                .Inc(x => x.Version, 1);
 
-                if (updated is null)
-                    continue;
-
-                //await outbox.InsertOneAsync(session, new LeadDepositChangedOutboxDocument
-                //{
-                //    Id = Guid.CreateVersion7(),
-                //    CreatedAt = DateTime.UtcNow,
-                //    TenantId = updated.TenantId,
-                //    SpaceId = updated.SpaceId,
-                //    BotId = updated.BotId,
-                //    ChatId = updated.ChatId,
-                //    LeadId = updated.LeadId,
-                //    Version = updated.Version,
-                //    TotalDepositAmount = updated.TotalDepositAmount,
-                //    FirstDepositAmount = updated.FirstDepositAmount,
-                //    LastDepositAmount = updated.LastDepositAmount,
-                //    DepositCount = updated.DepositCount,
-                //    CurrencyCode = updated.CurrencyCode
-                //}, cancellationToken: ct);
-            }
+            await collection.UpdateManyAsync(session, filter, update, cancellationToken: ct);
         }, ct);
+    }
+
+    private sealed record DepositAggregates(decimal Total, decimal First, decimal Last, int Count, string CurrencyCode);
+
+    // Считает депозитные агрегаты по логу событий лида. Учитываются только Accepted-события:
+    // статус Duplicate зарезервирован под дедупликацию повторных постбэков по eventId.
+    private async Task<DepositAggregates?> ComputeDepositAggregates(
+        IClientSessionHandle session, Guid tenantId, string leadId, CancellationToken ct)
+    {
+        var filter = Builders<LeadEventBaseDocument>.Filter.And(
+            Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId),
+            Builders<LeadEventBaseDocument>.Filter.Or(
+                Builders<LeadEventBaseDocument>.Filter.OfType<SaleLeadEvent>(s => s.Status == LeadEventStatus.Accepted),
+                Builders<LeadEventBaseDocument>.Filter.OfType<ResaleLeadEvent>(r => r.Status == LeadEventStatus.Accepted)));
+
+        var events = await leadEvents
+            .Find(session, filter)
+            .SortBy(x => x.CreatedAt)
+            .ToListAsync(ct);
+
+        if (events.Count == 0)
+            return null;
+
+        var deposits = events
+            .Select(e => e switch
+            {
+                SaleLeadEvent s => (Amount: s.DepositAmount, Currency: s.CurrencyCode),
+                ResaleLeadEvent r => (Amount: r.DepositAmount, Currency: r.CurrencyCode),
+                _ => throw new InvalidOperationException($"Unexpected lead event type: {e.GetType().Name}")
+            })
+            .ToList();
+
+        return new DepositAggregates(
+            Total: deposits.Sum(d => d.Amount),
+            First: deposits[0].Amount,
+            Last: deposits[^1].Amount,
+            Count: deposits.Count,
+            CurrencyCode: deposits[^1].Currency);
     }
 
     public async Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct)
