@@ -125,6 +125,12 @@ public class PostbackEventProcessor(
 
     private static LeadEventBaseDocument? BuildLeadEventDocument(PostbackEventType type, PostbackEventPayload payload, Guid spaceId)
     {
+        // Статус переносим из постбэка как есть: дубли остаются в логе событий со статусом
+        // Duplicate, но в учёте депозитов не участвуют — пересчёт берёт только Accepted.
+        var status = payload.Status == PostbackEventStatus.DUPLICATE
+            ? LeadEventStatus.Duplicate
+            : LeadEventStatus.Accepted;
+
         return type switch
         {
             PostbackEventType.REGISTRATION => new RegistrationLeadEvent
@@ -134,7 +140,7 @@ public class PostbackEventProcessor(
                 SpaceId = spaceId,
                 LeadId = payload.LeadId,
                 EventId = payload.EventId,
-                Status = LeadEventStatus.Accepted,
+                Status = status,
                 CreatedAt = payload.ReceivedAt,
                 CurrencyCode = payload.Currency ?? string.Empty
             },
@@ -146,7 +152,7 @@ public class PostbackEventProcessor(
                 SpaceId = spaceId,
                 LeadId = payload.LeadId,
                 EventId = payload.EventId,
-                Status = LeadEventStatus.Accepted,
+                Status = status,
                 CreatedAt = payload.ReceivedAt,
                 DepositAmount = payload.Payout ?? 0m,
                 CurrencyCode = payload.Currency ?? string.Empty
@@ -159,7 +165,7 @@ public class PostbackEventProcessor(
                 SpaceId = spaceId,
                 LeadId = payload.LeadId,
                 EventId = payload.EventId,
-                Status = LeadEventStatus.Accepted,
+                Status = status,
                 CreatedAt = payload.ReceivedAt,
                 DepositAmount = payload.Payout ?? 0m,
                 CurrencyCode = payload.Currency ?? string.Empty
