@@ -72,10 +72,16 @@ public class LeadStateRepository : ILeadStateRepository
 
     // Один leadId может встречаться в нескольких FunnelLeadState — кампания может вести лида
     // через несколько ботов одновременно, и у каждого бота свой документ состояния.
+    // Сортировка по createdAt обязательна: вызывающие (постбэки, AutoActions) работают с [0]
+    // как с самым первым состоянием лида, а без сортировки порядок выдачи Mongo не определён.
+    // Tie-break по Id (Guid v7, монотонный по времени) — на случай одинаковых createdAt.
     public async Task<List<FunnelLeadState>> GetLeadStatesByLeadId(Guid tenantId, string leadId, CancellationToken ct)
     {
         return await collection
             .Find(x => x.TenantId == tenantId && x.LeadId == leadId)
+            .Sort(Builders<FunnelLeadState>.Sort
+                .Ascending(x => x.CreatedAt)
+                .Ascending(x => x.Id))
             .ToListAsync(ct);
     }
 

@@ -58,10 +58,11 @@ public class PostbackEventProcessor(
 
         if (leadStates.Count > 1)
         {
-            // Кампания может вести лида через несколько ботов — пока обрабатываем только первый
-            // найденный leadState, остальные боты этого лида постбэк не получат.
+            // Кампания может вести лида через несколько ботов. AutoActions пока актуальны только
+            // для самого первого состояния лида (создано при входе лида в воронку) — репозиторий
+            // возвращает состояния отсортированными по createdAt, так что [0] — именно оно.
             logger.LogWarning(
-                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the first one",
+                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the earliest one",
                 payload.LeadId, payload.TenantId, leadStates.Count);
         }
 
@@ -78,6 +79,16 @@ public class PostbackEventProcessor(
             var isDeposit = postbackEventType is PostbackEventType.SALE or PostbackEventType.RESALE;
             if (isDeposit)
                 await leadStateRepository.RecalculateDeposits(payload.TenantId, payload.LeadId, ct);
+        }
+
+        // Дубль постбэка: событие записано, но лида по воронке не двигаем —
+        // переход уже был выполнен при первой доставке этого события.
+        if (payload.Status == PostbackEventStatus.DUPLICATE)
+        {
+            logger.LogInformation(
+                "Postback {EventType} (eventId {EventId}) for lead '{LeadId}' is a duplicate, skipping funnel transition",
+                postbackEventType, payload.EventId, payload.LeadId);
+            return;
         }
 
         if (leadState.CampaignId is null)

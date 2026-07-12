@@ -11,5 +11,8 @@ public sealed record PostbackEventPayload(
     string? Currency,
     Guid TenantId,
     DateTime ReceivedAt,
-    Dictionary<string, string>? CustomFields
+    Dictionary<string, string>? CustomFields,
+    // Трекер сам дедуплицирует постбэки: DUPLICATE — повторная доставка уже принятого события.
+    // Если поле в сообщении отсутствует, считаем событие принятым.
+    PostbackEventStatus Status = PostbackEventStatus.ACCEPTED
 );

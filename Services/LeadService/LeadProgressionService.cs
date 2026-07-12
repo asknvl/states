@@ -589,10 +589,11 @@ public class LeadProgressionService : ILeadProgressionService
 
         if (leadStates.Count > 1)
         {
-            // Кампания может вести лида через несколько ботов — пока обрабатываем только первый
-            // найденный leadState, остальные боты этого лида не переместятся.
+            // Кампания может вести лида через несколько ботов. Перемещаем только самое первое
+            // состояние лида (создано при входе лида в воронку) — репозиторий возвращает состояния
+            // отсортированными по createdAt, так что [0] — именно оно. Остальные не переместятся.
             logger.LogWarning(
-                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the first one",
+                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the earliest one",
                 leadId, tenantId, leadStates.Count);
         }
 

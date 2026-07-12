@@ -357,6 +357,15 @@ namespace states.Mongo
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.SpaceId)
                         .Ascending(x => x.LeadId)
+                        .Ascending(x => x.CreatedAt)),
+
+                // ComputeDepositAggregates (пересчёт депозитных агрегатов в lead_states): фильтр по
+                // tenantId+leadId без spaceId и сортировка по createdAt. Residual-фильтр по типу
+                // события (_t) и статусу дешёвый — событий на одного лида немного.
+                new CreateIndexModel<LeadEventBaseDocument>(
+                    Builders<LeadEventBaseDocument>.IndexKeys
+                        .Ascending(x => x.TenantId)
+                        .Ascending(x => x.LeadId)
                         .Ascending(x => x.CreatedAt))
             };
 
