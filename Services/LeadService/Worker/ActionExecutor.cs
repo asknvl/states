@@ -75,6 +75,11 @@ public class ActionExecutor : IActionExecutor
                 await ExecuteSendWebhook(sendWebhook, ct);
                 break;
 
+            case MarkReadActionTaskDocument markRead:
+                logger.LogInformation("ActionExecutor Execute ExecuteMarkRead");
+                await ExecuteMarkRead(markRead, ct);
+                break;
+
             default:
                 throw new InvalidOperationException($"Unknown action task type: {task.GetType().Name}");
         }
@@ -294,6 +299,16 @@ public class ActionExecutor : IActionExecutor
             await progressionService.TransitionToNextNode(task.LeadStateId, ct); 
         //else
         //    await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); //Оно и так вроде в вейтинге всегда в этом месте
+    }
+
+    private async Task ExecuteMarkRead(MarkReadActionTaskDocument task, CancellationToken ct)
+    {
+        await tgengine.ReadChatHistory(
+            task.TenantId,
+            task.SpaceId,
+            task.BotId,
+            task.ChatId,
+            ct);
     }
 
     private async Task ExecuteSendWebhook(SendWebhookActionTaskDocument task, CancellationToken ct)

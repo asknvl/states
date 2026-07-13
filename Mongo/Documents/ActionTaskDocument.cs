@@ -10,6 +10,7 @@ namespace states.Mongo.Documents;
 [BsonKnownTypes(typeof(AiReplyActionTaskDocument))]
 [BsonKnownTypes(typeof(AiRouterActionTaskDocument))]
 [BsonKnownTypes(typeof(SendWebhookActionTaskDocument))]
+[BsonKnownTypes(typeof(MarkReadActionTaskDocument))]
 public abstract class ActionTaskDocument
 {
     [BsonId]
@@ -136,6 +137,20 @@ public sealed class AiRouterActionTaskDocument : ActionTaskDocument
     public Guid ChatId { get; set; }
 
     public AiRouterActionTaskDocument() : base(ActionType.AiRouter, isCritical: true) { }
+}
+
+// Реактивный таск «прочитать чат» — создаётся по входящему сигналу с задержкой ReadDelay воронки,
+// чтобы прочитка выглядела натурально (лид видит «прочитано» до ответа, а не вместе с ним).
+// Не входит в ActionsLog ноды и не влияет на переход по воронке.
+public sealed class MarkReadActionTaskDocument : ActionTaskDocument
+{
+    [BsonElement("botId")]
+    public Guid BotId { get; set; }
+
+    [BsonElement("chatId")]
+    public Guid ChatId { get; set; }
+
+    public MarkReadActionTaskDocument() : base(ActionType.MarkRead, isCritical: false) { }
 }
 
 public sealed class SendWebhookActionTaskDocument : ActionTaskDocument

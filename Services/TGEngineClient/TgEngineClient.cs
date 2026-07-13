@@ -47,6 +47,35 @@ public class TGEngineClient : ITGEngineClient
         response.EnsureSuccessStatusCode();
     }
 
+    public async Task ReadChatHistory(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        CancellationToken ct)
+    {
+        var body = new ReadHistoryDto(
+            tenantId,
+            spaceId,
+            botId,
+            chatId,
+            MaxMessageId: null);
+
+        HttpResponseMessage response;
+
+        try
+        {
+            response = await http.PostAsJsonAsync("/actions/read", body, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "TgEngineClient ReadChatHistory failed: chatId={ChatId}", chatId);
+            throw;
+        }
+
+        response.EnsureSuccessStatusCode();
+    }
+
     public async Task<List<ChatContextMessageDto>> GetContextMessages(
         Guid tenantId,
         Guid botId,

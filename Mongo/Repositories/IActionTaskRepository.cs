@@ -14,4 +14,5 @@ public interface IActionTaskRepository
     Task UnlockNext(Guid leadStateId, Guid nodeId, int completedOrder, CancellationToken ct);
     Task TryInsertAiReplyTask(AiReplyActionTaskDocument task, CancellationToken ct);
     Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct);
+    Task UpsertPendingMarkReadTask(MarkReadActionTaskDocument task, CancellationToken ct);
 }

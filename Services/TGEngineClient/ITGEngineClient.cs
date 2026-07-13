@@ -24,6 +24,13 @@ public interface ITGEngineClient
         string text,
         CancellationToken ct);
 
+    Task ReadChatHistory(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        CancellationToken ct);
+
     Task<List<ChatContextMessageDto>> GetContextMessages(
         Guid tenantId,
         Guid botId,

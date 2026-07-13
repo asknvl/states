@@ -7,6 +7,7 @@
         AiReply,
         AiRouter,
         SendWebhook,
-        SendPush
+        SendPush,
+        MarkRead
     }
 }

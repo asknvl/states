@@ -782,6 +782,27 @@ public class LeadProgressionService : ILeadProgressionService
 
             if (currentNode?.Data is AiReplyNodeData && flow is not null)
             {
+                // Прочитку ставим отдельным таском с задержкой ReadDelay — лид видит «прочитано»
+                // через несколько секунд после своего сообщения, а ответ приходит позже (натурально).
+                var readTask = new MarkReadActionTaskDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = leadState.TenantId,
+                    SpaceId = leadState.SpaceId,
+                    LeadStateId = leadState.Id,
+                    FunnelId = leadState.FunnelId.Value,
+                    FlowId = leadState.FlowId!.Value,
+                    NodeId = leadState.NodeId.Value,
+                    ActionId = Guid.CreateVersion7(),
+                    BotId = leadState.BotId,
+                    ChatId = leadState.ChatId,
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReadDelay),
+                    CreatedAt = DateTime.UtcNow,
+                    Order = 0
+                };
+
+                await actionTaskRepository.UpsertPendingMarkReadTask(readTask, ct);
+
                 var aiRouterEdges = AiRouterEdgeSelector.GetEligibleEdges(flow, leadState.NodeId.Value, leadState);
 
                 if (aiRouterEdges.Count > 0)
@@ -827,7 +848,8 @@ public class LeadProgressionService : ILeadProgressionService
                     ActionId = Guid.CreateVersion7(),
                     BotId = leadState.BotId,
                     ChatId = leadState.ChatId,
-                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReplyDelay),
+                    // ReplyDelay отсчитывается после прочитки: сначала «прочитано», потом пауза на ответ
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReadDelay + funnel.ReplyDelay),
                     CreatedAt = DateTime.UtcNow,
                     Order = 0,
                     TransitionAfterReply = hasPassOrSplit,

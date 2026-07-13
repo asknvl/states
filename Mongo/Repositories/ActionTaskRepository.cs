@@ -88,9 +88,12 @@ public class ActionTaskRepository : IActionTaskRepository
 
     public async Task CancelPendingByLead(Guid leadStateId, CancellationToken ct)
     {
+        // MarkRead не отменяем: прочитка уже полученных сообщений валидна независимо от того,
+        // на какую ноду перешёл лид (иначе переход по AiRouter гасил бы ещё не сработавшую прочитку).
         var filter = Builders<ActionTaskDocument>.Filter.And(
             Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, leadStateId),
-            Builders<ActionTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting })
+            Builders<ActionTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting }),
+            Builders<ActionTaskDocument>.Filter.Ne(x => x.Type, ActionType.MarkRead)
         );
 
         var update = Builders<ActionTaskDocument>.Update
@@ -124,6 +127,32 @@ public class ActionTaskRepository : IActionTaskRepository
         {
             // Уже есть активный (pending/in-progress) AiReply для этого лида — дубликат не нужен
         }
+    }
+
+    public async Task UpsertPendingMarkReadTask(MarkReadActionTaskDocument task, CancellationToken ct)
+    {
+        // Лид может прислать несколько сообщений подряд — вместо пачки тасков
+        // сдвигаем время прочитки у уже ожидающего (как человек: дочитывает всё разом).
+        var filter = Builders<ActionTaskDocument>.Filter.And(
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, task.LeadStateId),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.MarkRead),
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)
+        );
+
+        var taskBson = task.ToBsonDocument();
+        taskBson.Remove("scheduledAt");
+
+        var update = new BsonDocument
+        {
+            { "$set", new BsonDocument("scheduledAt", new BsonDateTime(task.ScheduledAt)) },
+            { "$setOnInsert", taskBson }
+        };
+
+        await collection.UpdateOneAsync(
+            filter,
+            new BsonDocumentUpdateDefinition<ActionTaskDocument>(update),
+            new UpdateOptions { IsUpsert = true },
+            ct);
     }
 
     public async Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct)
