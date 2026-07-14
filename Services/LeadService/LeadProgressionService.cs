@@ -780,10 +780,13 @@ public class LeadProgressionService : ILeadProgressionService
             var flow = funnel?.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
             var currentNode = flow?.Nodes.FirstOrDefault(n => n.Id == leadState.NodeId);
 
-            if (currentNode?.Data is AiReplyNodeData && flow is not null)
+            if (funnel is not null && leadState.FlowId.HasValue)
             {
                 // Прочитку ставим отдельным таском с задержкой ReadDelay — лид видит «прочитано»
                 // через несколько секунд после своего сообщения, а ответ приходит позже (натурально).
+                // Ставим на любой входящий сигнал, не только на AiReply-нодах: если сообщение
+                // триггерит переход в новую ноду, прочитка всё равно должна отработать
+                // (MarkRead переживает отмену тасков при переходе — см. CancelPendingByLead).
                 var readTask = new MarkReadActionTaskDocument
                 {
                     Id = Guid.CreateVersion7(),
@@ -791,18 +794,21 @@ public class LeadProgressionService : ILeadProgressionService
                     SpaceId = leadState.SpaceId,
                     LeadStateId = leadState.Id,
                     FunnelId = leadState.FunnelId.Value,
-                    FlowId = leadState.FlowId!.Value,
+                    FlowId = leadState.FlowId.Value,
                     NodeId = leadState.NodeId.Value,
                     ActionId = Guid.CreateVersion7(),
                     BotId = leadState.BotId,
                     ChatId = leadState.ChatId,
-                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel!.ReadDelay),
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel.ReadDelay),
                     CreatedAt = DateTime.UtcNow,
                     Order = 0
                 };
 
                 await actionTaskRepository.UpsertPendingMarkReadTask(readTask, ct);
+            }
 
+            if (currentNode?.Data is AiReplyNodeData && flow is not null)
+            {
                 var aiRouterEdges = AiRouterEdgeSelector.GetEligibleEdges(flow, leadState.NodeId.Value, leadState);
 
                 if (aiRouterEdges.Count > 0)
