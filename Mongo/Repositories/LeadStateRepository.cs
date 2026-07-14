@@ -811,20 +811,18 @@ public class LeadStateRepository : ILeadStateRepository
     #endregion
 
     #region private
+    // WithTransactionAsync сам повторяет транзакцию при TransientTransactionError
+    // (например, WriteConflict при конкурентной записи в тот же документ),
+    // поэтому action может выполниться несколько раз до успешного коммита.
     private async Task InTransaction(Func<IClientSessionHandle, Task> action, CancellationToken ct)
     {
         using var session = await collection.Database.Client.StartSessionAsync(cancellationToken: ct);
-        session.StartTransaction();
-        try
+
+        await session.WithTransactionAsync(async (s, _) =>
         {
-            await action(session);
-            await session.CommitTransactionAsync(ct);
-        }
-        catch
-        {
-            await session.AbortTransactionAsync();
-            throw;
-        }
+            await action(s);
+            return true;
+        }, cancellationToken: ct);
     }
     #endregion
 }

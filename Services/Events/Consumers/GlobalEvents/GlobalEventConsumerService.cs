@@ -43,43 +43,115 @@ public class GlobalEventConsumerService(
             "Kafka consumer started. Topic={Topic}, Group={Group}",
             topic, groupId);
 
-        while (!stoppingToken.IsCancellationRequested)
+        //while (!stoppingToken.IsCancellationRequested)
+        //{
+        //    ConsumeResult<string, string>? result = null;
+        //    try
+        //    {
+        //          result = consumer.Consume(stoppingToken);
+
+        //        var eventType = ExtractEventType(result.Message.Value);
+        //        if (eventType is null)
+        //        {
+        //            logger.LogWarning("Could not extract event type from message, skipping");
+        //            consumer.Commit(result);
+        //            continue;
+        //        }
+
+        //        await processor.Process(eventType, result.Message.Value, stoppingToken);
+        //        consumer.Commit(result);
+        //    }
+        //    catch (OperationCanceledException)
+        //    {
+        //        break;
+        //    }
+        //    catch (ConsumeException ex)
+        //    {
+        //        logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
+        //        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        logger.LogError(ex, "Unhandled error processing Kafka message");
+        //        if (result is not null)
+        //            consumer.Commit(result);
+        //    }
+        //}
+
+        //consumer.Close();
+        //logger.LogInformation("Kafka consumer stopped");
+
+        // try/finally гарантирует consumer.Close() (вежливый выход из группы, немедленный rebalance)
+        // при любом выходе из цикла — break, отмена или исключение, вылетевшее из catch-блока.
+        try
         {
-            ConsumeResult<string, string>? result = null;
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                  result = consumer.Consume(stoppingToken);
-
-                var eventType = ExtractEventType(result.Message.Value);
-                if (eventType is null)
+                ConsumeResult<string, string>? result = null;
+                try
                 {
-                    logger.LogWarning("Could not extract event type from message, skipping");
-                    consumer.Commit(result);
-                    continue;
-                }
+                    result = consumer.Consume(stoppingToken);
 
-                await processor.Process(eventType, result.Message.Value, stoppingToken);
-                consumer.Commit(result);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (ConsumeException ex)
-            {
-                logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Unhandled error processing Kafka message");
-                if (result is not null)
-                    consumer.Commit(result);
+                    var eventType = ExtractEventType(result.Message.Value);
+                    if (eventType is null)
+                    {
+                        logger.LogWarning("Could not extract event type from message, skipping");
+                        TryCommit(consumer, result);
+                        continue;
+                    }
+
+                    await processor.Process(eventType, result.Message.Value, stoppingToken);
+                    TryCommit(consumer, result);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+                catch (ConsumeException ex)
+                {
+                    logger.LogError(ex, "Kafka consume error: {Reason}", ex.Error.Reason);
+                    await SafeDelay(TimeSpan.FromSeconds(5), stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unhandled error processing Kafka message");
+                    if (result is not null)
+                        TryCommit(consumer, result);
+                }
             }
         }
+        finally
+        {
+            consumer.Close();
+            logger.LogInformation("Kafka consumer stopped");
+        }
+    }
 
-        consumer.Close();
-        logger.LogInformation("Kafka consumer stopped");
+    // Сбой коммита offset'а не должен ронять цикл: сообщение уже обработано,
+    // при повторной доставке обработчики идемпотентны (семантика at-least-once).
+    private void TryCommit(IConsumer<string, string> consumer, ConsumeResult<string, string> result)
+    {
+        try
+        {
+            consumer.Commit(result);
+        }
+        catch (KafkaException ex)
+        {
+            logger.LogError(ex, "Failed to commit offset {Offset}", result.TopicPartitionOffset);
+        }
+    }
+
+    // Пауза, устойчивая к отмене: OperationCanceledException из Task.Delay внутри catch-блока
+    // вылетел бы мимо consumer.Close(); здесь отмену гасим — цикл сам завершится по токену.
+    private static async Task SafeDelay(TimeSpan delay, CancellationToken ct)
+    {
+        try
+        {
+            await Task.Delay(delay, ct);
+        }
+        catch (OperationCanceledException)
+        {
+        }
     }
 
     private static string? ExtractEventType(string json)

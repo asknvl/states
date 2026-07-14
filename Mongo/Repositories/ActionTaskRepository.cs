@@ -17,8 +17,19 @@ public class ActionTaskRepository : IActionTaskRepository
     public async Task CreateMany(IEnumerable<ActionTaskDocument> tasks, CancellationToken ct)
     {
         var list = tasks.ToList();
-        if (list.Count > 0)
-            await collection.InsertManyAsync(list, cancellationToken: ct);
+        if (list.Count == 0)
+            return;
+
+        try
+        {
+            // IsOrdered = false: при конфликте по unique-индексу остальные таски пачки всё равно вставятся
+            await collection.InsertManyAsync(list, new InsertManyOptions { IsOrdered = false }, ct);
+        }
+        catch (MongoBulkWriteException<ActionTaskDocument> ex)
+            when (ex.WriteErrors.All(e => e.Code == 11000))
+        {
+            // Уже есть активный (pending/in-progress) AiReply для этого лида — дубликат не нужен
+        }
     }
 
     public async Task<ActionTaskDocument?> ClaimNext(CancellationToken ct)
