@@ -29,7 +29,10 @@ namespace states.Utils
                 ["flowName"] = leadState.FlowName,
                 ["nodeId"] = leadState.NodeId?.ToString(),
                 ["nodeLabel"] = leadState.NodeLabel,
-                ["status"] = leadState.Status.ToString()
+                ["status"] = leadState.Status.ToString(),
+                ["depValue"] = leadState.LastDepositAmount.ToString(),
+                ["depSum"] = leadState.TotalDepositAmount.ToString(),
+                ["depCount"] = leadState.DepositCount.ToString()
             };
 
             foreach (var kv in leadState.PostbackParameters)
