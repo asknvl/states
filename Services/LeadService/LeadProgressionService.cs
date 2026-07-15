@@ -589,15 +589,19 @@ public class LeadProgressionService : ILeadProgressionService
 
         if (leadStates.Count > 1)
         {
-            // Кампания может вести лида через несколько ботов. Перемещаем только самое первое
-            // состояние лида (создано при входе лида в воронку) — репозиторий возвращает состояния
-            // отсортированными по createdAt, так что [0] — именно оно. Остальные не переместятся.
+            // Кампания может вести лида через несколько ботов. Перемещаем только одно
+            // состояние лида — остальные не переместятся.
             logger.LogWarning(
-                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only the earliest one",
+                "Lead '{LeadId}' for tenant {TenantId} matched {Count} lead states, processing only one",
                 leadId, tenantId, leadStates.Count);
         }
 
-        var leadState = leadStates[0];
+        // Уникальный индекс (tenantId, funnelId, leadId) допускает только один стейт лида в воронке.
+        // Если один из стейтов уже находится в целевой воронке — двигать можно только его, попытка
+        // перевести туда любой другой стейт упадёт с E11000 DuplicateKey. Иначе берём самое первое
+        // состояние (создано при входе лида в воронку) — репозиторий возвращает список
+        // отсортированным по createdAt, так что [0] — именно оно.
+        var leadState = leadStates.FirstOrDefault(s => s.FunnelId == funnelId) ?? leadStates[0];
 
         var funnel = funnelCache.GetFunnel(funnelId)
             ?? throw new InvalidOperationException($"Funnel '{funnelId}' not found in cache.");

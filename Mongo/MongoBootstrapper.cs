@@ -139,6 +139,17 @@ namespace states.Mongo
         {
             var collection = database.GetCollection<FunnelLeadState>("lead_states");
 
+            // Устаревший уникальный индекс (funnelId, leadId) от старой версии кода — без tenantId.
+            // Заменён на (tenantId, funnelId, leadId) ниже. Дропаем по имени, если остался.
+            try
+            {
+                await collection.Indexes.DropOneAsync("funnelId_1_leadId_1", ct);
+            }
+            catch (MongoCommandException)
+            {
+                // индекса уже нет — ничего страшного
+            }
+
             var indexes = new List<CreateIndexModel<FunnelLeadState>>
             {
                 // один стейт на (тенант, воронка, лид); FunnelId=null — органика, тоже уникальна по (tenantId, null, leadId)
