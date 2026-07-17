@@ -837,7 +837,7 @@ public class LeadProgressionService : ILeadProgressionService
                     };
 
                     await actionTaskRepository.UpsertPendingAiRouterTask(task, ct);
-                    await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
+                    await leadStateRepository.TrySetWaitingIfStillOnNode(leadState.Id, leadState.NodeId.Value, ct);
                     return;
                 }
 
@@ -867,7 +867,7 @@ public class LeadProgressionService : ILeadProgressionService
                 };
 
                 await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
-                await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
+                await leadStateRepository.TrySetWaitingIfStillOnNode(leadState.Id, leadState.NodeId.Value, ct);
                 return;
             }
         }
@@ -881,9 +881,10 @@ public class LeadProgressionService : ILeadProgressionService
         if (!allDone)
         {
             // Actions ещё не завершены — возвращаем статус Waiting, сигнал проигнорируем.
-            await leadStateRepository.UpdateLeadStateStatus(leadState.Id, LeadFunnelStatus.Waiting, ct);
+            // currentLog здесь не null (иначе allDone == true), так что NodeId ноды известен.
+            await leadStateRepository.TrySetWaitingIfStillOnNode(leadState.Id, currentLog!.NodeId, ct);
             return;
-        }      
+        }
 
         await TransitionToNextNode(leadState.Id, ct);
     }

@@ -191,6 +191,47 @@ public class LeadStateRepository : ILeadStateRepository
         }, ct);
     }
 
+    // Waiting пишется обработчиком входящих сообщений уже после захвата лида (Claim), и эта запись
+    // гоняется с ExecuteTransition из воркера: если воркер успел перевести лида на следующую ноду,
+    // безусловный Set(Waiting) затёр бы FinishStatus новой ноды и заблокировал автопереход
+    // (guard Status == Nothing в ActionWorkerService). Поэтому пишем только если лид всё ещё
+    // на той же ноде со статусом Nothing — иначе молча выходим.
+    public async Task TrySetWaitingIfStillOnNode(Guid leadStateId, Guid nodeId, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.Id, leadStateId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.NodeId, nodeId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.Status, LeadFunnelStatus.Nothing));
+
+        var update = Builders<FunnelLeadState>.Update
+            .Set(x => x.Status, LeadFunnelStatus.Waiting)
+            .Inc(x => x.Version, 1);
+
+        await InTransaction(async session =>
+        {
+            var updated = await collection.FindOneAndUpdateAsync(
+                session, filter, update,
+                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                ct);
+
+            if (updated is null)
+                return;
+
+            await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
+            {
+                Id = Guid.CreateVersion7(),
+                CreatedAt = DateTime.UtcNow,
+                TenantId = updated.TenantId,
+                SpaceId = updated.SpaceId,
+                BotId = updated.BotId,
+                ChatId = updated.ChatId,
+                LeadId = updated.LeadId,
+                Version = updated.Version,
+                Status = updated.Status
+            }, cancellationToken: ct);
+        }, ct);
+    }
+
     #region for chats
     public async Task UpdateLeadStateStatusByChatId(Guid chatId, LeadFunnelStatus status, CancellationToken ct)
     {

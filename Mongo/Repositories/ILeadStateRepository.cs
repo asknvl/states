@@ -41,6 +41,10 @@ public interface ILeadStateRepository
     Task MarkPushCompleted(Guid leadStateId, Guid pushId, CancellationToken ct);
     Task UpdateTag(Guid leadStateId, TagOperation operation, Tag tagId, Tag replacementTag, CancellationToken ct);    
     Task UpdateLeadStateStatus(Guid leadStateId, LeadFunnelStatus status, CancellationToken ct);
+
+    // Возвращает лида в Waiting, только если он всё ещё стоит на ноде nodeId со статусом Nothing.
+    // Если лид уже переведён на другую ноду (или статус сменили на Manual/Blocked) — ничего не пишет.
+    Task TrySetWaitingIfStillOnNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task SetIsTranslatorOn(Guid leadStateId, bool? isInputTranslatorOn, bool? isOutputTranslatorOn, CancellationToken ct);
 
     Task SaveTags(Guid leadStateId, List<Tag> tags, CancellationToken ct);
