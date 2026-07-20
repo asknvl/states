@@ -78,5 +78,18 @@ namespace states.Controllers
                 ct);
             return NoContent();
         }
+
+        // Разовая обслуживающая операция: переотправляет депозитные события по всем лидам с
+        // депозитами, чтобы заполнить lead_deposits в tgengine (значения уже есть в Mongo, но
+        // до внедрения события не доезжали в Postgres). Идемпотентно — можно вызывать повторно.
+        // ВНИМАНИЕ: закрыть на уровне инфраструктуры (внутренняя сеть / шлюз), это не публичный API.
+        [HttpPost("maintenance/backfill-deposits")]
+        [SwaggerOperation(Summary = "One-off: re-emits deposit events for all leads with deposits to backfill tgengine")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<IActionResult> BackfillDeposits(CancellationToken ct)
+        {
+            var leadsProcessed = await leadProgressionService.BackfillDeposits(ct);
+            return Ok(new { leadsProcessed });
+        }
     }
 }

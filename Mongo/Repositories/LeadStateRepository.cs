@@ -701,6 +701,10 @@ public class LeadStateRepository : ILeadStateRepository
     // а пересчитываем их из лога событий и проставляем одинаковые значения во все
     // FunnelLeadState лида (депозит относится к лиду, а не к конкретному боту).
     // Заодно это чинит уже разъехавшиеся документы при следующем депозите.
+    // Обновляем состояния по одному (а не UpdateMany), чтобы на каждое выставить свою version
+    // и записать в ту же транзакцию LeadDepositChangedOutboxDocument с его botId/chatId — по
+    // аналогии с MergePostbackParameters. Событие несёт полный снапшот агрегатов, поэтому веер
+    // одинаковых значений по чатам лида безопасен: потребитель делает last-write-wins upsert.
     public async Task RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct)
     {
         await InTransaction(async session =>
@@ -709,20 +713,65 @@ public class LeadStateRepository : ILeadStateRepository
             if (deposits is null)
                 return;
 
-            var filter = Builders<FunnelLeadState>.Filter.And(
-                Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
-                Builders<FunnelLeadState>.Filter.Eq(x => x.LeadId, leadId));
+            var states = await collection
+                .Find(session, x => x.TenantId == tenantId && x.LeadId == leadId)
+                .ToListAsync(ct);
 
-            var update = Builders<FunnelLeadState>.Update
-                .Set(x => x.TotalDepositAmount, deposits.Total)
-                .Set(x => x.FirstDepositAmount, deposits.First)
-                .Set(x => x.LastDepositAmount, deposits.Last)
-                .Set(x => x.DepositCount, deposits.Count)
-                .Set(x => x.CurrencyCode, deposits.CurrencyCode)
-                .Inc(x => x.Version, 1);
+            foreach (var state in states)
+            {
+                var filter = Builders<FunnelLeadState>.Filter.Eq(x => x.Id, state.Id);
+                var update = Builders<FunnelLeadState>.Update
+                    .Set(x => x.TotalDepositAmount, deposits.Total)
+                    .Set(x => x.FirstDepositAmount, deposits.First)
+                    .Set(x => x.LastDepositAmount, deposits.Last)
+                    .Set(x => x.DepositCount, deposits.Count)
+                    .Set(x => x.CurrencyCode, deposits.CurrencyCode)
+                    .Inc(x => x.Version, 1);
 
-            await collection.UpdateManyAsync(session, filter, update, cancellationToken: ct);
+                var updated = await collection.FindOneAndUpdateAsync(
+                    session, filter, update,
+                    new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
+                    ct);
+
+                if (updated is null)
+                    continue;
+
+                await outbox.InsertOneAsync(session, new LeadDepositChangedOutboxDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = updated.TenantId,
+                    SpaceId = updated.SpaceId,
+                    BotId = updated.BotId,
+                    ChatId = updated.ChatId,
+                    LeadId = updated.LeadId,
+                    Version = updated.Version,
+                    TotalDepositAmount = updated.TotalDepositAmount,
+                    FirstDepositAmount = updated.FirstDepositAmount,
+                    LastDepositAmount = updated.LastDepositAmount,
+                    DepositCount = updated.DepositCount,
+                    CurrencyCode = updated.CurrencyCode
+                }, cancellationToken: ct);
+            }
         }, ct);
+    }
+
+    // Для разового бэкфилла: собираем уникальных лидов с депозитами. Один лид может встречаться
+    // в нескольких FunnelLeadState (мультибот-кампания), поэтому дедупим по (tenantId, leadId) —
+    // RecalculateDeposits затем сам разошлёт события на все состояния лида.
+    public async Task<IReadOnlyList<(Guid TenantId, string LeadId)>> GetLeadIdsWithDeposits(CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.Gt(x => x.DepositCount, 0);
+
+        var keys = await collection
+            .Find(filter)
+            .Project(x => new { x.TenantId, x.LeadId })
+            .ToListAsync(ct);
+
+        return keys
+            .Select(k => (k.TenantId, k.LeadId))
+            .Distinct()
+            .ToList();
     }
 
     private sealed record DepositAggregates(decimal Total, decimal First, decimal Last, int Count, string CurrencyCode);

@@ -13,4 +13,9 @@ public interface ILeadProgressionService
     Task MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct);
     Task ExecuteTransitionByEdge(Guid leadStateId, Guid edgeId, CancellationToken ct);
     Task UpdateLeadStateByChatId(Guid tenantId, Guid spaceId, Guid botId, Guid chatId, SetLeadStateRequest dto, CancellationToken ct);
+
+    // Разовый бэкфилл: переотправляет депозитные события по всем лидам с депозитами, чтобы
+    // заполнить lead_deposits в tgengine. Идемпотентно (upsert last-write-wins). Возвращает
+    // число обработанных лидов.
+    Task<int> BackfillDeposits(CancellationToken ct);
 }

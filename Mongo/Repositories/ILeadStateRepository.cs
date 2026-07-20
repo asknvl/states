@@ -22,6 +22,10 @@ public interface ILeadStateRepository
     // (SALE/RESALE) и проставляет их во все FunnelLeadState с данным leadId. Вызывается после
     // записи очередного депозитного события.
     Task RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct);
+
+    // Уникальные (tenantId, leadId) всех лидов, у которых есть депозиты — для разового бэкфилла
+    // депозитов в tgengine (переотправка событий через RecalculateDeposits).
+    Task<IReadOnlyList<(Guid TenantId, string LeadId)>> GetLeadIdsWithDeposits(CancellationToken ct);
     //Task MoveToNode(Guid leadStateId, Guid edgeId, Guid nextNodeId, List<ActionStatusEntry> actions, CancellationToken ct);
 
     Task SetLeadFunnelPosition(

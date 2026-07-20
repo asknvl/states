@@ -757,6 +757,29 @@ public class LeadProgressionService : ILeadProgressionService
             logger.LogInformation("Lead {LeadStateId} translator set to input={IsInputTranslatorOn}, output={IsOutputTranslatorOn}", leadState.Id, dto.IsInputTranslatorOn, dto.IsOutputTranslatorOn);
         }
     }
+
+    public async Task<int> BackfillDeposits(CancellationToken ct)
+    {
+        var leads = await leadStateRepository.GetLeadIdsWithDeposits(ct);
+        logger.LogInformation("Deposit backfill started: {Count} leads with deposits", leads.Count);
+
+        var processed = 0;
+        foreach (var (tenantId, leadId) in leads)
+        {
+            ct.ThrowIfCancellationRequested();
+
+            // Тот же путь, что при обычном депозите: пересчёт из leadEvents + веер outbox-событий
+            // на все состояния лида. OutboxWorkerService уже разошлёт их в tgengine.
+            await leadStateRepository.RecalculateDeposits(tenantId, leadId, ct);
+            processed++;
+
+            if (processed % 500 == 0)
+                logger.LogInformation("Deposit backfill progress: {Processed}/{Total}", processed, leads.Count);
+        }
+
+        logger.LogInformation("Deposit backfill finished: {Processed} leads processed", processed);
+        return processed;
+    }
     public async Task HandleIncomingSignal(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
     {
 
