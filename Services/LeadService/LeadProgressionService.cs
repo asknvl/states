@@ -562,6 +562,7 @@ public class LeadProgressionService : ILeadProgressionService
                 status: nodeStatus,
                 actionStatusEntries,
                 exitEdgeId: selectedEdge.Id,
+                preserveBlocked: false,
                 ct
             );
 
@@ -603,6 +604,11 @@ public class LeadProgressionService : ILeadProgressionService
         // отсортированным по createdAt, так что [0] — именно оно.
         var leadState = leadStates.FirstOrDefault(s => s.FunnelId == funnelId) ?? leadStates[0];
 
+        // Лид заблокировал бота (написать ему нельзя). Постбэк всё равно двигает его по воронке,
+        // но статус оставляем Blocked, а целевой пишем в PreBlockStatus. Задачи текущей ноды не
+        // создаём — они упали бы с 403; их пересоздаст RearmCurrentNodeActions после разблокировки.
+        var isBlocked = leadState.Status == LeadFunnelStatus.Blocked;
+
         var funnel = funnelCache.GetFunnel(funnelId)
             ?? throw new InvalidOperationException($"Funnel '{funnelId}' not found in cache.");
 
@@ -618,8 +624,8 @@ public class LeadProgressionService : ILeadProgressionService
         leadState.FlowId = flowId;
         leadState.NodeId = nodeId;
 
-        var actionTasks = CreateActionTasks(leadState, node);
-        var pushTasks = CreatePushTasks(leadState, node);
+        var actionTasks = isBlocked ? [] : CreateActionTasks(leadState, node);
+        var pushTasks = isBlocked ? [] : CreatePushTasks(leadState, node);
 
         var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
         {
@@ -640,15 +646,16 @@ public class LeadProgressionService : ILeadProgressionService
             node.Data.FinishStatus,
             actionStatusEntries,
             exitEdgeId: null,
+            preserveBlocked: isBlocked,
             ct);
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
         await pushTaskRepository.CreateMany(pushTasks, ct);
 
-        logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}",
-            leadState.Id, flowId, nodeId);
+        logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}, blocked={IsBlocked}",
+            leadState.Id, flowId, nodeId, isBlocked);
 
-        if (actionTasks.Count == 0 && node.Data.FinishStatus != LeadFunnelStatus.Waiting)
+        if (!isBlocked && actionTasks.Count == 0 && node.Data.FinishStatus != LeadFunnelStatus.Waiting)
             await TransitionToNextNode(leadState.Id, ct);
     }
 

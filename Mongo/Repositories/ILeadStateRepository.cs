@@ -39,6 +39,7 @@ public interface ILeadStateRepository
         LeadFunnelStatus status,
         List<ActionStatusEntry> actions,
         Guid? exitEdgeId,
+        bool preserveBlocked,
         CancellationToken ct);
 
     Task UpdateActionStatus(Guid leadStateId, Guid nodeId, Guid actionId, ActionStatus status, CancellationToken ct, string? errorMessage = null);

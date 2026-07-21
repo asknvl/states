@@ -414,6 +414,7 @@ public class LeadStateRepository : ILeadStateRepository
         LeadFunnelStatus status,
         List<ActionStatusEntry> actions,
         Guid? exitEdgeId,
+        bool preserveBlocked,
         CancellationToken ct)
     {
         var now = DateTime.UtcNow;
@@ -425,10 +426,16 @@ public class LeadStateRepository : ILeadStateRepository
             .Set(x => x.FlowId, flowId)
             .Set(x => x.FlowName, flowName)
             .Set(x => x.NodeId, nodeId)
-            .Set(x => x.Status, status)
             .Set(x => x.NodeLabel, nodeLabel)
             .Set("statesLog.$[currentState].leftAt", now)
             .Set("statesLog.$[currentState].exitEdgeId", exitEdgeId);
+
+        // Заблокированный лид остаётся Blocked при перемещении по воронке (постбэком): целевой
+        // статус кладём в PreBlockStatus, чтобы UnblockByChatId восстановил именно его после
+        // того, как лид разблокирует бота. Иначе пишем статус напрямую (обычный переход).
+        closeCurrentState = preserveBlocked
+            ? closeCurrentState.Set(x => x.PreBlockStatus, status)
+            : closeCurrentState.Set(x => x.Status, status);
 
         var arrayFilters = new List<ArrayFilterDefinition>
         {
