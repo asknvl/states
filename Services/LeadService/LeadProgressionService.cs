@@ -220,23 +220,44 @@ public class LeadProgressionService : ILeadProgressionService
 
         var now = DateTime.UtcNow;
 
-        // Расписание считаем от первого входа в ноду, а не от текущего возвращения — иначе повторный
-        // переход в ту же ноду сдвигал бы тайминг оставшихся пушей вперёд на каждый revisit.
-        var firstEnteredAt = leadState.StatesLog
-            .Where(s => s.NodeId == node.Id)
-            .Select(s => s.EnteredAt)
-            .DefaultIfEmpty(now)
-            .Min();
+        // Пуши AiReply-нод — «таймеры неактивности»: отправляются, только пока лид молчит.
+        var isInactivity = node.Data is AiReplyNodeData;
 
-        // Накопление задержки считаем по полному конфигу пушей ноды (включая уже отправленные),
-        // чтобы delay каждого пуша остался отсчитан от предыдущего так же, как при первом входе.
         var scheduleByPushId = new Dictionary<Guid, DateTime>();
-        var cumulative = firstEnteredAt;
-        foreach (var p in nodePushes)
+
+        if (isInactivity)
         {
-            if (p.Delay.HasValue)
-                cumulative += p.Delay.Value;
-            scheduleByPushId[p.Id] = cumulative;
+            // Якорь — текущий вход в ноду (вход = активность лида, таймер сбрасывается), delay
+            // накапливается только по ещё не отправленным пушам. Дальше расписанием управляет
+            // PushWorkerService: откладывает пуш по LastIncomingAt и перезаякоривает следующий
+            // в цепочке от фактической отправки предыдущего (см. UnlockNext).
+            var cumulative = now;
+            foreach (var p in pushes)
+            {
+                if (p.Delay.HasValue)
+                    cumulative += p.Delay.Value;
+                scheduleByPushId[p.Id] = cumulative;
+            }
+        }
+        else
+        {
+            // Расписание считаем от первого входа в ноду, а не от текущего возвращения — иначе повторный
+            // переход в ту же ноду сдвигал бы тайминг оставшихся пушей вперёд на каждый revisit.
+            var firstEnteredAt = leadState.StatesLog
+                .Where(s => s.NodeId == node.Id)
+                .Select(s => s.EnteredAt)
+                .DefaultIfEmpty(now)
+                .Min();
+
+            // Накопление задержки считаем по полному конфигу пушей ноды (включая уже отправленные),
+            // чтобы delay каждого пуша остался отсчитан от предыдущего так же, как при первом входе.
+            var cumulative = firstEnteredAt;
+            foreach (var p in nodePushes)
+            {
+                if (p.Delay.HasValue)
+                    cumulative += p.Delay.Value;
+                scheduleByPushId[p.Id] = cumulative;
+            }
         }
 
         var pushTasks = new List<PushTaskDocument>();
@@ -262,7 +283,9 @@ public class LeadProgressionService : ILeadProgressionService
 
                 BotId = leadState.BotId,
                 ChatId = leadState.ChatId,
-                PresetId = push.PresetId
+                PresetId = push.PresetId,
+                Delay = push.Delay,
+                IsInactivityPush = isInactivity
             });
         }
 
@@ -291,12 +314,13 @@ public class LeadProgressionService : ILeadProgressionService
             return;
 
         // AiReply-ноды сами пересоздают себе AiRouter/AiReply задачу на каждый входящий сигнал
-        // (см. блок ниже в HandleIncomingSignal) — рармить их тут не нужно, иначе статус лишний
-        // раз дёргается Waiting → Nothing → Waiting на одном и том же сообщении.
-        if (node.Data is AiReplyNodeData)
-            return;
+        // (см. блок ниже в HandleIncomingSignal) — рармить их action-таски тут не нужно, иначе
+        // статус лишний раз дёргается Waiting → Nothing → Waiting на одном и том же сообщении.
+        // А вот push-таски входящий сигнал не пересоздаёт — их рармим и для AiReply-нод, иначе
+        // после разблокировки лид на AiReply-ноде остался бы без пушей.
+        var isAiReplyNode = node.Data is AiReplyNodeData;
 
-        var actionTasks = CreateActionTasks(leadState, node);
+        var actionTasks = isAiReplyNode ? [] : CreateActionTasks(leadState, node);
         var pushTasks = CreatePushTasks(leadState, node);
         if (actionTasks.Count == 0 && pushTasks.Count == 0)
             return;
@@ -789,6 +813,10 @@ public class LeadProgressionService : ILeadProgressionService
     }
     public async Task HandleIncomingSignal(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
     {
+        // Фиксируем время сообщения до захвата лида — дата должна обновиться, даже если сигнал
+        // дальше будет проигнорирован (лид уже захвачен другим воркером, actions не завершены и т.п.).
+        // По ней PushWorkerService откладывает inactivity-пуши AiReply-нод.
+        await leadStateRepository.SetLastIncomingAt(tenantId, botId, chatId, DateTime.UtcNow, ct);
 
         // Атомарно захватываем лид: переводим Waiting → Nothing только если статус ещё Waiting.
         // Если другой воркер уже захватил — вернётся null, и мы просто выходим.

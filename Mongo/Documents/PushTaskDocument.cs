@@ -53,4 +53,16 @@ public sealed class PushTaskDocument
 
     [BsonElement("presetId")]
     public Guid PresetId { get; set; }
+
+    // Собственный delay пуша из конфига ноды (не накопленный). Нужен воркеру, чтобы пересчитать
+    // ScheduledAt без похода в конфиг воронки: якорь таска = ScheduledAt - Delay.
+    [BsonElement("delay")]
+    public TimeSpan? Delay { get; set; }
+
+    // Пуш AiReply-ноды — «таймер неактивности»: отправляется только если лид молчит. Для таких
+    // тасков воркер перед отправкой сверяет якорь с FunnelLeadState.LastIncomingAt и при
+    // необходимости откладывает отправку (см. PushWorkerService), а UnlockNext перезаякоривает
+    // следующий пуш цепочки от момента фактической отправки предыдущего.
+    [BsonElement("isInactivityPush")]
+    public bool IsInactivityPush { get; set; }
 }

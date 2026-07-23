@@ -59,6 +59,10 @@ public interface ILeadStateRepository
     // документ только при первом вызове; если контакт уже был или лид не найден — null.
     Task<FunnelLeadState?> TryMarkFirstContact(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
 
+    // Проставляет LastIncomingAt всем стейтам чата (UpdateMany — на случай нескольких стейтов
+    // с одним chatId). Вызывается на каждый message signal до захвата лида.
+    Task SetLastIncomingAt(Guid tenantId, Guid botId, Guid chatId, DateTime at, CancellationToken ct);
+
     Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct);

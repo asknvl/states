@@ -68,6 +68,28 @@ public sealed class PushWorkerService : BackgroundService
         {
             logger.LogInformation($"PushWorkerService Processing Task: {task.Id}");
 
+            // Inactivity-пуш (AiReply-нода) отправляем, только если лид молчал весь свой delay.
+            // Якорь таска = ScheduledAt - Delay; если лид писал после якоря — переносим отправку
+            // на LastIncomingAt + Delay. Проверка в момент отправки самовосстанавливающаяся:
+            // сколько бы сообщений ни пришло, таск просто едет вперёд, пока delay тишины не выдержан.
+            if (task.IsInactivityPush)
+            {
+                var delay = task.Delay ?? TimeSpan.Zero;
+                var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
+
+                if (leadState.LastIncomingAt is { } lastIncoming && lastIncoming > task.ScheduledAt - delay)
+                {
+                    var newScheduledAt = lastIncoming + delay;
+
+                    await taskRepository.Reschedule(task.Id, newScheduledAt, ct);
+
+                    logger.LogInformation(
+                        "Push task {TaskId} rescheduled to {NewScheduledAt} for lead {LeadStateId} — lead wrote at {LastIncomingAt}",
+                        task.Id, newScheduledAt, task.LeadStateId, lastIncoming);
+                    return;
+                }
+            }
+
             await pushExecutor.Execute(task, ct);
             await leadStateRepository.MarkPushCompleted(task.LeadStateId, task.PushId, ct);
             await taskRepository.Complete(task.Id, ct);

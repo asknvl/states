@@ -70,8 +70,30 @@ public class PushTaskRepository : IPushTaskRepository
             Builders<PushTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Waiting)
         );
 
+        // Waiting-таск разблокирует только воркер, завершивший предыдущий пуш этой же цепочки,
+        // поэтому read-then-update здесь без гонок.
+        var next = await collection.Find(filter).FirstOrDefaultAsync(ct);
+        if (next is null)
+            return;
+
         var update = Builders<PushTaskDocument>.Update.Set(x => x.Status, ActionStatus.Pending);
 
+        // Delay inactivity-пуша отсчитывается от фактической отправки предыдущего, а не от
+        // расписания, посчитанного при входе в ноду: если предыдущий пуш был отложен из-за
+        // сообщений лида, цепочка сдвигается вслед за ним.
+        if (next.IsInactivityPush)
+            update = update.Set(x => x.ScheduledAt, DateTime.UtcNow + (next.Delay ?? TimeSpan.Zero));
+
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+    }
+
+    public async Task Reschedule(Guid taskId, DateTime newScheduledAt, CancellationToken ct)
+    {
+        var update = Builders<PushTaskDocument>.Update
+            .Set(x => x.Status, ActionStatus.Pending)
+            .Set(x => x.ScheduledAt, newScheduledAt)
+            .Set(x => x.ClaimedAt, (DateTime?)null);
+
+        await collection.UpdateOneAsync(x => x.Id == taskId, update, cancellationToken: ct);
     }
 }

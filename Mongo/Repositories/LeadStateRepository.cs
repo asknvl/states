@@ -285,6 +285,21 @@ public class LeadStateRepository : ILeadStateRepository
             new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After }, ct);
     }
 
+    public async Task SetLastIncomingAt(Guid tenantId, Guid botId, Guid chatId, DateTime at, CancellationToken ct)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId));
+
+        var update = Builders<FunnelLeadState>.Update
+            .Max(x => x.LastIncomingAt, at);
+
+        // $max вместо $set — при переупорядоченной обработке конкурентных сигналов
+        // дата не откатится назад.
+        await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+    }
+
     public async Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct)
     {
         var existing = await collection.Find(x => x.ChatId == chatId).FirstOrDefaultAsync(ct);

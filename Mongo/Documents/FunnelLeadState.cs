@@ -124,6 +124,12 @@ namespace states.Mongo.Documents
         [BsonElement("firstContactAt")]
         public DateTime? FirstContactAt { get; set; }
 
+        // Момент последнего входящего сообщения лида. Обновляется на каждый message signal до
+        // захвата лида (см. HandleIncomingSignal), поэтому актуален даже когда сам сигнал
+        // проигнорирован. По нему PushWorkerService сдвигает inactivity-пуши AiReply-нод.
+        [BsonElement("lastIncomingAt")]
+        public DateTime? LastIncomingAt { get; set; }
+
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
