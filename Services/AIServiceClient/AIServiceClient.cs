@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using aiservice.Dtos.APIs.Reply;
@@ -14,78 +14,62 @@ namespace states.Services.AIServiceClient
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         };
 
-        public async Task<RouteResponseDto> RouteAsync(RouteRequestDto request, CancellationToken ct)
+        public Task<RouteResponseDto> RouteAsync(RouteRequestDto request, CancellationToken ct) =>
+            PostAsync<RouteRequestDto, RouteResponseDto>("/route", request, ct);
+
+        public Task<ReplyResponseDto> ReplyAsync(ReplyRequestDto request, CancellationToken ct) =>
+            PostAsync<ReplyRequestDto, ReplyResponseDto>("/reply", request, ct);
+
+        private async Task<TResponse> PostAsync<TRequest, TResponse>(string path, TRequest request, CancellationToken ct)
         {
             HttpResponseMessage response;
             string responseText;
 
             try
             {
-                response = await http.PostAsJsonAsync("/route", request, JsonOptions, ct);
+                response = await http.PostAsJsonAsync(path, request, JsonOptions, ct);
 
                 responseText = await response.Content.ReadAsStringAsync(ct);
 
                 logger.LogInformation(
-                    "AIServiceClient Route response: StatusCode={StatusCode}, Body={Body}",
+                    "AIServiceClient {Path} response: StatusCode={StatusCode}, Body={Body}",
+                    path,
                     response.StatusCode,
                     responseText);
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
-                logger.LogError(ex, "AIServiceClient /route request failed");
-                throw;
+                logger.LogError(ex, "AIServiceClient {Path} request failed", path);
+                throw new TransientActionException($"AIServiceClient {path} request failed: {ex.Message}", ex);
             }
+            catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+            {
+                logger.LogError(ex, "AIServiceClient {Path} request timed out", path);
+                throw new TransientActionException($"AIServiceClient {path} request timed out", ex);
+            }
+
+            var status = (int)response.StatusCode;
+
+            // Контракт aiservice: 429/502 (и любые 5xx/408) — временная ошибка, ретраим;
+            // остальные 4xx (400/404/422) — ошибка конфигурации или отвергнутый запрос, ретрай не поможет.
+            if (status is 408 or 429 or >= 500)
+                throw new TransientActionException($"AIServiceClient {path} returned {status}: {responseText}");
 
             response.EnsureSuccessStatusCode();
 
             if (string.IsNullOrWhiteSpace(responseText))
             {
+                // 2xx без тела — оборванный ответ, считаем временной ошибкой
                 logger.LogError(
-                    "AIServiceClient /route returned success status {StatusCode} but an empty body",
+                    "AIServiceClient {Path} returned success status {StatusCode} but an empty body",
+                    path,
                     response.StatusCode);
-                throw new InvalidOperationException(
-                    $"AIServiceClient /route returned an empty body with status {(int)response.StatusCode}");
+                throw new TransientActionException(
+                    $"AIServiceClient {path} returned an empty body with status {status}");
             }
 
-            return JsonSerializer.Deserialize<RouteResponseDto>(responseText, JsonOptions)
-                   ?? throw new InvalidOperationException("AIServiceClient /route returned null response");
-        }
-
-        public async Task<ReplyResponseDto> ReplyAsync(ReplyRequestDto request, CancellationToken ct)
-        {
-            HttpResponseMessage response;
-            string responseText;
-
-            try
-            {
-                response = await http.PostAsJsonAsync("/reply", request, JsonOptions, ct);
-
-                responseText = await response.Content.ReadAsStringAsync(ct);
-
-                logger.LogInformation(
-                    "AIServiceClient Reply response: StatusCode={StatusCode}, Body={Body}",
-                    response.StatusCode,
-                    responseText);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "AIServiceClient /reply request failed");
-                throw;
-            }
-
-            response.EnsureSuccessStatusCode();
-
-            if (string.IsNullOrWhiteSpace(responseText))
-            {
-                logger.LogError(
-                    "AIServiceClient /reply returned success status {StatusCode} but an empty body",
-                    response.StatusCode);
-                throw new InvalidOperationException(
-                    $"AIServiceClient /reply returned an empty body with status {(int)response.StatusCode}");
-            }
-
-            return JsonSerializer.Deserialize<ReplyResponseDto>(responseText, JsonOptions)
-                   ?? throw new InvalidOperationException("AIServiceClient /reply returned null response");
+            return JsonSerializer.Deserialize<TResponse>(responseText, JsonOptions)
+                   ?? throw new InvalidOperationException($"AIServiceClient {path} returned null response");
         }
     }
 }

@@ -1,5 +1,6 @@
 using states.Mongo.Documents;
 using states.Mongo.Repositories;
+using states.Services;
 
 namespace states.Services.LeadService.Worker;
 
@@ -13,6 +14,12 @@ public sealed class ActionWorkerService : BackgroundService
 
     private readonly TimeSpan pollingInterval = TimeSpan.FromSeconds(1);
     private readonly int maxConcurrency = 10;
+
+    // Ретраи transient-ошибок: 30с → 1м → 2м → 4м → 8м (±20% джиттера), итого ~15 минут,
+    // после чего обычный Fail (+Manual для критичных тасок).
+    private const int MaxRetryAttempts = 5;
+    private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan RetryMaxDelay = TimeSpan.FromMinutes(10);
 
     public ActionWorkerService(
         IActionTaskRepository taskRepository,
@@ -98,6 +105,16 @@ public sealed class ActionWorkerService : BackgroundService
         {
             // shutting down
         }
+        catch (TransientActionException ex) when (task.Attempt < MaxRetryAttempts)
+        {
+            var delay = ComputeRetryDelay(task.Attempt);
+
+            logger.LogWarning(ex,
+                "Action task {TaskId} transient failure (attempt {Attempt}/{MaxAttempts}), retry in {Delay} for lead {LeadStateId}",
+                task.Id, task.Attempt + 1, MaxRetryAttempts, delay, task.LeadStateId);
+
+            await taskRepository.Reschedule(task.Id, DateTime.UtcNow + delay, ct);
+        }
         catch (Exception ex)
         {
             logger.LogError(ex, "Action task {TaskId} failed", task.Id);
@@ -114,5 +131,17 @@ public sealed class ActionWorkerService : BackgroundService
         {
             semaphore.Release();
         }
+    }
+
+    private static TimeSpan ComputeRetryDelay(int attempt)
+    {
+        var backoff = RetryBaseDelay * Math.Pow(2, attempt);
+        if (backoff > RetryMaxDelay)
+            backoff = RetryMaxDelay;
+
+        // Джиттер ±20%: таски, упавшие одновременно при недоступном aiservice,
+        // не ударят по нему одной пачкой при восстановлении
+        var jitter = 0.8 + Random.Shared.NextDouble() * 0.4;
+        return backoff * jitter;
     }
 }

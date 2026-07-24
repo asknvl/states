@@ -8,6 +8,7 @@ public interface IActionTaskRepository
     Task<ActionTaskDocument?> ClaimNext(CancellationToken ct);
     Task Complete(Guid taskId, CancellationToken ct);
     Task Fail(Guid taskId, CancellationToken ct);
+    Task Reschedule(Guid taskId, DateTime nextAttemptAt, CancellationToken ct);
     Task<List<ActionTaskDocument>> GetByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task CancelPendingByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task CancelPendingByLead(Guid leadStateId, CancellationToken ct);

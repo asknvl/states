@@ -61,6 +61,12 @@ public abstract class ActionTaskDocument
     [BsonElement("order")]
     public int Order { get; set; }
 
+    // Сколько раз таска перепланировалась после transient-ошибки (0 — первая попытка).
+    // Инкрементируется только в Reschedule и не сбрасывается — «в ретрае в моменте»:
+    // { attempt: { $gt: 0 }, status: { $in: ["Pending", "InProgress"] } }.
+    [BsonElement("attempt")]
+    public int Attempt { get; set; }
+
     [BsonElement("isCritical")]
     public bool IsCritical { get; set; }
 

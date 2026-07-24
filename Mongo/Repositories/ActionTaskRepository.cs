@@ -72,6 +72,21 @@ public class ActionTaskRepository : IActionTaskRepository
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
     }
 
+    // Возврат таски в очередь после transient-ошибки: снова Pending с будущим ScheduledAt.
+    // Таска остаётся «активной» (unique_active_ai_reply_per_lead продолжает держать слот,
+    // CancelPendingByLead при переходе лида на другую ноду отменит и её).
+    public async Task Reschedule(Guid taskId, DateTime nextAttemptAt, CancellationToken ct)
+    {
+        var filter = Builders<ActionTaskDocument>.Filter.Eq(x => x.Id, taskId);
+        var update = Builders<ActionTaskDocument>.Update
+            .Set(x => x.Status, ActionStatus.Pending)
+            .Set(x => x.ScheduledAt, nextAttemptAt)
+            .Set(x => x.ClaimedAt, null)
+            .Inc(x => x.Attempt, 1);
+
+        await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+    }
+
     public async Task<List<ActionTaskDocument>> GetByLeadAndNode(Guid leadStateId, Guid nodeId, CancellationToken ct)
     {
         var filter = Builders<ActionTaskDocument>.Filter.And(
