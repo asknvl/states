@@ -5,6 +5,10 @@ namespace states.Mongo.Repositories;
 
 public class PushTaskRepository : IPushTaskRepository
 {
+    // Брошенная воркером таска — см. комментарии в ActionTaskRepository.
+    private static readonly TimeSpan StaleClaimTimeout = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan MaxReclaimAge = TimeSpan.FromHours(2);
+
     private readonly IMongoCollection<PushTaskDocument> collection;
 
     public PushTaskRepository(MongoContext context)
@@ -21,14 +25,22 @@ public class PushTaskRepository : IPushTaskRepository
 
     public async Task<PushTaskDocument?> ClaimNext(CancellationToken ct)
     {
-        var filter = Builders<PushTaskDocument>.Filter.And(
-            Builders<PushTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending),
-            Builders<PushTaskDocument>.Filter.Lte(x => x.ScheduledAt, DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+
+        var filter = Builders<PushTaskDocument>.Filter.Or(
+            Builders<PushTaskDocument>.Filter.And(
+                Builders<PushTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending),
+                Builders<PushTaskDocument>.Filter.Lte(x => x.ScheduledAt, now)),
+
+            Builders<PushTaskDocument>.Filter.And(
+                Builders<PushTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress),
+                Builders<PushTaskDocument>.Filter.Gt(x => x.ScheduledAt, now - MaxReclaimAge),
+                Builders<PushTaskDocument>.Filter.Lt(x => x.ClaimedAt, now - StaleClaimTimeout))
         );
 
         var update = Builders<PushTaskDocument>.Update
             .Set(x => x.Status, ActionStatus.InProgress)
-            .Set(x => x.ClaimedAt, DateTime.UtcNow);
+            .Set(x => x.ClaimedAt, now);
 
         var options = new FindOneAndUpdateOptions<PushTaskDocument>
         {

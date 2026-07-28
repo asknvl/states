@@ -126,6 +126,15 @@ public class LeadStateRepository : ILeadStateRepository
             if (sibling is not null)
                 state.PostbackParameters = new Dictionary<string, string>(sibling.PostbackParameters);
 
+            // Лид может входить в воронку сразу с тегами (перенесены миграцией из внешнего
+            // сервиса). Событие тегов идёт следом за созданием, и его версия должна быть строго
+            // выше: tgengine применяет изменение только при version < payload.Version, иначе
+            // молча отбрасывает. Документ сохраняется с версией последнего отправленного события.
+            var createdVersion = state.Version;
+
+            if (state.Tags is { Count: > 0 })
+                state.Version = createdVersion + 1;
+
             await collection.InsertOneAsync(session, state, cancellationToken: ct);
             await outbox.InsertOneAsync(session, new LeadStateCreatedOutboxDocument
             {
@@ -136,7 +145,7 @@ public class LeadStateRepository : ILeadStateRepository
                 BotId = state.BotId,
                 ChatId = state.ChatId,
                 LeadId = state.LeadId,
-                Version = state.Version,
+                Version = createdVersion,
                 CampaignId = state.CampaignId,
                 CampaignName = state.CampaignName,
                 SourceId = state.SourceId,
@@ -154,6 +163,24 @@ public class LeadStateRepository : ILeadStateRepository
                 VideoRecognition = state.VideoRecognition,
                 VoiceRecognition = state.VoiceRecognition
             }, cancellationToken: ct);
+
+            // LeadStateCreated тегов не несёт, поэтому tgengine узнаёт о них тем же событием,
+            // что и при обычной смене тегов, — в одной транзакции с созданием состояния.
+            if (state.Tags is { Count: > 0 })
+                await outbox.InsertOneAsync(session, new LeadTagChangedOutboxDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = state.TenantId,
+                    SpaceId = state.SpaceId,
+                    BotId = state.BotId,
+                    ChatId = state.ChatId,
+                    LeadId = state.LeadId,
+                    Version = state.Version,
+                    Tags = state.Tags,
+                    Operation = TagOperation.Manual,
+                    Tag = null
+                }, cancellationToken: ct);
         }, ct);
 
         return state;

@@ -365,6 +365,20 @@ public class LeadProgressionService : ILeadProgressionService
         if (request.NodeId.HasValue)
             node = flow?.Nodes.FirstOrDefault(n => n.Id == request.NodeId.Value);
 
+        // Позиция, которую не удалось найти в кеше, молча становится null: лид входит в воронку
+        // «в никуда», и в tgengine уезжает пустая позиция. Для мигрированных лидов это основной
+        // способ потерять точку входа, поэтому промах виден в логе.
+        if (request.NodeId.HasValue && node is null)
+            logger.LogWarning(
+                "Entry point of lead {LeadId} is not resolved: funnelId={FunnelId} (found={FunnelFound}), "
+                + "flowId={FlowId} (found={FlowFound}), nodeId={NodeId}. Lead enters with no funnel position",
+                request.LeadId,
+                request.FunnelId,
+                funnel is not null,
+                request.FlowId,
+                flow is not null,
+                request.NodeId);
+
         var leadState = new FunnelLeadState
         {
             Id = Guid.CreateVersion7(),

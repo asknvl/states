@@ -7,6 +7,22 @@ namespace states.Mongo.Repositories;
 
 public class ActionTaskRepository : IActionTaskRepository
 {
+    // Таска, забранная в работу и не завершённая за это время, считается брошенной: воркер,
+    // который её захватил, умер (рестарт сервиса, OOM, kill), и вернуть её в очередь больше
+    // некому — статус InProgress не отменяется и не подхватывается ничем. Порог с большим
+    // запасом превышает максимально возможное время живого выполнения (самый долгий сценарий —
+    // AiReply: три http-вызова по 100с дефолтного HttpClient-таймаута), поэтому перехватить
+    // таску у ещё работающего воркера нельзя даже при нескольких репликах.
+    private static readonly TimeSpan StaleClaimTimeout = TimeSpan.FromMinutes(15);
+
+    // Насколько просроченную таску ещё имеет смысл перезабирать (считается от scheduledAt —
+    // единственного поля, которое перезахват не двигает). Ограничение сверху нужно из-за таски,
+    // которая валит процесс целиком (OOM на жирном контексте): перезахват не инкрементирует
+    // attempt, счётчик ретраев не растёт, и без этой границы она воскресала бы вечно — здесь
+    // она затухает сама. Заодно не выстреливают древние таски: отвечать лиду спустя сутки
+    // после его сообщения хуже, чем не ответить вовсе.
+    private static readonly TimeSpan MaxReclaimAge = TimeSpan.FromHours(2);
+
     private readonly IMongoCollection<ActionTaskDocument> collection;
 
     public ActionTaskRepository(MongoContext context)
@@ -34,14 +50,24 @@ public class ActionTaskRepository : IActionTaskRepository
 
     public async Task<ActionTaskDocument?> ClaimNext(CancellationToken ct)
     {
-        var filter = Builders<ActionTaskDocument>.Filter.And(
-            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending),
-            Builders<ActionTaskDocument>.Filter.Lte(x => x.ScheduledAt, DateTime.UtcNow)
+        var now = DateTime.UtcNow;
+
+        var filter = Builders<ActionTaskDocument>.Filter.Or(
+            Builders<ActionTaskDocument>.Filter.And(
+                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending),
+                Builders<ActionTaskDocument>.Filter.Lte(x => x.ScheduledAt, now)),
+
+            // Брошенная таска — забираем заново. Обе ветви $or идут по индексу (status, scheduledAt)
+            // и уже отсортированы по scheduledAt, так что сортировка ниже остаётся без in-memory.
+            Builders<ActionTaskDocument>.Filter.And(
+                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress),
+                Builders<ActionTaskDocument>.Filter.Gt(x => x.ScheduledAt, now - MaxReclaimAge),
+                Builders<ActionTaskDocument>.Filter.Lt(x => x.ClaimedAt, now - StaleClaimTimeout))
         );
 
         var update = Builders<ActionTaskDocument>.Update
             .Set(x => x.Status, ActionStatus.InProgress)
-            .Set(x => x.ClaimedAt, DateTime.UtcNow);
+            .Set(x => x.ClaimedAt, now);
 
         var options = new FindOneAndUpdateOptions<ActionTaskDocument>
         {
