@@ -1,3 +1,5 @@
+using states.Services.CampaignClient;
+
 namespace states.Services.CampaignService;
 
 public record FunnelEntryPoint(
@@ -8,5 +10,6 @@ public record FunnelEntryPoint(
     string? SourceName,
     Guid? FunnelId,       
     Guid? FlowId,    
-    Guid? NodeId    
+    Guid? NodeId,
+    MigrationFrom? MigrationFrom
 );

@@ -398,7 +398,15 @@ public class LeadProgressionService : ILeadProgressionService
 
             StatesLog = [],
 
-            StartParameter = request.StartParameter
+            StartParameter = request.StartParameter,
+
+            MigrationFrom = request.MigrationFrom,
+
+            // Теги мигрированного лида известны уже на входе — ставятся сразу,
+            // без отдельного запроса SaveTags.
+            Tags = request.Tags?
+                .Select(t => new TagDocument { Id = t.Id, Name = t.Name })
+                .ToList() ?? []
         };
 
         List<ActionTaskDocument> actionTasks = [];

@@ -11,6 +11,9 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
     {
         PropertyNameCaseInsensitive = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // campaigns сериализует enum'ы строками (MigrationFrom: "None"/"Chatterfy") —
+        // без конвертера десериализация FunnelEntryPoint падала бы на этом поле.
+        Converters = { new JsonStringEnumConverter() }
     };
 
     //

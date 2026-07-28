@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using states.Services.CampaignClient;
 using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
@@ -55,6 +56,9 @@ namespace states.Mongo.Documents
         [BsonElement("nodeLabel")]
         public string? NodeLabel { get; set; }
 
+        [BsonElement("migrationFrom")]
+        public MigrationFrom? MigrationFrom { get; set; } 
+
         [BsonElement("status")]
         [BsonRepresentation(BsonType.String)]
         public LeadFunnelStatus Status {  get; set; }
@@ -71,15 +75,15 @@ namespace states.Mongo.Documents
 
         [BsonElement("photoRecognition")]
         [BsonRepresentation(BsonType.String)]
-        public RecognitionType PhotoRecognition { get; set; } = RecognitionType.Enabled;
+        public RecognitionType PhotoRecognition { get; set; } = RecognitionType.Skip;
 
         [BsonElement("videoRecognition")]
         [BsonRepresentation(BsonType.String)]
-        public RecognitionType VideoRecognition { get; set; } = RecognitionType.Enabled;
+        public RecognitionType VideoRecognition { get; set; } = RecognitionType.Skip;
 
         [BsonElement("voiceRecognition")]
         [BsonRepresentation(BsonType.String)]
-        public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Enabled;
+        public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Skip;
 
         [BsonElement("version")]
         public long Version { get; set; }

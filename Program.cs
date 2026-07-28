@@ -18,6 +18,7 @@ using states.Services.FunnelService.Runtime;
 using states.Services.LeadService;
 using states.Services.LeadService.Routing;
 using states.Services.CampaignService;
+using states.Services.MigratorService;
 using states.Services.TgEngineService;
 using Confluent.Kafka;
 using states.Services.Events.Producer;
@@ -180,6 +181,14 @@ namespace states
             {
                 var baseUrl = builder.Configuration["CampaignClient:EndPoint"]
                     ?? throw new InvalidOperationException("CampaignClient:EndPoint not configured");
+                client.BaseAddress = new Uri(baseUrl);
+            });
+
+            // Migrator service
+            builder.Services.AddHttpClient<IMigratorClient, MigratorClient>(client =>
+            {
+                var baseUrl = builder.Configuration["MigratorClient:EndPoint"]
+                    ?? throw new InvalidOperationException("MigratorClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
             });
 
