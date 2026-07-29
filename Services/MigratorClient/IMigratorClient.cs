@@ -3,11 +3,10 @@ namespace states.Services.MigratorService;
 public interface IMigratorClient
 {
     /// <summary>
-    /// Теги выгруженного из внешнего сервиса лида, уже переведённые migrator'ом
-    /// в наши идентификаторы по соответствиям «было — стало».
-    /// Null — лид не выгружался.
+    /// Статус и теги лида, выгруженного из внешнего сервиса, — применяются при входе
+    /// в воронку. Null — лид не выгружался.
     /// </summary>
-    Task<IReadOnlyList<MigratedLeadTag>?> GetMigratedLeadTags(
+    Task<MigratedLeadState?> GetMigratedLeadState(
         Guid tenantId,
         Guid botId,
         Guid globalId,

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace states.Services.MigratorService;
 
@@ -7,16 +8,18 @@ public class MigratorClient(HttpClient http, ILogger<MigratorClient> logger) : I
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        // migrator отдаёт статус строкой с теми же именами, что у LeadFunnelStatus.
+        Converters = { new JsonStringEnumConverter() }
     };
 
-    public async Task<IReadOnlyList<MigratedLeadTag>?> GetMigratedLeadTags(
+    public async Task<MigratedLeadState?> GetMigratedLeadState(
         Guid tenantId,
         Guid botId,
         Guid globalId,
         CancellationToken ct)
     {
-        var url = $"/migrated-leads/tags?tenantId={tenantId}&botId={botId}&globalId={globalId}";
+        var url = $"/migrated-leads/state?tenantId={tenantId}&botId={botId}&globalId={globalId}";
 
         HttpResponseMessage response;
 
@@ -30,7 +33,7 @@ public class MigratorClient(HttpClient http, ILogger<MigratorClient> logger) : I
             throw;
         }
 
-        // 404 — лид не выгружался migrator'ом, тегов для переноса нет.
+        // 404 — лид не выгружался migrator'ом, применять нечего.
         if (response.StatusCode == HttpStatusCode.NotFound)
             return null;
 
@@ -38,6 +41,6 @@ public class MigratorClient(HttpClient http, ILogger<MigratorClient> logger) : I
 
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
 
-        return await JsonSerializer.DeserializeAsync<List<MigratedLeadTag>>(stream, JsonOptions, ct);
+        return await JsonSerializer.DeserializeAsync<MigratedLeadState>(stream, JsonOptions, ct);
     }
 }

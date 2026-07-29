@@ -122,6 +122,11 @@ public class GlobalEventProcessor(
         }
         else
         {
+            // Ходим в migrator только за лидами тех кампаний, которые принимают мигрированных:
+            // для остальных запроса нет вообще.
+            var migrated = entryPoint.MigrationFrom is not null and not states.Services.CampaignClient.MigrationFrom.None
+                ? await GetMigratedLeadState(p, ct)
+                : null;
 
             request = new EnterFunnelRequest(
                 TenantId: p.TenantId,
@@ -141,7 +146,8 @@ public class GlobalEventProcessor(
 
                 MigrationFrom: entryPoint.MigrationFrom,
 
-                Tags: await GetMigratedLeadTags(entryPoint, p, ct));
+                Tags: migrated?.Tags.Select(t => new Dtos.Funnels.Tag(t.TagId, t.Name)).ToList(),
+                Status: migrated?.Status);
         }
 
         await leadEventsRepository.Create(new BotActivationEventDocument
@@ -159,40 +165,35 @@ public class GlobalEventProcessor(
     }
 
     /// <summary>
-    /// Теги мигрированного лида из migrator — уже переведённые в наши идентификаторы
-    /// по соответствиям «было — стало». Запрашиваются только когда campaigns пометил
-    /// вход флагом миграции. Недоступность migrator лида не теряет — он войдёт без тегов.
+    /// Статус и теги мигрированного лида из migrator. Недоступность migrator лида не теряет —
+    /// он войдёт как обычный, со статусом от ноды входа и без перенесённых тегов.
     /// </summary>
-    private async Task<List<Dtos.Funnels.Tag>?> GetMigratedLeadTags(
-        FunnelEntryPoint entryPoint,
+    private async Task<MigratedLeadState?> GetMigratedLeadState(
         BotSubscriptionChangedPayload p,
         CancellationToken ct)
     {
-        if (entryPoint.MigrationFrom is null or states.Services.CampaignClient.MigrationFrom.None)
-            return null;
-
         try
         {
-            var tags = await migratorClient.GetMigratedLeadTags(p.TenantId, p.BotId, p.GlobalId, ct);
+            var migrated = await migratorClient.GetMigratedLeadState(p.TenantId, p.BotId, p.GlobalId, ct);
 
-            if (tags is null)
+            if (migrated is null)
             {
                 logger.LogInformation(
-                    "Migrated lead {GlobalId} of bot {BotId} is unknown to migrator, entering funnel without tags",
+                    "Migrated lead {GlobalId} of bot {BotId} is unknown to migrator, entering funnel as a regular one",
                     p.GlobalId, p.BotId);
                 return null;
             }
 
             logger.LogInformation(
-                "Migrated lead {GlobalId} of bot {BotId} gets {TagCount} tag(s) from migrator",
-                p.GlobalId, p.BotId, tags.Count);
+                "Migrated lead {GlobalId} of bot {BotId} enters with status {Status} and {TagCount} tag(s)",
+                p.GlobalId, p.BotId, migrated.Status, migrated.Tags.Count);
 
-            return tags.Select(t => new Dtos.Funnels.Tag(t.TagId, t.Name)).ToList();
+            return migrated;
         }
         catch (Exception ex)
         {
             logger.LogError(ex,
-                "Migrated lead tags lookup failed for GlobalId={GlobalId}, entering funnel without tags",
+                "Migrated lead state lookup failed for GlobalId={GlobalId}, entering funnel as a regular one",
                 p.GlobalId);
             return null;
         }

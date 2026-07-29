@@ -1,5 +1,6 @@
 using states.Dtos.Funnels;
 using states.Services.CampaignClient;
+using states.Services.LeadService;
 
 namespace states.Dtos.Leads;
 
@@ -23,5 +24,9 @@ public sealed record EnterFunnelRequest(
 
     // Теги мигрированного лида, перенесённые из внешнего сервиса, — проставляются
     // лиду сразу при входе в воронку.
-    List<Tag>? Tags = null
+    List<Tag>? Tags = null,
+
+    // Статус, с которым мигрированный лид стоял во внешнем сервисе. Задан — перекрывает
+    // статус, который дала бы нода входа: лид продолжает с того же состояния, что и там.
+    LeadFunnelStatus? Status = null
 );

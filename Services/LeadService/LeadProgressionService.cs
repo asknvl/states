@@ -379,6 +379,12 @@ public class LeadProgressionService : ILeadProgressionService
                 flow is not null,
                 request.NodeId);
 
+        // Статус приходит только вместе с выгруженным состоянием лида, поэтому он же служит
+        // признаком «лид действительно мигрирован». Если migrator недоступен или лида не знает
+        // (обычный органический лид в мигрированной кампании), статуса нет — и лид входит
+        // как любой другой, со всеми задачами ноды.
+        var isMigrated = request.Status.HasValue;
+
         var leadState = new FunnelLeadState
         {
             Id = Guid.CreateVersion7(),
@@ -401,7 +407,14 @@ public class LeadProgressionService : ILeadProgressionService
             NodeId = node?.Id,
             NodeLabel = node?.Data?.Label,
 
-            Status = node?.Data is AiReplyNodeData ? LeadFunnelStatus.Waiting : (node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual),
+            // У мигрированного лида статус берётся из внешнего сервиса: он продолжает с того же
+            // состояния, в котором его оставили там. В частности, Manual остаётся Manual —
+            // такого лида ведёт оператор, и автоматика его не трогает.
+            Status = isMigrated
+                ? request.Status!.Value
+                : (node?.Data is AiReplyNodeData
+                    ? LeadFunnelStatus.Waiting
+                    : (node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual)),
 
             IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
             IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false,
@@ -428,8 +441,16 @@ public class LeadProgressionService : ILeadProgressionService
 
         if (node != null)
         {
-            actionTasks = CreateActionTasks(leadState, node);
-            pushTasks = CreatePushTasks(leadState, node);
+            // Мигрированный лид встаёт на ту ноду, на которой стоял во внешнем сервисе, — её
+            // сообщения ему там уже отправлены. Поэтому задачи не создаются: иначе он получил бы
+            // их повторно. Дальше лида двигает первое входящее сообщение (см. HandleIncomingSignal:
+            // незавершённых действий нет, значит сразу переход на следующую ноду) либо оператор,
+            // а статус Manual не даст сдвинуть его и сообщением.
+            if (!isMigrated)
+            {
+                actionTasks = CreateActionTasks(leadState, node);
+                pushTasks = CreatePushTasks(leadState, node);
+            }
 
             var now = DateTime.UtcNow;
 
@@ -477,12 +498,17 @@ public class LeadProgressionService : ILeadProgressionService
         }
 
         logger.LogInformation(
-            "Lead {LeadStateId} entered funnel {FunnelId} at node {NodeId}",
+            "Lead {LeadStateId} entered funnel {FunnelId} at node {NodeId} with status {Status}, migrated={IsMigrated}",
             leadState.Id,
             leadState.FunnelId,
-            leadState.NodeId);
+            leadState.NodeId,
+            leadState.Status,
+            isMigrated);
 
+        // Мигрированного лида автопереход не двигает: без него лид, у которого нет задач,
+        // мгновенно проскочил бы на следующую ноду вместо того, чтобы остаться на своей.
         if (node != null &&
+            !isMigrated &&
             actionTasks.Count == 0 &&
             node.Data?.FinishStatus != LeadFunnelStatus.Waiting)
         {
