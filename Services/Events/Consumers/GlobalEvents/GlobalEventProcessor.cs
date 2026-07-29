@@ -124,6 +124,7 @@ public class GlobalEventProcessor(
         {
             // Ходим в migrator только за лидами тех кампаний, которые принимают мигрированных:
             // для остальных запроса нет вообще.
+            //
             var migrated = entryPoint.MigrationFrom is not null and not states.Services.CampaignClient.MigrationFrom.None
                 ? await GetMigratedLeadState(p, ct)
                 : null;
