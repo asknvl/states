@@ -18,6 +18,14 @@ public sealed class ActionWorkerService : BackgroundService
     // Ретраи transient-ошибок: 30с → 1м → 2м → 4м → 8м (±20% джиттера), итого ~15 минут,
     // после чего обычный Fail (+Manual для критичных тасок).
     private const int MaxRetryAttempts = 5;
+
+    // «Бот ещё не поднялся» — обычно гонка с деплоем tgengine: рантаймы ботов стартуют
+    // не мгновенно. Ждём фиксированные 30 секунд, без экспоненты: бот либо поднимается
+    // за десятки секунд, либо не поднимется вовсе (выключен, разлогинен) — и тогда лида
+    // нет смысла держать, он уходит на оператора. Бюджет попыток общий с transient: на
+    // деплое эти ошибки идут вперемешку (сперва отказ соединения, потом BOT_NOT_RUNNING),
+    // и отдельный счётчик тут только растянул бы суммарное ожидание.
+    private static readonly TimeSpan BotRestartRetryDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RetryMaxDelay = TimeSpan.FromMinutes(10);
 
@@ -105,6 +113,14 @@ public sealed class ActionWorkerService : BackgroundService
         {
             // shutting down
         }
+        catch (BotNotRunningException ex) when (task.Attempt < MaxRetryAttempts)
+        {
+            logger.LogWarning(ex,
+                "Action task {TaskId} hit a bot that is not running (attempt {Attempt}/{MaxAttempts}), retry in {Delay} for lead {LeadStateId}",
+                task.Id, task.Attempt + 1, MaxRetryAttempts, BotRestartRetryDelay, task.LeadStateId);
+
+            await taskRepository.Reschedule(task.Id, DateTime.UtcNow + BotRestartRetryDelay, ct);
+        }
         catch (TransientActionException ex) when (task.Attempt < MaxRetryAttempts)
         {
             var delay = ComputeRetryDelay(task.Attempt);
@@ -114,6 +130,19 @@ public sealed class ActionWorkerService : BackgroundService
                 task.Id, task.Attempt + 1, MaxRetryAttempts, delay, task.LeadStateId);
 
             await taskRepository.Reschedule(task.Id, DateTime.UtcNow + delay, ct);
+        }
+        // Лид заблокировал бота. В Manual не уводим: писать ему некуда, оператор бесполезен,
+        // а статус Blocked приедет событием деактивации бота из tgengine — Manual с ним только
+        // конфликтовал бы, затирая или затираясь в зависимости от того, что запишется последним.
+        catch (TelegramActionException ex) when (ex.Code == TelegramActionException.UserIsBlockedCode)
+        {
+            logger.LogWarning(ex,
+                "Action task {TaskId} stopped: lead {LeadStateId} has blocked the bot",
+                task.Id, task.LeadStateId);
+
+            await taskRepository.Fail(task.Id, ct);
+            await leadStateRepository.UpdateActionStatus(
+                task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct, ex.Message);
         }
         catch (Exception ex)
         {
