@@ -71,6 +71,11 @@ public class PostbackEventProcessor(
         if (payload.CustomFields is { Count: > 0 })
             await leadStateRepository.MergePostbackParameters(payload.TenantId, payload.LeadId, payload.CustomFields, ct);
 
+        // RecalculateDeposits обновляет DepositCount в базе, но не сам объект leadState —
+        // используем возвращённое значение ниже вместо устаревшего leadState.DepositCount,
+        // иначе на RESALE в campaigns улетал бы счётчик на шаг позади (не считая текущий депозит).
+        int? recalculatedDepositCount = null;
+
         var leadEventDocument = BuildLeadEventDocument(postbackEventType, payload, leadState.SpaceId);
         if (leadEventDocument is not null)
         {
@@ -78,7 +83,7 @@ public class PostbackEventProcessor(
 
             var isDeposit = postbackEventType is PostbackEventType.SALE or PostbackEventType.RESALE;
             if (isDeposit)
-                await leadStateRepository.RecalculateDeposits(payload.TenantId, payload.LeadId, ct);
+                recalculatedDepositCount = await leadStateRepository.RecalculateDeposits(payload.TenantId, payload.LeadId, ct);
         }
 
         // Дубль постбэка: событие записано, но лида по воронке не двигаем —
@@ -100,7 +105,11 @@ public class PostbackEventProcessor(
         }
 
         var entryPoint = await campaignClient.GetAutoActionEntryPoint(
-            payload.TenantId, leadState.CampaignId.Value, postbackEventType, ct);
+            payload.TenantId,
+            leadState.CampaignId.Value,
+            postbackEventType,
+            recalculatedDepositCount ?? leadState.DepositCount,
+            ct);
 
         if (entryPoint is null)
         {

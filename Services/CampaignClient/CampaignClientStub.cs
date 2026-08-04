@@ -27,6 +27,7 @@ public class CampaignClientStub : ICampaignClient
         Guid tenantId,
         Guid campaignId,
         PostbackEventType postbackEventType,
+        int depositsCounter,
         CancellationToken ct)
     {
         throw new NotImplementedException();

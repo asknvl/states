@@ -754,13 +754,13 @@ public class LeadStateRepository : ILeadStateRepository
     // и записать в ту же транзакцию LeadDepositChangedOutboxDocument с его botId/chatId — по
     // аналогии с MergePostbackParameters. Событие несёт полный снапшот агрегатов, поэтому веер
     // одинаковых значений по чатам лида безопасен: потребитель делает last-write-wins upsert.
-    public async Task RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct)
+    public async Task<int?> RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct)
     {
-        await InTransaction(async session =>
+        return await InTransaction(async session =>
         {
             var deposits = await ComputeDepositAggregates(session, tenantId, leadId, ct);
             if (deposits is null)
-                return;
+                return (int?)null;
 
             var states = await collection
                 .Find(session, x => x.TenantId == tenantId && x.LeadId == leadId)
@@ -802,6 +802,8 @@ public class LeadStateRepository : ILeadStateRepository
                     CurrencyCode = updated.CurrencyCode
                 }, cancellationToken: ct);
             }
+
+            return (int?)deposits.Count;
         }, ct);
     }
 
@@ -962,6 +964,13 @@ public class LeadStateRepository : ILeadStateRepository
             await action(s);
             return true;
         }, cancellationToken: ct);
+    }
+
+    private async Task<T> InTransaction<T>(Func<IClientSessionHandle, Task<T>> action, CancellationToken ct)
+    {
+        using var session = await collection.Database.Client.StartSessionAsync(cancellationToken: ct);
+
+        return await session.WithTransactionAsync(async (s, _) => await action(s), cancellationToken: ct);
     }
     #endregion
 }

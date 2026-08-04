@@ -20,8 +20,10 @@ public interface ILeadStateRepository
 
     // Пересчитывает депозитные агрегаты (total/first/last/count/currency) из лога leadEvents
     // (SALE/RESALE) и проставляет их во все FunnelLeadState с данным leadId. Вызывается после
-    // записи очередного депозитного события.
-    Task RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct);
+    // записи очередного депозитного события. Возвращает актуальный DepositCount (null, если
+    // депозитных событий не найдено) — вызывающий код не должен полагаться на старое значение,
+    // прочитанное из lead state до пересчёта.
+    Task<int?> RecalculateDeposits(Guid tenantId, string leadId, CancellationToken ct);
 
     // Уникальные (tenantId, leadId) всех лидов, у которых есть депозиты — для разового бэкфилла
     // депозитов в tgengine (переотправка событий через RecalculateDeposits).

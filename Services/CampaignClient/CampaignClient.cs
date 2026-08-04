@@ -52,9 +52,10 @@ public class CampaignClient(HttpClient http, ILogger<CampaignClient> logger) : I
         Guid tenantId,
         Guid campaignId,
         PostbackEventType postbackEventType,
+        int depositCount,
         CancellationToken ct)
     {
-        var url = $"/leads/autoaction?tenantId={tenantId}&campaignId={campaignId}&postbackEvent={postbackEventType}";
+        var url = $"/leads/autoaction?tenantId={tenantId}&campaignId={campaignId}&postbackEvent={postbackEventType}&depositCount={depositCount}";
 
         HttpResponseMessage response;
 

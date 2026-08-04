@@ -23,5 +23,6 @@ public interface ICampaignClient
         Guid tenantId,
         Guid campaignId,
         PostbackEventType postbackEventType,
+        int depositCount,
         CancellationToken ct);
 }
