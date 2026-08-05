@@ -169,6 +169,7 @@ public class GlobalEventProcessor(
     /// Статус и теги мигрированного лида из migrator. Недоступность migrator лида не теряет —
     /// он войдёт как обычный, со статусом от ноды входа и без перенесённых тегов.
     /// </summary>
+    /// 
     private async Task<MigratedLeadState?> GetMigratedLeadState(
         BotSubscriptionChangedPayload p,
         CancellationToken ct)
