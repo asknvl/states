@@ -6,6 +6,7 @@ public interface ILeadProgressionService
 {    
     Task EnterFunnel(EnterFunnelRequest request, CancellationToken ct);
     Task TransitionToNextNode(Guid leadStateId, CancellationToken ct);
+    Task CompleteNodeActions(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task ClearLeadStateByChat(Guid tenantId, Guid chatId);
     Task HandleIncomingSignal(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task SetLeadFunnelPosition(Guid tenantId, string leadId, Guid funnelId, Guid flowId, Guid nodeId, CancellationToken ct);

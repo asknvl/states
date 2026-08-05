@@ -99,14 +99,13 @@ public sealed class ActionWorkerService : BackgroundService
 
             if (allDone)
             {
-                logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, transitioning",
+                logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, applying finish status",
                     task.LeadStateId, task.NodeId);
 
-                var leadState = await leadStateRepository.GetLeadState(task.LeadStateId, ct);
-
-                // Если executor уже переместил лид на другую ноду (например, AiRouter), не делаем повторный переход.
-                if (leadState.NodeId == task.NodeId && leadState.Status == LeadFunnelStatus.Nothing)
-                    await progressionService.TransitionToNextNode(task.LeadStateId, ct);
+                // Применяет FinishStatus ноды (или двигает лида дальше, если FinishStatus == Nothing).
+                // Сама проверяет, что лид всё ещё на этой ноде и не был уже перемещён/переведён
+                // в другой статус помимо этого пути (например, AiRouter или критичный fail).
+                await progressionService.CompleteNodeActions(task.LeadStateId, task.NodeId, ct);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)

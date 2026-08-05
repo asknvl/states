@@ -410,11 +410,12 @@ public class LeadProgressionService : ILeadProgressionService
             // У мигрированного лида статус берётся из внешнего сервиса: он продолжает с того же
             // состояния, в котором его оставили там. В частности, Manual остаётся Manual —
             // такого лида ведёт оператор, и автоматика его не трогает.
+            // Для немигрированного лида с найденной точкой входа статус ниже уточняется после
+            // расчёта actionTasks (см. блок "if (node != null)") — тут временное значение на
+            // случай, если entry point не резолвится (node == null).
             Status = isMigrated
                 ? request.Status!.Value
-                : (node?.Data is AiReplyNodeData
-                    ? LeadFunnelStatus.Waiting
-                    : (node?.Data?.FinishStatus ?? LeadFunnelStatus.Manual)),
+                : (node is null ? LeadFunnelStatus.Manual : LeadFunnelStatus.Nothing),
 
             IsInputTranslatorOn = funnel?.IsInputTranslatorOn ?? false,
             IsOutputTranslatorOn = funnel?.IsOutputTranslatorOn ?? false,
@@ -450,6 +451,15 @@ public class LeadProgressionService : ILeadProgressionService
             {
                 actionTasks = CreateActionTasks(leadState, node);
                 pushTasks = CreatePushTasks(leadState, node);
+
+                // См. комментарий у Status в инициализаторе выше: применяем FinishStatus только
+                // если у ноды нет actions, которые надо сначала выполнить (иначе его выставит
+                // ActionWorkerService через CompleteNodeActions после их завершения).
+                leadState.Status = node.Data is AiReplyNodeData
+                    ? LeadFunnelStatus.Waiting
+                    : actionTasks.Count > 0
+                        ? LeadFunnelStatus.Nothing
+                        : node.Data.FinishStatus;
             }
 
             var now = DateTime.UtcNow;
@@ -621,7 +631,18 @@ public class LeadProgressionService : ILeadProgressionService
         //await leadStateRepository.MoveToNode(leadStateId, selectedEdge.Id, targetNode.Id, actionStatusEntries, ct);
 
         var isAiReply = targetNode.Data is AiReplyNodeData;
-        var nodeStatus = isAiReply ? LeadFunnelStatus.Waiting : targetNode.Data.FinishStatus;
+
+        // FinishStatus ноды — это статус, в котором лид должен оказаться, когда actions ноды
+        // реально отработают, а не в момент перехода. Пока actions ещё не выполнены, лид считается
+        // "в процессе" (Nothing); как только ActionWorkerService увидит, что все actions ноды
+        // завершены, он сам применит FinishStatus (см. CompleteNodeActions). AiReply — исключение:
+        // он всегда сразу Waiting (ждёт ответа ИИ/пользователя), отдельной фазы "actions ещё не
+        // выполнены" с точки зрения статуса лида у него нет.
+        var nodeStatus = isAiReply
+            ? LeadFunnelStatus.Waiting
+            : actionTasks.Count > 0
+                ? LeadFunnelStatus.Nothing
+                : targetNode.Data.FinishStatus;
 
         await leadStateRepository.SetLeadFunnelPosition(
                 leadStateId: leadStateId,
@@ -699,6 +720,17 @@ public class LeadProgressionService : ILeadProgressionService
         var actionTasks = isBlocked ? [] : CreateActionTasks(leadState, node);
         var pushTasks = isBlocked ? [] : CreatePushTasks(leadState, node);
 
+        // Тот же принцип, что в ExecuteTransition/EnterFunnel: FinishStatus применяем только когда
+        // actions ноды реально выполнены, до этого лид "в процессе" (Nothing). AiReply — исключение,
+        // всегда Waiting сразу. Заблокированного лида это не касается — для него actionTasks пуст
+        // и ниже просто стейджится node.Data.FinishStatus в PreBlockStatus, как и раньше.
+        var isAiReply = node.Data is AiReplyNodeData;
+        var nodeStatus = isAiReply
+            ? LeadFunnelStatus.Waiting
+            : actionTasks.Count > 0
+                ? LeadFunnelStatus.Nothing
+                : node.Data.FinishStatus;
+
         var actionStatusEntries = actionTasks.Select(t => new ActionStatusEntry
         {
             ActionId = t.ActionId,
@@ -715,7 +747,7 @@ public class LeadProgressionService : ILeadProgressionService
             flow.Name,
             nodeId,
             node.Data.Label,
-            node.Data.FinishStatus,
+            nodeStatus,
             actionStatusEntries,
             exitEdgeId: null,
             preserveBlocked: isBlocked,
@@ -727,7 +759,7 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}, blocked={IsBlocked}",
             leadState.Id, flowId, nodeId, isBlocked);
 
-        if (!isBlocked && actionTasks.Count == 0 && node.Data.FinishStatus != LeadFunnelStatus.Waiting)
+        if (!isBlocked && actionTasks.Count == 0 && nodeStatus != LeadFunnelStatus.Waiting)
             await TransitionToNextNode(leadState.Id, ct);
     }
 
@@ -993,6 +1025,35 @@ public class LeadProgressionService : ILeadProgressionService
         }
 
         await TransitionToNextNode(leadState.Id, ct);
+    }
+
+    // Вызывается воркером (ActionWorkerService), когда у лида на текущей ноде выполнены все её
+    // action tasks. До этого момента лид формально в Nothing ("в процессе" — см. ExecuteTransition/
+    // EnterFunnel/SetLeadFunnelPosition), и только здесь применяется настоящий FinishStatus ноды:
+    // либо выставляется явно, либо (если FinishStatus == Nothing, т.е. нода "прозрачная" и лид
+    // должен ехать дальше по воронке сам) лид двигается на следующую ноду.
+    public async Task CompleteNodeActions(Guid leadStateId, Guid nodeId, CancellationToken ct)
+    {
+        var leadState = await leadStateRepository.GetLeadState(leadStateId, ct);
+
+        // Лид уже не на этой ноде или статус сменился помимо этого пути (executor сам переместил
+        // лида, например AiRouter, либо критичный action увёл его в Manual) — ничего не делаем.
+        if (leadState.NodeId != nodeId || leadState.Status != LeadFunnelStatus.Nothing)
+            return;
+
+        if (leadState.FunnelId is null || leadState.FlowId is null)
+            return;
+
+        var funnel = funnelCache.GetFunnel(leadState.FunnelId.Value);
+        var flow = funnel?.Flows.FirstOrDefault(f => f.Id == leadState.FlowId);
+        var node = flow?.Nodes.FirstOrDefault(n => n.Id == nodeId);
+        if (node is null)
+            return;
+
+        if (node.Data.FinishStatus == LeadFunnelStatus.Nothing)
+            await TransitionToNextNode(leadStateId, ct);
+        else
+            await leadStateRepository.UpdateLeadStateStatus(leadStateId, node.Data.FinishStatus, ct);
     }
 
     public async Task ClearLeadStateByChat(Guid tenantId, Guid chatId)
