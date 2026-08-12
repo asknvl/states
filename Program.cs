@@ -217,7 +217,25 @@ namespace states
                     BootstrapServers = config["Kafka:BootstrapServers"]
                         ?? throw new InvalidOperationException("Kafka:BootstrapServers not configured"),
                     ClientId = config["Kafka:ClientId"],
-                    BrokerAddressFamily = BrokerAddressFamily.V4
+                    BrokerAddressFamily = BrokerAddressFamily.V4,
+
+                    // Статусы и депозиты лидов: ретрай при потерянном ack не должен
+                    // порождать дубли в топике
+                    Acks = Acks.All,
+                    EnableIdempotence = true,
+
+                    // Недоставленное переотправит outbox-воркер; таймауты нужны, чтобы после
+                    // простоя ProduceAsync не висел минуту на мёртвом сокете (дефолт — 60 с)
+                    MessageTimeoutMs = 60000,
+                    SocketTimeoutMs = 10000,
+                    SocketKeepaliveEnable = true,
+                    ConnectionsMaxIdleMs = 180000,
+                    SocketNagleDisable = true,
+
+                    // Outbox-воркер ждёт каждый ProduceAsync по одному: дефолтный linger 5 мс
+                    // добавлялся бы к каждому событию и ограничил бы поток ~200 соб/с
+                    LingerMs = 0,
+                    CompressionType = CompressionType.Lz4
                 };
                 return new ProducerBuilder<string, string>(producerConfig).Build();
             });
