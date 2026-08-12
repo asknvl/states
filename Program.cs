@@ -235,7 +235,7 @@ namespace states
                     // Outbox-воркер ждёт каждый ProduceAsync по одному: дефолтный linger 5 мс
                     // добавлялся бы к каждому событию и ограничил бы поток ~200 соб/с
                     LingerMs = 0,
-                    CompressionType = CompressionType.Lz4
+                    //CompressionType = CompressionType.Lz4
                 };
                 return new ProducerBuilder<string, string>(producerConfig).Build();
             });
