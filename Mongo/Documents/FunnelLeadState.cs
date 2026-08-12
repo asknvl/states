@@ -23,6 +23,11 @@ namespace states.Mongo.Documents
         [BsonElement("chatId")]
         public Guid ChatId { get; set; }
 
+        // Id лида во внешнем мессенджере (для Telegram — числовой telegram id). Строка, потому что
+        // формат id зависит от мессенджера. Null у лидов, вошедших в воронку до добавления поля.
+        [BsonElement("externalId")]
+        public string? ExternalId { get; set; }
+
         [BsonElement("campaignId")]
         public Guid? CampaignId { get; set; }
 

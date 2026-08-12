@@ -134,6 +134,7 @@ public class GlobalEventProcessor(
                 SpaceId: p.SpaceId,
                 BotId: p.BotId,
                 ChatId: p.ChatId,
+                ExternalId: p.ExternalId,
                 LeadId: entryPoint.LeadId,
                 CampaignId: entryPoint.CampaignId,
                 CampaignName: entryPoint.CampaignName,

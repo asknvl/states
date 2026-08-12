@@ -9,6 +9,11 @@ public sealed record EnterFunnelRequest(
     Guid SpaceId,
     Guid BotId,
     Guid ChatId,
+
+    // Id лида во внешнем мессенджере (для Telegram — числовой telegram id), формат зависит
+    // от мессенджера.
+    string? ExternalId,
+
     string LeadId,
     Guid? CampaignId,
     string? CampaignName,

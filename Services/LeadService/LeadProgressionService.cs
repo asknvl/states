@@ -392,6 +392,7 @@ public class LeadProgressionService : ILeadProgressionService
             SpaceId = request.SpaceId,
             BotId = request.BotId,
             ChatId = request.ChatId,
+            ExternalId = request.ExternalId,
             LeadId = request.LeadId,
             CampaignId = request.CampaignId,
             CampaignName = request.CampaignName,

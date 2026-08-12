@@ -18,6 +18,7 @@ namespace states.Utils
                 ["spaceId"] = leadState.SpaceId.ToString(),
                 ["botId"] = leadState.BotId.ToString(),
                 ["chatId"] = leadState.ChatId.ToString(),
+                ["externalId"] = leadState.ExternalId,
                 ["leadId"] = leadState.LeadId,
                 ["campaignId"] = leadState.CampaignId?.ToString(),
                 ["campaignName"] = leadState.CampaignName,
