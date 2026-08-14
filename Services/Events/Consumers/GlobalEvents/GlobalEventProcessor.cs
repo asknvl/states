@@ -92,22 +92,26 @@ public class GlobalEventProcessor(
             return;
         }
 
-        FunnelEntryPoint entryPoint = null!;
+        logger.LogInformation(
+            "Bot subscription activated: chat {ChatId}, bot {BotId}, global {GlobalId}, start parameter '{StartParameter}' — requesting funnel entry point",
+            p.ChatId, p.BotId, p.GlobalId, p.StartParameter);
 
+        FunnelEntryPoint? entryPoint = null;
 
         try
         {
-
             entryPoint = await campaignClient.GetFunnelEntryPoint(
                 p.TenantId,
                 p.BotId,
                 p.GlobalId,
                 p.StartParameter,
                 ct);
-
-        } catch (Exception ex)
+        }
+        catch (Exception ex)
         {
-
+            logger.LogError(ex,
+                "Funnel entry point request failed for tenant {TenantId}, bot {BotId}, global {GlobalId}, start parameter '{StartParameter}'",
+                p.TenantId, p.BotId, p.GlobalId, p.StartParameter);
         }
 
         EnterFunnelRequest request = null!;
@@ -115,13 +119,19 @@ public class GlobalEventProcessor(
         if (entryPoint is null)
         {
             logger.LogError(
-                "No lead entry point for tenant {TenantId}, bot {BotId} — cannot enter funnel",
-                p.TenantId, p.BotId);
+                "No lead entry point for tenant {TenantId}, bot {BotId}, global {GlobalId}, start parameter '{StartParameter}' — cannot enter funnel",
+                p.TenantId, p.BotId, p.GlobalId, p.StartParameter);
 
             return;
         }
         else
         {
+            logger.LogInformation(
+                "Funnel entry point resolved: lead {LeadId}, campaign {CampaignId} ('{CampaignName}'), source {SourceId} ('{SourceName}'), funnel {FunnelId}, node {NodeId}, migration {MigrationFrom}",
+                entryPoint.LeadId, entryPoint.CampaignId, entryPoint.CampaignName,
+                entryPoint.SourceId, entryPoint.SourceName,
+                entryPoint.FunnelId, entryPoint.NodeId, entryPoint.MigrationFrom);
+
             // Ходим в migrator только за лидами тех кампаний, которые принимают мигрированных:
             // для остальных запроса нет вообще.
             //
