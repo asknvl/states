@@ -17,12 +17,15 @@ public class LeadStateRepository : ILeadStateRepository
     private readonly IMongoCollection<OutboxDocument> outbox;
     private readonly IMongoCollection<LeadEventBaseDocument> leadEvents;
 
-    public LeadStateRepository(MongoContext context)
+    public LeadStateRepository(MongoContext context, ILogger<LeadStateRepository> logger)
     {
         collection = context.LeadStates;
         outbox = context.Outbox;
         leadEvents = context.LeadEvents;
+        this.logger = logger;
     }
+
+    private readonly ILogger<LeadStateRepository> logger;
 
     #region reads
     public async Task<FunnelLeadState> GetLeadState(Guid leadStateId, CancellationToken ct)
@@ -324,7 +327,7 @@ public class LeadStateRepository : ILeadStateRepository
 
         // $max вместо $set — при переупорядоченной обработке конкурентных сигналов
         // дата не откатится назад.
-        await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+        await MongoHelpers.RetryOnConnectionLoss(() => collection.UpdateManyAsync(filter, update, cancellationToken: ct), logger);
     }
 
     public async Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct)

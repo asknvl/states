@@ -11,10 +11,13 @@ public class PushTaskRepository : IPushTaskRepository
 
     private readonly IMongoCollection<PushTaskDocument> collection;
 
-    public PushTaskRepository(MongoContext context)
+    public PushTaskRepository(MongoContext context, ILogger<PushTaskRepository> logger)
     {
         collection = context.PushTasks;
+        this.logger = logger;
     }
+
+    private readonly ILogger<PushTaskRepository> logger;
 
     public async Task CreateMany(IEnumerable<PushTaskDocument> tasks, CancellationToken ct)
     {
@@ -70,7 +73,7 @@ public class PushTaskRepository : IPushTaskRepository
             Builders<PushTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting })
         );
 
-        await collection.DeleteManyAsync(filter, ct);
+        await MongoHelpers.RetryOnConnectionLoss(() => collection.DeleteManyAsync(filter, ct), logger);
     }
 
     public async Task UnlockNext(Guid leadStateId, Guid nodeId, int completedOrder, CancellationToken ct)

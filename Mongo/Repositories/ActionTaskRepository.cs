@@ -25,10 +25,13 @@ public class ActionTaskRepository : IActionTaskRepository
 
     private readonly IMongoCollection<ActionTaskDocument> collection;
 
-    public ActionTaskRepository(MongoContext context)
+    public ActionTaskRepository(MongoContext context, ILogger<ActionTaskRepository> logger)
     {
         collection = context.ActionTasks;
+        this.logger = logger;
     }
+
+    private readonly ILogger<ActionTaskRepository> logger;
 
     public async Task CreateMany(IEnumerable<ActionTaskDocument> tasks, CancellationToken ct)
     {
@@ -135,7 +138,7 @@ public class ActionTaskRepository : IActionTaskRepository
             .Set(x => x.Status, ActionStatus.Cancelled)
             .Set(x => x.FinishedAt, DateTime.UtcNow);
 
-        await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+        await MongoHelpers.RetryOnConnectionLoss(() => collection.UpdateManyAsync(filter, update, cancellationToken: ct), logger);
     }
 
     public async Task CancelPendingByLead(Guid leadStateId, CancellationToken ct)
@@ -152,7 +155,7 @@ public class ActionTaskRepository : IActionTaskRepository
             .Set(x => x.Status, ActionStatus.Cancelled)
             .Set(x => x.FinishedAt, DateTime.UtcNow);
 
-        await collection.UpdateManyAsync(filter, update, cancellationToken: ct);
+        await MongoHelpers.RetryOnConnectionLoss(() => collection.UpdateManyAsync(filter, update, cancellationToken: ct), logger);
     }
 
     public async Task UnlockNext(Guid leadStateId, Guid nodeId, int completedOrder, CancellationToken ct)
