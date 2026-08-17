@@ -5,6 +5,7 @@ using states.Mongo.Documents;
 using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Documents.Outbox;
 using states.Mongo.Mappers;
+using states.Services.CampaignClient;
 using states.Services.FunnelService.Application;
 using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
@@ -16,12 +17,16 @@ public class LeadStateRepository : ILeadStateRepository
     private readonly IMongoCollection<FunnelLeadState> collection;
     private readonly IMongoCollection<OutboxDocument> outbox;
     private readonly IMongoCollection<LeadEventBaseDocument> leadEvents;
+    private readonly IMongoCollection<ActionTaskDocument> actionTasks;
+    private readonly IMongoCollection<PushTaskDocument> pushTasks;
 
     public LeadStateRepository(MongoContext context, ILogger<LeadStateRepository> logger)
     {
         collection = context.LeadStates;
         outbox = context.Outbox;
         leadEvents = context.LeadEvents;
+        actionTasks = context.ActionTasks;
+        pushTasks = context.PushTasks;
         this.logger = logger;
     }
 
@@ -951,6 +956,45 @@ public class LeadStateRepository : ILeadStateRepository
 
         if (result.DeletedCount == 0)
             throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+    }
+
+    public async Task<int> DeleteMigratedBatch(Guid tenantId, Guid botId, int limit, CancellationToken ct = default)
+    {
+        var filter = Builders<FunnelLeadState>.Filter.And(
+            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
+            Builders<FunnelLeadState>.Filter.Eq(x => x.MigrationFrom, MigrationFrom.Chatterfy));
+
+        var batch = await collection
+            .Find(filter)
+            .Project(x => new { x.Id, x.LeadId })
+            .Limit(limit)
+            .ToListAsync(ct);
+
+        if (batch.Count == 0)
+            return 0;
+
+        var stateIds = batch.Select(b => b.Id).ToList();
+        var leadIds = batch.Select(b => b.LeadId).Distinct().ToList();
+
+        // Мигрированный лид входит в воронку без action/push-тасков (см. EnterFunnel: isMigrated
+        // не создаёт задачи текущей ноды) — эти удаления обычно no-op, но подчищаем на случай,
+        // если лид уже получил реальную активность до отката.
+        await actionTasks.DeleteManyAsync(Builders<ActionTaskDocument>.Filter.In(x => x.LeadStateId, stateIds), ct);
+        await pushTasks.DeleteManyAsync(Builders<PushTaskDocument>.Filter.In(x => x.LeadStateId, stateIds), ct);
+
+        // leadId мигрированного лида либо новый (никогда не существовал), либо уже проверен на
+        // коллизию при импорте в campaigns (LeadMigrationService.CreateMissing) — принадлежит тому
+        // же globalId, так что здесь безопасно чистить lead_events по нему целиком, без риска
+        // задеть чужого лида с тем же leadId.
+        await leadEvents.DeleteManyAsync(Builders<LeadEventBaseDocument>.Filter.And(
+            Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
+            Builders<LeadEventBaseDocument>.Filter.In(x => x.LeadId, leadIds)), ct);
+
+        var result = await collection.DeleteManyAsync(
+            Builders<FunnelLeadState>.Filter.In(x => x.Id, stateIds), ct);
+
+        return (int)result.DeletedCount;
     }
     #endregion
 

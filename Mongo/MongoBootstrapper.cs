@@ -377,7 +377,17 @@ namespace states.Mongo
                     Builders<LeadEventBaseDocument>.IndexKeys
                         .Ascending(x => x.TenantId)
                         .Ascending(x => x.LeadId)
-                        .Ascending(x => x.CreatedAt))
+                        .Ascending(x => x.CreatedAt)),
+
+                // Дедупликация импорта исторических событий (см. LeadEventsApplicationService.ImportEvents)
+                // по внешнему eventId при повторном/резюмированном прогоне миграции. Unique + sparse:
+                // eventId есть только у Registration/Sale/Resale (см. типы-наследники), у остальных
+                // событий (BotActivation/Contact/...) поля нет вовсе — sparse их из индекса не тронет.
+                new CreateIndexModel<LeadEventBaseDocument>(
+                    Builders<LeadEventBaseDocument>.IndexKeys
+                        .Ascending("tenantId")
+                        .Ascending("eventId"),
+                    new CreateIndexOptions { Unique = true, Sparse = true })
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);

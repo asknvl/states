@@ -69,6 +69,15 @@ public interface ILeadStateRepository
     Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct);
 
-    Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);    
+    Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task Delete(Guid leadStateId, CancellationToken ct);
+
+    /// <summary>
+    /// Полный откат проактивной миграции: удаляет одну пачку (до limit) FunnelLeadState с
+    /// MigrationFrom=Chatterfy по (tenantId, botId) вместе с их action/push-тасками и
+    /// lead-событиями. Пачками, а не одним запросом на весь bot — тот же принцип, что и в
+    /// tgengine/campaigns (см. ChatMigrationApplicationService/LeadMigrationService.DeleteMigrated).
+    /// Возвращает число удалённых lead-states — 0 значит мигрированных лидов больше не осталось.
+    /// </summary>
+    Task<int> DeleteMigratedBatch(Guid tenantId, Guid botId, int limit, CancellationToken ct = default);
 }

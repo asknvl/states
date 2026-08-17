@@ -12,5 +12,11 @@ namespace states.Services.LeadEventsService.Application
             CancellationToken ct = default);
 
         IReadOnlyCollection<LeadEventTypes> GetLeadEventTypes();
+
+        /// <summary>
+        /// Импортирует пачку исторических событий лида (см. migrator). Идемпотентно: повторный
+        /// импорт того же ExternalEventId — не ошибка, просто не создаёт дубль (см. NotImported).
+        /// </summary>
+        Task<ImportLeadEventsResultDto> ImportEvents(ImportLeadEventsRequestDto request, CancellationToken ct = default);
     }
 }

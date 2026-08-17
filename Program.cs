@@ -15,6 +15,7 @@ using states.Services.FunnelService;
 using states.Services.LeadEventsService.Application;
 using states.Services.FunnelService.Application;
 using states.Services.FunnelService.Runtime;
+using states.Services.LeadMigration;
 using states.Services.LeadService;
 using states.Services.LeadService.Routing;
 using states.Services.CampaignService;
@@ -164,6 +165,7 @@ namespace states
             builder.Services.AddScoped<IFunnelsApplicationService, FunnelApplicationService>();
             builder.Services.AddScoped<IFoldersApplicationService, FoldersApplicationService>();
             builder.Services.AddScoped<ILeadEventsApplicationService, LeadEventsApplicationService>();
+            builder.Services.AddScoped<ILeadMigrationService, LeadMigrationService>();
 
             // Lead service
             builder.Services.AddSingleton<ILeadStateRepository, LeadStateRepository>();

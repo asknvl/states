@@ -7,10 +7,12 @@ namespace states.Mongo.Repositories
     public class LeadEventsRepository : ILeadEventsRepository
     {
         private readonly IMongoCollection<LeadEventBaseDocument> collection;
+        private readonly ILogger<LeadEventsRepository> logger;
 
-        public LeadEventsRepository(MongoContext context)
+        public LeadEventsRepository(MongoContext context, ILogger<LeadEventsRepository> logger)
         {
             collection = context.LeadEvents;
+            this.logger = logger;
         }
 
         public async Task<IReadOnlyCollection<LeadEventBaseDocument>> GetByLead(
@@ -64,6 +66,35 @@ namespace states.Mongo.Repositories
         public async Task Create(LeadEventBaseDocument document, CancellationToken ct = default)
         {
             await collection.InsertOneAsync(document, cancellationToken: ct);
+        }
+
+        public async Task<IReadOnlyList<LeadEventBaseDocument>> CreateMany(
+            IReadOnlyList<LeadEventBaseDocument> documents,
+            CancellationToken ct = default)
+        {
+            if (documents.Count == 0)
+                return [];
+
+            try
+            {
+                await collection.InsertManyAsync(documents, new InsertManyOptions { IsOrdered = false }, ct);
+                return documents;
+            }
+            catch (MongoBulkWriteException<LeadEventBaseDocument> ex)
+            {
+                // unordered — часть пачки успешно вставилась, часть отклонена уникальным индексом
+                // (tenantId, eventId) на повторном/резюмированном прогоне миграции. WriteErrors.Index —
+                // индекс запроса в исходном списке (гарантия драйвера), по нему и вычитаем неудачные.
+                var duplicates = ex.WriteErrors.Count(e => e.Category == ServerErrorCategory.DuplicateKey);
+                if (duplicates != ex.WriteErrors.Count)
+                    logger.LogWarning(
+                        "CreateMany: {Total} write error(s), {Duplicates} duplicate key, {Other} other — " +
+                        "the non-duplicate ones are silently dropped, not retried",
+                        ex.WriteErrors.Count, duplicates, ex.WriteErrors.Count - duplicates);
+
+                var failedIndexes = ex.WriteErrors.Select(e => e.Index).ToHashSet();
+                return documents.Where((_, i) => !failedIndexes.Contains(i)).ToList();
+            }
         }
     }
 }
