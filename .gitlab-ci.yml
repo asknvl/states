@@ -35,3 +35,38 @@ clear-job-dev:
   script:
     - echo "Clear unused images"
     - docker image prune -f
+
+build-job-main:
+  cache: []
+  tags: ['states-prod']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  stage: build
+  script:
+    - cd /opt/pro-crm/backend/$CI_PROJECT_NAME/
+    - git pull
+    - cd /opt/pro-crm/
+    - echo "Start building"
+    - docker compose build states
+deploy-job-main:
+  cache: []
+  tags: ['states-prod']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  stage: deploy
+  environment: prod
+  script:
+    - echo "Start deploying project"
+    - cd /opt/pro-crm/
+    - docker compose rm -s -v -f states
+    - docker compose up -d --no-deps states
+  when: manual
+clear-job-main:
+  cache: []
+  tags: ['states-prod']
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+  stage: clear
+  script:
+    - echo "Clear unused images"
+    - docker image prune -f
