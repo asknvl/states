@@ -360,6 +360,22 @@ namespace states.Mongo
         {
             var collection = database.GetCollection<LeadEventBaseDocument>("lead_events");
 
+            // Первая версия дедупликационного индекса — unique+SPARSE (tenantId, eventId) — в расчёте,
+            // что события без eventId в индекс не попадут. Для составного sparse-индекса это не так:
+            // документ пропускается, только если у него нет НИ ОДНОГО поля ключа, а tenantId есть у всех.
+            // События без eventId (BotActivation/Contact/...) индексировались как eventId:null, unique
+            // разрешал одно такое на тенанта — второе падало E11000, обработчик Kafka обрывался до
+            // EnterFunnel/MarkLeadBlocked, сообщение коммитилось и терялось (инцидент 2026-08-18).
+            // Дропаем по имени, если остался; замена — partial-индекс ниже.
+            try
+            {
+                await collection.Indexes.DropOneAsync("tenantId_1_eventId_1", ct);
+            }
+            catch (MongoCommandException)
+            {
+                // индекса уже нет — ничего страшного
+            }
+
             var indexes = new List<CreateIndexModel<LeadEventBaseDocument>>
             {
                 // GetByLead(tenantId, spaceId, leadId): покрывает фильтр и сортировку по createdAt в одном проходе
@@ -379,15 +395,23 @@ namespace states.Mongo
                         .Ascending(x => x.LeadId)
                         .Ascending(x => x.CreatedAt)),
 
-                // Дедупликация импорта исторических событий (см. LeadEventsApplicationService.ImportEvents)
-                // по внешнему eventId при повторном/резюмированном прогоне миграции. Unique + sparse:
-                // eventId есть только у Registration/Sale/Resale (см. типы-наследники), у остальных
-                // событий (BotActivation/Contact/...) поля нет вовсе — sparse их из индекса не тронет.
+                // Дедупликация по внешнему eventId: повторный/резюмированный прогон импорта миграции
+                // (LeadEventsApplicationService.ImportEvents) и повторная доставка постбэков. Unique +
+                // PARTIAL ($exists: true): под индекс и ограничение попадают только документы, у которых
+                // поле eventId есть (Registration/Sale/Resale — см. типы-наследники); события бота без
+                // eventId не индексируются вовсе, в отличие от sparse (см. комментарий у дропа выше).
+                // Имя задано явно: автогенерённое совпало бы с tenantId_1_eventId_1, и drop-by-name выше
+                // сносил бы этот индекс на каждом старте.
                 new CreateIndexModel<LeadEventBaseDocument>(
                     Builders<LeadEventBaseDocument>.IndexKeys
                         .Ascending("tenantId")
                         .Ascending("eventId"),
-                    new CreateIndexOptions { Unique = true, Sparse = true })
+                    new CreateIndexOptions<LeadEventBaseDocument>
+                    {
+                        Unique = true,
+                        PartialFilterExpression = Builders<LeadEventBaseDocument>.Filter.Exists("eventId"),
+                        Name = "unique_external_eventId_per_tenant"
+                    })
             };
 
             await collection.Indexes.CreateManyAsync(indexes, cancellationToken: ct);
