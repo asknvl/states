@@ -210,6 +210,12 @@ namespace states
                 client.BaseAddress = new Uri(baseUrl);
             });
 
+            // Webhook actions (user-configured URLs, short timeout)
+            builder.Services.AddHttpClient(ActionExecutor.WebhookHttpClient, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(5);
+            });
+
             // Kafka producer
             builder.Services.AddSingleton<IProducer<string, string>>(sp =>
             {

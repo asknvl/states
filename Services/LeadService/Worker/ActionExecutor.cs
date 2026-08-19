@@ -17,6 +17,8 @@ namespace states.Services.LeadService.Worker;
 
 public class ActionExecutor : IActionExecutor
 {
+    public const string WebhookHttpClient = "Webhook";
+
     private readonly ITGEngineClient tgengine;
     private readonly IAIServiceClient aiServiceClient;
     private readonly ILeadStateRepository leadStateRepository;
@@ -324,7 +326,7 @@ public class ActionExecutor : IActionExecutor
             _ => throw new NotSupportedException($"Unsupported webhook method type: {task.MethodType}")
         };
 
-        var http = httpClientFactory.CreateClient();
+        var http = httpClientFactory.CreateClient(WebhookHttpClient);
 
         HttpResponseMessage response;
 
