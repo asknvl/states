@@ -93,7 +93,7 @@ public class LeadStateRepository : ILeadStateRepository
             .ToListAsync(ct);
     }
 
-    public async Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct)
+    public async Task<bool> AreAllActionsFinished(Guid leadStateId, Guid nodeId, CancellationToken ct)
     {
         var state = await collection
             .Find(x => x.Id == leadStateId)
@@ -105,7 +105,10 @@ public class LeadStateRepository : ILeadStateRepository
         if (currentLog is null) return false;
         if (currentLog.ActionsLog.Count == 0) return true;
 
-        return currentLog.ActionsLog.All(a => a.Status == ActionStatus.Completed);
+        // Failed/Cancelled — тоже терминальные: упавший некритичный экшен не должен навсегда
+        // держать ноду незавершённой, иначе лид замирает в воронке (инцидент 2026-08-19).
+        return currentLog.ActionsLog.All(a =>
+            a.Status is ActionStatus.Completed or ActionStatus.Failed or ActionStatus.Cancelled);
     }
     #endregion
 
