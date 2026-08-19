@@ -81,6 +81,28 @@ public class ActionTaskRepository : IActionTaskRepository
         return await collection.FindOneAndUpdateAsync(filter, update, options, ct);
     }
 
+    // Брошенная таска, до которой reclaim в ClaimNext уже не дотянется: воркер, забравший её,
+    // умер, а scheduledAt старше MaxReclaimAge (при отставшей очереди claim случается сильно
+    // позже scheduledAt, и окно перезабора успевает закрыться — инцидент 2026-08-19). Выполнять
+    // её поздно, но и вечно висеть InProgress она не должна: держит Waiting-цепочку своей ноды
+    // и unique-слот AiReply. Забираем для финализации (Fail + разблокировка цепочки в воркере).
+    // Сдвиг ClaimedAt исключает двойную финализацию при нескольких репликах: повторный матч
+    // по Lt(ClaimedAt, ...) невозможен ближайшие StaleClaimTimeout.
+    public async Task<ActionTaskDocument?> ClaimAbandoned(CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+
+        var filter = Builders<ActionTaskDocument>.Filter.And(
+            Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress),
+            Builders<ActionTaskDocument>.Filter.Lte(x => x.ScheduledAt, now - MaxReclaimAge),
+            Builders<ActionTaskDocument>.Filter.Lt(x => x.ClaimedAt, now - StaleClaimTimeout));
+
+        var update = Builders<ActionTaskDocument>.Update.Set(x => x.ClaimedAt, now);
+
+        return await collection.FindOneAndUpdateAsync(filter, update,
+            new FindOneAndUpdateOptions<ActionTaskDocument> { ReturnDocument = ReturnDocument.After }, ct);
+    }
+
     public async Task Complete(Guid taskId, CancellationToken ct)
     {
         var filter = Builders<ActionTaskDocument>.Filter.Eq(x => x.Id, taskId);

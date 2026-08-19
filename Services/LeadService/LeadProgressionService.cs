@@ -97,6 +97,7 @@ public class LeadProgressionService : ILeadProgressionService
                         ActionId = action.Id,
                         Order = i,
                         Status = i == 0 ? ActionStatus.Pending : ActionStatus.Waiting,
+                        ScheduledAt = now,
                         CreatedAt = now,
 
                         Operation = action.Operation,

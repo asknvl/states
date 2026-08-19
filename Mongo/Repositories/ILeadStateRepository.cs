@@ -69,7 +69,7 @@ public interface ILeadStateRepository
     Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct);
 
-    Task<bool> AreAllActionsCompleted(Guid leadStateId, Guid nodeId, CancellationToken ct);
+    Task<bool> AreAllActionsFinished(Guid leadStateId, Guid nodeId, CancellationToken ct);
     Task Delete(Guid leadStateId, CancellationToken ct);
 
     /// <summary>

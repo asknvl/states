@@ -28,6 +28,7 @@ public sealed class ActionWorkerService : BackgroundService
     private static readonly TimeSpan BotRestartRetryDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RetryBaseDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan RetryMaxDelay = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan AbandonedSweepInterval = TimeSpan.FromMinutes(5);
 
     public ActionWorkerService(
         IActionTaskRepository taskRepository,
@@ -46,6 +47,8 @@ public sealed class ActionWorkerService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("ActionWorkerService started");
+
+        _ = SweepAbandonedTasks(stoppingToken);
 
         var semaphore = new SemaphoreSlim(maxConcurrency);
 
@@ -95,18 +98,7 @@ public sealed class ActionWorkerService : BackgroundService
             logger.LogInformation("Action task {TaskId} completed for lead {LeadStateId}",
                 task.Id, task.LeadStateId);
 
-            var allDone = await leadStateRepository.AreAllActionsCompleted(task.LeadStateId, task.NodeId, ct);          //TODO в асинхронном контексте тут может быть гонка
-
-            if (allDone)
-            {
-                logger.LogInformation("All actions completed for lead {LeadStateId} at node {NodeId}, applying finish status",
-                    task.LeadStateId, task.NodeId);
-
-                // Применяет FinishStatus ноды (или двигает лида дальше, если FinishStatus == Nothing).
-                // Сама проверяет, что лид всё ещё на этой ноде и не был уже перемещён/переведён
-                // в другой статус помимо этого пути (например, AiRouter или критичный fail).
-                await progressionService.CompleteNodeActions(task.LeadStateId, task.NodeId, ct);
-            }
+            await TryCompleteNode(task, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -146,18 +138,85 @@ public sealed class ActionWorkerService : BackgroundService
         catch (Exception ex)
         {
             logger.LogError(ex, "Action task {TaskId} failed", task.Id);
-            await taskRepository.Fail(task.Id, ct);
-            await leadStateRepository.UpdateActionStatus(
-                task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct, ex.Message);
-
-            if (task.IsCritical)
-            {
-                await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Manual, ct);
-            }
+            await FinalizeFailedTask(task, ex.Message, ct);
         }
         finally
         {
             semaphore.Release();
+        }
+    }
+
+    // Критичная таска уводит лида на оператора; некритичная не должна останавливать воронку:
+    // разблокируем следующую таску ноды и даём ноде завершиться по терминальным статусам —
+    // иначе хвост цепочки навсегда остаётся Waiting, а лид замирает на ноде (инцидент 2026-08-19).
+    private async Task FinalizeFailedTask(ActionTaskDocument task, string? errorMessage, CancellationToken ct)
+    {
+        await taskRepository.Fail(task.Id, ct);
+        await leadStateRepository.UpdateActionStatus(
+            task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Failed, ct, errorMessage);
+
+        if (task.IsCritical)
+        {
+            await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Manual, ct);
+        }
+        else
+        {
+            await taskRepository.UnlockNext(task.LeadStateId, task.NodeId, task.Order, ct);
+            await TryCompleteNode(task, ct);
+        }
+    }
+
+    private async Task TryCompleteNode(ActionTaskDocument task, CancellationToken ct)
+    {
+        var allDone = await leadStateRepository.AreAllActionsFinished(task.LeadStateId, task.NodeId, ct);          //TODO в асинхронном контексте тут может быть гонка
+
+        if (allDone)
+        {
+            logger.LogInformation("All actions finished for lead {LeadStateId} at node {NodeId}, applying finish status",
+                task.LeadStateId, task.NodeId);
+
+            // Применяет FinishStatus ноды (или двигает лида дальше, если FinishStatus == Nothing).
+            // Сама проверяет, что лид всё ещё на этой ноде и не был уже перемещён/переведён
+            // в другой статус помимо этого пути (например, AiRouter или критичный fail).
+            await progressionService.CompleteNodeActions(task.LeadStateId, task.NodeId, ct);
+        }
+    }
+
+    // Финализация брошенных тасков, до которых reclaim в ClaimNext уже не дотянется (см.
+    // ClaimAbandoned): без этого они висят InProgress вечно, держат Waiting-цепочку своей
+    // ноды, слот unique_active_ai_reply_per_lead и лида на ноде.
+    private async Task SweepAbandonedTasks(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                while (await taskRepository.ClaimAbandoned(ct) is { } task)
+                {
+                    logger.LogWarning(
+                        "Action task {TaskId} abandoned (claimed at {ClaimedAt}, scheduled at {ScheduledAt}), failing it for lead {LeadStateId}",
+                        task.Id, task.ClaimedAt, task.ScheduledAt, task.LeadStateId);
+
+                    await FinalizeFailedTask(task, "Task abandoned by a dead worker", ct);
+                }
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error sweeping abandoned action tasks");
+            }
+
+            try
+            {
+                await Task.Delay(AbandonedSweepInterval, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 

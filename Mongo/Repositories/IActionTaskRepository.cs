@@ -6,6 +6,7 @@ public interface IActionTaskRepository
 {
     Task CreateMany(IEnumerable<ActionTaskDocument> tasks, CancellationToken ct);
     Task<ActionTaskDocument?> ClaimNext(CancellationToken ct);
+    Task<ActionTaskDocument?> ClaimAbandoned(CancellationToken ct);
     Task Complete(Guid taskId, CancellationToken ct);
     Task Fail(Guid taskId, CancellationToken ct);
     Task Reschedule(Guid taskId, DateTime nextAttemptAt, CancellationToken ct);
