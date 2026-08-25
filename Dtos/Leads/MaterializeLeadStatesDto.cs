@@ -32,7 +32,11 @@ public sealed record MaterializeLeadStateItemDto(
     Guid? FlowId,
     Guid? NodeId,
     LeadFunnelStatus Status,
-    IReadOnlyList<Tag>? Tags);
+    IReadOnlyList<Tag>? Tags,
+
+    // Custom fields лида из внешнего сервиса — станут начальными postback-параметрами
+    // состояния и уедут в tgengine внутри события LeadStateCreated (см. EnterFunnelRequest).
+    IReadOnlyDictionary<string, string>? CustomFields = null);
 
 public sealed record MaterializeLeadStatesResultDto(IReadOnlyList<MaterializeLeadStateResultDto> Items);
 

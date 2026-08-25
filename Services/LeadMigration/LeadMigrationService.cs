@@ -62,7 +62,8 @@ public class LeadMigrationService : ILeadMigrationService
                     StartParameter: null,
                     MigrationFrom: Services.CampaignClient.MigrationFrom.Chatterfy,
                     Tags: item.Tags?.ToList(),
-                    Status: item.Status);
+                    Status: item.Status,
+                    PostbackParameters: item.CustomFields);
 
                 await leadProgressionService.EnterFunnel(enterFunnelRequest, ct);
 
