@@ -135,16 +135,19 @@ public class LeadStateRepository : ILeadStateRepository
                 .FirstOrDefaultAsync(ct);
 
             if (sibling is not null)
-                state.PostbackParameters = new Dictionary<string, string>(sibling.PostbackParameters);
+            {
+                // База — параметры уже живущего состояния этого лида, поверх — начальные
+                // параметры нового состояния (задаются явно при входе, например перенесённые
+                // миграцией custom fields): при совпадении ключей явное значение важнее
+                // скопированного. Раньше здесь была простая перезапись копией sibling — до
+                // появления начальных параметров это было эквивалентно.
+                var merged = new Dictionary<string, string>(sibling.PostbackParameters);
 
-            // Лид может входить в воронку сразу с тегами (перенесены миграцией из внешнего
-            // сервиса). Событие тегов идёт следом за созданием, и его версия должна быть строго
-            // выше: tgengine применяет изменение только при version < payload.Version, иначе
-            // молча отбрасывает. Документ сохраняется с версией последнего отправленного события.
-            var createdVersion = state.Version;
+                foreach (var (key, value) in state.PostbackParameters)
+                    merged[key] = value;
 
-            if (state.Tags is { Count: > 0 })
-                state.Version = createdVersion + 1;
+                state.PostbackParameters = merged;
+            }
 
             await collection.InsertOneAsync(session, state, cancellationToken: ct);
             await outbox.InsertOneAsync(session, new LeadStateCreatedOutboxDocument
@@ -156,7 +159,7 @@ public class LeadStateRepository : ILeadStateRepository
                 BotId = state.BotId,
                 ChatId = state.ChatId,
                 LeadId = state.LeadId,
-                Version = createdVersion,
+                Version = state.Version,
                 CampaignId = state.CampaignId,
                 CampaignName = state.CampaignName,
                 SourceId = state.SourceId,
@@ -172,26 +175,16 @@ public class LeadStateRepository : ILeadStateRepository
                 IsOutputTranslatorOn = state.IsOutputTranslatorOn,
                 PhotoRecognition = state.PhotoRecognition,
                 VideoRecognition = state.VideoRecognition,
-                VoiceRecognition = state.VoiceRecognition
-            }, cancellationToken: ct);
+                VoiceRecognition = state.VoiceRecognition,
 
-            // LeadStateCreated тегов не несёт, поэтому tgengine узнаёт о них тем же событием,
-            // что и при обычной смене тегов, — в одной транзакции с созданием состояния.
-            if (state.Tags is { Count: > 0 })
-                await outbox.InsertOneAsync(session, new LeadTagChangedOutboxDocument
-                {
-                    Id = Guid.CreateVersion7(),
-                    CreatedAt = DateTime.UtcNow,
-                    TenantId = state.TenantId,
-                    SpaceId = state.SpaceId,
-                    BotId = state.BotId,
-                    ChatId = state.ChatId,
-                    LeadId = state.LeadId,
-                    Version = state.Version,
-                    Tags = state.Tags,
-                    Operation = TagOperation.Manual,
-                    Tag = null
-                }, cancellationToken: ct);
+                // Начальные теги и postback-параметры едут пассажирами в created-событии, а не
+                // отдельными LeadTagChanged/LeadPostbackParametersChanged следом: при массовой
+                // материализации каждое дополнительное событие на лида кратно раздувает волну
+                // outbox → Kafka → tgengine. Раньше теги шли вторым событием с version+1 (чтобы
+                // tgengine не отбросил его по версии) — теперь и костыль с версией не нужен.
+                Tags = state.Tags,
+                PostbackParameters = state.PostbackParameters
+            }, cancellationToken: ct);
         }, ct);
 
         return state;

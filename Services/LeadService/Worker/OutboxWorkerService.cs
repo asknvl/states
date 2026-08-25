@@ -84,7 +84,13 @@ public sealed class OutboxWorkerService(
                             PhotoRecognition: created.PhotoRecognition,
                             VideoRecognition: created.VideoRecognition,
                             VoiceRecognition: created.VoiceRecognition,
-                            Version: created.Version);
+                            Version: created.Version,
+                            PostbackParameters: created.PostbackParameters is { Count: > 0 }
+                                ? created.PostbackParameters
+                                : null,
+                            Tags: created.Tags is { Count: > 0 }
+                                ? created.Tags.Select(t => t.ToDto()).ToList()
+                                : null);
 
                     await eventService.Publish(new LeadStateCreatedEvent(scp), ct);
 

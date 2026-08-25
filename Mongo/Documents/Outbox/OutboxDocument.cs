@@ -99,6 +99,17 @@ public sealed class LeadStateCreatedOutboxDocument : OutboxDocument
     [BsonElement("voiceRecognition")]
     [BsonRepresentation(BsonType.String)]
     public RecognitionType VoiceRecognition { get; set; } = RecognitionType.Skip;
+
+    // Начальные postback-параметры лида (обычно custom fields миграции) — едут внутри
+    // created-события, а не отдельным LeadPostbackParametersChanged (см. CreateLeadState).
+    [BsonElement("postbackParameters")]
+    public Dictionary<string, string> PostbackParameters { get; set; } = [];
+
+    // Начальные теги (перенесены миграцией) — тоже внутри created-события, а не отдельным
+    // LeadTagChanged следом: на массовой материализации второе событие на каждого
+    // тегированного лида удваивало бы волну outbox → Kafka → tgengine.
+    [BsonElement("tags")]
+    public List<TagDocument> Tags { get; set; } = [];
 }
 
 public sealed class LeadStatusChangedOutboxDocument : OutboxDocument

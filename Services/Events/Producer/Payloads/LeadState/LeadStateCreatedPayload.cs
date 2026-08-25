@@ -25,7 +25,13 @@ namespace states.Services.Events.Producer.Payloads.LeadState
         RecognitionType PhotoRecognition,
         RecognitionType VideoRecognition,
         RecognitionType VoiceRecognition,
-        long Version
+        long Version,
+
+        // Начальные postback-параметры (custom fields миграции) и теги. Аддитивные поля:
+        // старые консьюмеры незнакомые свойства игнорируют, null/пусто — ничего не делать.
+        // Отдельные LeadPostbackParametersChanged/LeadTagChanged при создании не шлются.
+        Dictionary<string, string>? PostbackParameters = null,
+        List<states.Dtos.Funnels.Tag>? Tags = null
     ) : LeadStateChangeEventPayloadBase(
             TenantId: TenantId,
             SpaceId: SpaceId,

@@ -436,7 +436,13 @@ public class LeadProgressionService : ILeadProgressionService
             // без отдельного запроса SaveTags.
             Tags = request.Tags?
                 .Select(t => new TagDocument { Id = t.Id, Name = t.Name })
-                .ToList() ?? []
+                .ToList() ?? [],
+
+            // Начальные postback-параметры (custom fields миграции) — тоже сразу, без
+            // отдельного события: уедут в tgengine внутри LeadStateCreated (см. CreateLeadState).
+            PostbackParameters = request.PostbackParameters is { Count: > 0 }
+                ? new Dictionary<string, string>(request.PostbackParameters)
+                : []
         };
 
         List<ActionTaskDocument> actionTasks = [];

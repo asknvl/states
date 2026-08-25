@@ -33,5 +33,11 @@ public sealed record EnterFunnelRequest(
 
     // Статус, с которым мигрированный лид стоял во внешнем сервисе. Задан — перекрывает
     // статус, который дала бы нода входа: лид продолжает с того же состояния, что и там.
-    LeadFunnelStatus? Status = null
+    LeadFunnelStatus? Status = null,
+
+    // Начальные postback-параметры лида (перенесены миграцией: custom fields внешнего
+    // сервиса). Кладутся прямо в создаваемый FunnelLeadState и уезжают в tgengine внутри
+    // события LeadStateCreated — БЕЗ отдельного события на каждого лида: при массовой
+    // материализации это удержало бы волну в outbox/Kafka от роста в полтора раза.
+    IReadOnlyDictionary<string, string>? PostbackParameters = null
 );
