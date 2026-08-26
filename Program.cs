@@ -200,6 +200,13 @@ namespace states
                 var baseUrl = builder.Configuration["TgEngineClient:EndPoint"]
                     ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
+
+                // Вместо дефолтных 100с: подвисший tgengine не должен занимать слоты ActionWorker
+                // (механика вебхук-инцидента 2026-08-19). Таймаут превращается в
+                // TransientActionException → ретрай с бэкоффом. Ниже 30с опускать осторожно:
+                // отправка тяжёлого медиа-пресета без кэша Telegram-файла (S3 + upload) может
+                // легитимно не уложиться, и ретрай задублирует сообщение лиду.
+                client.Timeout = TimeSpan.FromSeconds(30);
             });
 
             // AI service
