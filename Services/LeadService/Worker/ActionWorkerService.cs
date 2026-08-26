@@ -13,7 +13,10 @@ public sealed class ActionWorkerService : BackgroundService
     private readonly ILogger<ActionWorkerService> logger;
 
     private readonly TimeSpan pollingInterval = TimeSpan.FromSeconds(1);
-    private readonly int maxConcurrency = 10;
+
+    // 30 слотов под ~40к лидов/сутки (~610к тасков): на 10 очередь копилась в пики —
+    // таски подолгу висели в Pending. Пул общий для всех типов тасков.
+    private readonly int maxConcurrency = 30;
 
     // Ретраи transient-ошибок: 30с → 1м → 2м → 4м → 8м (±20% джиттера), итого ~15 минут,
     // после чего обычный Fail (+Manual для критичных тасок).
