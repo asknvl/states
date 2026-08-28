@@ -9,6 +9,10 @@ public interface ILeadStateRepository
 {
     Task<FunnelLeadState> CreateLeadState(FunnelLeadState state, CancellationToken ct);
     Task<FunnelLeadState> GetLeadState(Guid leadStateId, CancellationToken ct);
+
+    // Только статус лида (проекция, без остального документа) — воркеры сверяются с ним перед
+    // каждым выполнением таски, полное чтение там не нужно. null — лид уже удалён.
+    Task<LeadFunnelStatus?> GetStatus(Guid leadStateId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid chatId, CancellationToken ct);
     Task<FunnelLeadState?> ClaimWaitingLeadByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);

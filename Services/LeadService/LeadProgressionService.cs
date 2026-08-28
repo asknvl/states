@@ -295,9 +295,10 @@ public class LeadProgressionService : ILeadProgressionService
 
     // Push-таски лежат в отдельной коллекции (своя цепочка Order, свой воркер) и не влияют
     // на ActionsLog/переход по воронке — отмена pending тасков лида затрагивает обе коллекции.
-    private async Task CancelPendingTasks(Guid leadStateId, CancellationToken ct)
+    // includeMarkRead=true — для ручного перевода в Manual, где глушится и отложенная прочитка.
+    private async Task CancelPendingTasks(Guid leadStateId, CancellationToken ct, bool includeMarkRead = false)
     {
-        await actionTaskRepository.CancelPendingByLead(leadStateId, ct);
+        await actionTaskRepository.CancelPendingByLead(leadStateId, ct, includeMarkRead);
         await pushTaskRepository.CancelPendingByLead(leadStateId, ct);
     }
 
@@ -862,6 +863,14 @@ public class LeadProgressionService : ILeadProgressionService
         {
             await leadStateRepository.UpdateLeadStateStatus(leadState.Id, dto.Status.Value, ct);
             logger.LogInformation("Lead {LeadStateId} status manually set to {Status}", leadState.Id, dto.Status.Value);
+
+            // Ручной перевод в Manual отдаёт лида оператору: вся ожидающая автоматика —
+            // экшены ноды, пуши, отложенная прочитка — отменяется. Статус выставлен ДО отмены:
+            // новых тасков Manual-лид не получит (входящий сигнал захватывает только Waiting),
+            // а таски, забранные воркером до перевода (InProgress, отмене не поддаются),
+            // отсеет гвард по статусу лида в воркерах перед выполнением.
+            if (dto.Status.Value == LeadFunnelStatus.Manual)
+                await CancelPendingTasks(leadState.Id, ct, includeMarkRead: true);
         }
 
         if (dto.Tags is not null)

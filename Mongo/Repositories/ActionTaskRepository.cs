@@ -123,6 +123,16 @@ public class ActionTaskRepository : IActionTaskRepository
         await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
     }
 
+    public async Task Cancel(Guid taskId, CancellationToken ct)
+    {
+        var filter = Builders<ActionTaskDocument>.Filter.Eq(x => x.Id, taskId);
+        var update = Builders<ActionTaskDocument>.Update
+            .Set(x => x.Status, ActionStatus.Cancelled)
+            .Set(x => x.FinishedAt, DateTime.UtcNow);
+
+        await collection.UpdateOneAsync(filter, update, cancellationToken: ct);
+    }
+
     // Возврат таски в очередь после transient-ошибки: снова Pending с будущим ScheduledAt.
     // Таска остаётся «активной» (unique_active_ai_reply_per_lead продолжает держать слот,
     // CancelPendingByLead при переходе лида на другую ноду отменит и её).
@@ -163,15 +173,22 @@ public class ActionTaskRepository : IActionTaskRepository
         await MongoHelpers.RetryOnConnectionLoss(() => collection.UpdateManyAsync(filter, update, cancellationToken: ct), logger);
     }
 
-    public async Task CancelPendingByLead(Guid leadStateId, CancellationToken ct)
+    public async Task CancelPendingByLead(Guid leadStateId, CancellationToken ct, bool includeMarkRead = false)
     {
-        // MarkRead не отменяем: прочитка уже полученных сообщений валидна независимо от того,
-        // на какую ноду перешёл лид (иначе переход по AiRouter гасил бы ещё не сработавшую прочитку).
-        var filter = Builders<ActionTaskDocument>.Filter.And(
+        // MarkRead по умолчанию не отменяем: прочитка уже полученных сообщений валидна независимо
+        // от того, на какую ноду перешёл лид (иначе переход по AiRouter гасил бы ещё не сработавшую
+        // прочитку). Исключение — ручной перевод в Manual (includeMarkRead=true): лида забрал
+        // оператор, автоматика глушится целиком, включая прочитку.
+        var conditions = new List<FilterDefinition<ActionTaskDocument>>
+        {
             Builders<ActionTaskDocument>.Filter.Eq(x => x.LeadStateId, leadStateId),
-            Builders<ActionTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting }),
-            Builders<ActionTaskDocument>.Filter.Ne(x => x.Type, ActionType.MarkRead)
-        );
+            Builders<ActionTaskDocument>.Filter.In(x => x.Status, new[] { ActionStatus.Pending, ActionStatus.Waiting })
+        };
+
+        if (!includeMarkRead)
+            conditions.Add(Builders<ActionTaskDocument>.Filter.Ne(x => x.Type, ActionType.MarkRead));
+
+        var filter = Builders<ActionTaskDocument>.Filter.And(conditions);
 
         var update = Builders<ActionTaskDocument>.Update
             .Set(x => x.Status, ActionStatus.Cancelled)
