@@ -45,6 +45,16 @@ public class LeadStateRepository : ILeadStateRepository
         return state;
     }
 
+    public async Task<LeadFunnelStatus?> GetStatus(Guid leadStateId, CancellationToken ct)
+    {
+        var projected = await collection
+            .Find(x => x.Id == leadStateId)
+            .Project(x => new { x.Status })
+            .FirstOrDefaultAsync(ct);
+
+        return projected?.Status;
+    }
+
     public async Task<FunnelLeadState?> GetLeadStateByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
     {
         return await collection

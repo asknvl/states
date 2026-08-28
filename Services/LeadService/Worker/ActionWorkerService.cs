@@ -92,6 +92,24 @@ public sealed class ActionWorkerService : BackgroundService
         {
             logger.LogInformation($"ActionWorkerService Processing Task: {task}");
 
+            // Статус лида сверяем непосредственно перед выполнением: Manual (лида ведёт оператор)
+            // и Blocked (писать некуда) глушат всю автоматику, включая MarkRead. Сюда попадают
+            // таски, забранные в работу до перевода статуса (InProgress не накрывается
+            // CancelPendingByLead), и таски, вставленные конкурентным входящим сигналом
+            // уже после отмены pending.
+            var leadStatus = await leadStateRepository.GetStatus(task.LeadStateId, ct);
+            if (leadStatus is null or LeadFunnelStatus.Manual or LeadFunnelStatus.Blocked)
+            {
+                logger.LogInformation(
+                    "Action task {TaskId} cancelled before execution: lead {LeadStateId} status is {Status}",
+                    task.Id, task.LeadStateId, leadStatus?.ToString() ?? "deleted");
+
+                await taskRepository.Cancel(task.Id, ct);
+                await leadStateRepository.UpdateActionStatus(
+                    task.LeadStateId, task.NodeId, task.ActionId, ActionStatus.Cancelled, ct);
+                return;
+            }
+
             await actionExecutor.Execute(task, ct);
             await taskRepository.Complete(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(

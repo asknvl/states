@@ -68,6 +68,22 @@ public sealed class PushWorkerService : BackgroundService
         {
             logger.LogInformation($"PushWorkerService Processing Task: {task.Id}");
 
+            // Manual (лида ведёт оператор) и Blocked (писать некуда) глушат пуши: сюда попадают
+            // таски, забранные в работу до перевода статуса — pending-таски отменяет
+            // CancelPendingTasks при самом переводе. Fail здесь — не «ошибка»: у push-тасок нет
+            // терминальных статусов, Fail и Complete одинаково просто удаляют документ (память об
+            // отправленных пушах живёт в FunnelLeadState.Pushes), так что это обычная отмена.
+            var leadStatus = await leadStateRepository.GetStatus(task.LeadStateId, ct);
+            if (leadStatus is null or LeadFunnelStatus.Manual or LeadFunnelStatus.Blocked)
+            {
+                logger.LogInformation(
+                    "Push task {TaskId} dropped: lead {LeadStateId} status is {Status}",
+                    task.Id, task.LeadStateId, leadStatus?.ToString() ?? "deleted");
+
+                await taskRepository.Fail(task.Id, ct);
+                return;
+            }
+
             // Inactivity-пуш (AiReply-нода) отправляем, только если лид молчал весь свой delay.
             // Якорь таска = ScheduledAt - Delay; если лид писал после якоря — переносим отправку
             // на LastIncomingAt + Delay. Проверка в момент отправки самовосстанавливающаяся:
