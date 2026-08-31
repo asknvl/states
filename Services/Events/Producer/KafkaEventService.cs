@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using states.Logging;
 using states.Services.Events;
 using states.Services.Events.Producer.Payloads;
+using states.Services.Events.Producer.Payloads.Conversions;
 
 namespace states.Services.Events.Producer
 {
@@ -12,6 +13,7 @@ namespace states.Services.Events.Producer
         private readonly IProducer<string, string> producer;
         private readonly ILogger logger;
         private readonly string leadStateEventsTopic;
+        private readonly string leadConversionEventsTopic;
 
         private static readonly JsonSerializerOptions jsonOptions = new()
         {
@@ -32,6 +34,8 @@ namespace states.Services.Events.Producer
             this.logger = logger;
             leadStateEventsTopic = config["Kafka:Topics:LeadStateEvents"]
                 ?? throw new InvalidOperationException("Kafka:Topics:LeadStateEvents not configured");
+            leadConversionEventsTopic = config["Kafka:Topics:LeadConversionEvents"]
+                ?? throw new InvalidOperationException("Kafka:Topics:LeadConversionEvents not configured");
         }
 
         public async Task Publish<TPayload>(Event<TPayload> @event, CancellationToken ct = default)
@@ -67,6 +71,8 @@ namespace states.Services.Events.Producer
             EventTypes.LeadPostbackParametersChanged => leadStateEventsTopic,
             EventTypes.LeadDepositChanged => leadStateEventsTopic,
 
+            EventTypes.LeadConversion => leadConversionEventsTopic,
+
             _ => throw new InvalidOperationException($"No topic mapping defined for event type '{@event.Type}'")
         };
 
@@ -74,6 +80,10 @@ namespace states.Services.Events.Producer
         {
             if (@event.Payload is LeadStateChangeEventPayloadBase basePayload)
                 return basePayload.ChatId.ToString();
+
+            // Конверсии ключуем лидом: события одного лида попадают в одну партицию по порядку
+            if (@event.Payload is LeadConversionPayload conversion)
+                return conversion.LeadId;
 
             return @event.Id.ToString();
         }
