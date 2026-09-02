@@ -3,6 +3,7 @@ using states.Mongo.Mappers;
 using states.Mongo.Repositories;
 using states.Services.Events.Producer;
 using states.Services.Events.Producer.Payloads;
+using states.Services.Events.Producer.Payloads.Conversions;
 using states.Services.Events.Producer.Payloads.LeadState;
 using states.Services.FunnelService.Runtime;
 using FunnelTag = states.Dtos.Funnels.Tag;
@@ -195,6 +196,22 @@ public sealed class OutboxWorkerService(
                         Version: deposit.Version);
 
                     await eventService.Publish(new LeadDepositChangedEvent(ldc), ct);
+                    break;
+
+                case LeadConversionOutboxDocument conversion:
+
+                    var lcp = new LeadConversionPayload(
+                        ConversionEventId: conversion.Id,
+                        Type: conversion.ConversionType,
+                        TenantId: conversion.TenantId,
+                        SpaceId: conversion.SpaceId,
+                        CampaignId: conversion.CampaignId,
+                        LeadId: conversion.LeadId,
+                        OccurredAt: conversion.OccurredAt,
+                        Amount: conversion.Amount,
+                        Currency: conversion.Currency);
+
+                    await eventService.Publish(new LeadConversionEvent(lcp), ct);
                     break;
             }
 

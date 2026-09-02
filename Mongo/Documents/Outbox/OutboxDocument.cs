@@ -1,6 +1,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using states.Dtos.Funnels;
+using states.Services.Events.Producer.Payloads.Conversions;
 using states.Services.FunnelService.Application;
 using states.Services.LeadService;
 
@@ -14,7 +15,8 @@ namespace states.Mongo.Documents.Outbox;
     typeof(LeadTagChangedOutboxDocument),
     typeof(LeadTranslatorChangedOutboxDocument),
     typeof(LeadPostbackParametersChangedOutboxDocument),
-    typeof(LeadDepositChangedOutboxDocument))]
+    typeof(LeadDepositChangedOutboxDocument),
+    typeof(LeadConversionOutboxDocument))]
 public abstract class OutboxDocument
 {
     [BsonId]
@@ -187,4 +189,30 @@ public sealed class LeadDepositChangedOutboxDocument : OutboxDocument
 
     [BsonElement("currencyCode")]
     public string CurrencyCode { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Конверсия лида для ФБ-пайплайна (топик lead-conversion-events, консюмер — campaigns).
+/// Id документа = детерминированный id конверсии (EventId постбэка в трекере / Id лид-стейта
+/// для контакта) — повторная постановка при переигрывании обработчика отбивается по _id.
+/// Version для конверсий смысла не имеет, остаётся 0.
+/// </summary>
+public sealed class LeadConversionOutboxDocument : OutboxDocument
+{
+    [BsonElement("conversionType")]
+    [BsonRepresentation(BsonType.String)]
+    public LeadConversionType ConversionType { get; set; }
+
+    [BsonElement("campaignId")]
+    public Guid CampaignId { get; set; }
+
+    // Момент конверсии (ReceivedAt постбэка / FirstContactAt), а не постановки в очередь
+    [BsonElement("occurredAt")]
+    public DateTime OccurredAt { get; set; }
+
+    [BsonElement("amount")]
+    public decimal? Amount { get; set; }
+
+    [BsonElement("currency")]
+    public string? Currency { get; set; }
 }

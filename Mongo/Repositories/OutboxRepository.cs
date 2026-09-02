@@ -12,6 +12,19 @@ public class OutboxRepository : IOutboxRepository
         collection = context.Outbox;
     }
 
+    public async Task<bool> TryAdd(OutboxDocument document, CancellationToken ct)
+    {
+        try
+        {
+            await collection.InsertOneAsync(document, cancellationToken: ct);
+            return true;
+        }
+        catch (MongoWriteException e) when (e.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        {
+            return false;
+        }
+    }
+
     public Task<OutboxDocument?> TakeNext(TimeSpan claimTimeout, CancellationToken ct)
     {
         var staleThreshold = DateTime.UtcNow - claimTimeout;

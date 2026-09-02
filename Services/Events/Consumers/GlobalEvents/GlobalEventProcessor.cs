@@ -4,8 +4,10 @@ using states.Dtos.Leads;
 using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Repositories;
 using states.Services.CampaignService;
+using states.Mongo.Documents.Outbox;
 using states.Services.Events.Consumer;
 using states.Services.Events.Consumers.GlobalEvents.Payloads;
+using states.Services.Events.Producer.Payloads.Conversions;
 using states.Services.LeadService;
 using states.Services.MigratorService;
 
@@ -17,6 +19,7 @@ public class GlobalEventProcessor(
     IMigratorClient migratorClient,
     ILeadStateRepository leadStateRepository,
     ILeadEventsRepository leadEventsRepository,
+    IOutboxRepository outboxRepository,
     ILogger<GlobalEventProcessor> logger) : IGlobalEventProcessor
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -239,6 +242,25 @@ public class GlobalEventProcessor(
         var firstContact = await leadStateRepository.TryMarkFirstContact(p.TenantId, p.BotId, p.ChatId, ct);
         if (firstContact is not null)
         {
+            // Конверсия «контакт» для ФБ-пайплайна — в outbox первым делом: конверсия важнее
+            // журнальной записи ниже. Id = Id лид-стейта (TryMarkFirstContact срабатывает
+            // ровно один раз, id детерминирован — дедуп ниже по конвейеру). Органика (без
+            // кампании) в ФБ не отправляется. Доставкой занимается OutboxWorkerService.
+            if (firstContact.CampaignId is not null)
+                await outboxRepository.TryAdd(new LeadConversionOutboxDocument
+                {
+                    Id = firstContact.Id,
+                    CreatedAt = DateTime.UtcNow,
+                    TenantId = firstContact.TenantId,
+                    SpaceId = firstContact.SpaceId,
+                    BotId = firstContact.BotId,
+                    ChatId = firstContact.ChatId,
+                    LeadId = firstContact.LeadId,
+                    ConversionType = LeadConversionType.Contact,
+                    CampaignId = firstContact.CampaignId.Value,
+                    OccurredAt = firstContact.FirstContactAt ?? DateTime.UtcNow,
+                }, ct);
+
             await leadEventsRepository.Create(new ContactEventDocument
             {
                 Id = Guid.CreateVersion7(),

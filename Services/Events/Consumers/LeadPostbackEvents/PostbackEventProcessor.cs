@@ -2,8 +2,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using states.Mongo.Documents.LeadEvents;
 using states.Mongo.Repositories;
+using states.Mongo.Documents.Outbox;
 using states.Services.CampaignService;
 using states.Services.Events.Consumers.LeadPostbackEvents.Payloads;
+using states.Services.Events.Producer.Payloads.Conversions;
 using states.Services.LeadEventsService.Application;
 using states.Services.LeadService;
 
@@ -14,6 +16,7 @@ public class PostbackEventProcessor(
     ILeadEventsRepository leadEventsRepository,
     ILeadProgressionService leadProgressionService,
     ICampaignClient campaignClient,
+    IOutboxRepository outboxRepository,
     ILogger<PostbackEventProcessor> logger) : IPostbackEventProcessor
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -70,6 +73,40 @@ public class PostbackEventProcessor(
 
         if (payload.CustomFields is { Count: > 0 })
             await leadStateRepository.MergePostbackParameters(payload.TenantId, payload.LeadId, payload.CustomFields, ct);
+
+        // Конверсия для ФБ-пайплайна — в outbox ДО записи в lead_events: при переигрывании
+        // постбэка Create ниже упадёт на unique-индексе (tenantId, eventId) и обработка
+        // оборвётся, а конверсия к этому моменту уже гарантированно стоит в очереди.
+        // Вставка идемпотентна: Id документа = EventId постбэка в трекере.
+        // Доставкой занимается OutboxWorkerService — конверсия переживает простой Kafka.
+        var conversionType = postbackEventType switch
+        {
+            PostbackEventType.REGISTRATION => LeadConversionType.Registration,
+            PostbackEventType.SALE => LeadConversionType.Sale,
+            PostbackEventType.RESALE => LeadConversionType.Resale,
+            _ => (LeadConversionType?)null
+        };
+
+        if (conversionType is not null
+            && payload.Status != PostbackEventStatus.DUPLICATE
+            && leadState.CampaignId is not null)
+        {
+            await outboxRepository.TryAdd(new LeadConversionOutboxDocument
+            {
+                Id = payload.EventId,
+                CreatedAt = DateTime.UtcNow,
+                TenantId = payload.TenantId,
+                SpaceId = leadState.SpaceId,
+                BotId = leadState.BotId,
+                ChatId = leadState.ChatId,
+                LeadId = payload.LeadId,
+                ConversionType = conversionType.Value,
+                CampaignId = leadState.CampaignId.Value,
+                OccurredAt = payload.ReceivedAt,
+                Amount = payload.Payout,
+                Currency = payload.Currency,
+            }, ct);
+        }
 
         // RecalculateDeposits обновляет DepositCount в базе, но не сам объект leadState —
         // используем возвращённое значение ниже вместо устаревшего leadState.DepositCount,

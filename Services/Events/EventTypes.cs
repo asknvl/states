@@ -16,6 +16,10 @@
         public const string LeadPostbackParametersChanged = "states.lead.postbackparameters.changed";
         public const string LeadDepositChanged = "states.lead.deposit.changed";
 
+        //outcoming: конверсии лидов (топик lead-conversion-events, консюмер — campaigns);
+        //вид конверсии — дискриминатор в payload (LeadConversionType), а не тип конверта
+        public const string LeadConversion = "lead.conversion";
+
 
     }
 }
