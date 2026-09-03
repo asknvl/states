@@ -82,6 +82,11 @@ public class ActionExecutor : IActionExecutor
                 await ExecuteMarkRead(markRead, ct);
                 break;
 
+            case SendTypingActionTaskDocument sendTyping:
+                logger.LogInformation("ActionExecutor Execute ExecuteSendTyping");
+                await ExecuteSendTyping(sendTyping, ct);
+                break;
+
             default:
                 throw new InvalidOperationException($"Unknown action task type: {task.GetType().Name}");
         }
@@ -212,6 +217,28 @@ public class ActionExecutor : IActionExecutor
                 ReplyOnlyIfLastIncoming = true
             };
             await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
+
+            // «Печатает» за LeadSeconds до запланированного AiReply (прочитка здесь не участвует —
+            // она идёт параллельным MarkRead-таском от входящего сигнала)
+            var typingTask = new SendTypingActionTaskDocument
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = task.TenantId,
+                SpaceId = task.SpaceId,
+                LeadStateId = task.LeadStateId,
+                FunnelId = task.FunnelId,
+                FlowId = task.FlowId,
+                NodeId = task.NodeId,
+                ActionId = Guid.CreateVersion7(),
+                BotId = task.BotId,
+                ChatId = task.ChatId,
+                ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(
+                    Math.Max(0, funnel.ReplyDelay - TypingDefaults.LeadSeconds)),
+                CreatedAt = DateTime.UtcNow,
+                Order = 0
+            };
+
+            await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
             //await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); // ХЗ зачем тут добавлял
             return;
         }
@@ -301,6 +328,20 @@ public class ActionExecutor : IActionExecutor
             await progressionService.TransitionToNextNode(task.LeadStateId, ct); 
         //else
         //    await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); //Оно и так вроде в вейтинге всегда в этом месте
+    }
+
+    // Показать «печатает» перед AI-ответом: tgengine отвечает сразу, индикатор крутится
+    // у него в фоне и гаснет при отправке сообщения. Таск некритичный — сбой не должен
+    // останавливать воронку или уводить лида на оператора.
+    private async Task ExecuteSendTyping(SendTypingActionTaskDocument task, CancellationToken ct)
+    {
+        await tgengine.SendTyping(
+            task.TenantId,
+            task.SpaceId,
+            task.BotId,
+            task.ChatId,
+            TypingDefaults.DurationMs,
+            ct);
     }
 
     private async Task ExecuteMarkRead(MarkReadActionTaskDocument task, CancellationToken ct)

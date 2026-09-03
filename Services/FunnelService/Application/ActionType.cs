@@ -8,6 +8,7 @@
         AiRouter,
         SendWebhook,
         SendPush,
-        MarkRead
+        MarkRead,
+        SendTyping
     }
 }

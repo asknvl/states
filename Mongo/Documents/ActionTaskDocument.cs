@@ -11,6 +11,7 @@ namespace states.Mongo.Documents;
 [BsonKnownTypes(typeof(AiRouterActionTaskDocument))]
 [BsonKnownTypes(typeof(SendWebhookActionTaskDocument))]
 [BsonKnownTypes(typeof(MarkReadActionTaskDocument))]
+[BsonKnownTypes(typeof(SendTypingActionTaskDocument))]
 public abstract class ActionTaskDocument
 {
     [BsonId]
@@ -157,6 +158,21 @@ public sealed class MarkReadActionTaskDocument : ActionTaskDocument
     public Guid ChatId { get; set; }
 
     public MarkReadActionTaskDocument() : base(ActionType.MarkRead, isCritical: false) { }
+}
+
+// Реактивный таск «показать печатает» — ставится вместе с AiReply по входящему сигналу:
+// прочитка на ReadDelay, тайпинг незадолго до ответа, сам ответ на ReadDelay + ReplyDelay.
+// Как и MarkRead, не входит в ActionsLog ноды и не влияет на переход по воронке.
+// Длительность индикатора константная (TypingDefaults) — длина ответа заранее неизвестна.
+public sealed class SendTypingActionTaskDocument : ActionTaskDocument
+{
+    [BsonElement("botId")]
+    public Guid BotId { get; set; }
+
+    [BsonElement("chatId")]
+    public Guid ChatId { get; set; }
+
+    public SendTypingActionTaskDocument() : base(ActionType.SendTyping, isCritical: false) { }
 }
 
 public sealed class SendWebhookActionTaskDocument : ActionTaskDocument

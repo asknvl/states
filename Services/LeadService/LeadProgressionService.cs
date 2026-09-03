@@ -1022,6 +1022,29 @@ public class LeadProgressionService : ILeadProgressionService
                 };
 
                 await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
+
+                // «Печатает» незадолго до ответа: прочитка на ReadDelay, тайпинг за LeadSeconds
+                // до AiReply, сам ответ на ReadDelay + ReplyDelay. При коротком ReplyDelay
+                // тайпинг стартует сразу после прочитки.
+                var typingTask = new SendTypingActionTaskDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = leadState.TenantId,
+                    SpaceId = leadState.SpaceId,
+                    LeadStateId = leadState.Id,
+                    FunnelId = leadState.FunnelId.Value,
+                    FlowId = leadState.FlowId!.Value,
+                    NodeId = leadState.NodeId.Value,
+                    ActionId = Guid.CreateVersion7(),
+                    BotId = leadState.BotId,
+                    ChatId = leadState.ChatId,
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(
+                        funnel!.ReadDelay + Math.Max(0, funnel.ReplyDelay - TypingDefaults.LeadSeconds)),
+                    CreatedAt = DateTime.UtcNow,
+                    Order = 0
+                };
+
+                await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
                 await leadStateRepository.TrySetWaitingIfStillOnNode(leadState.Id, leadState.NodeId.Value, ct);
                 return;
             }

@@ -306,6 +306,27 @@ namespace states.Mongo
                         Name = "unique_active_ai_reply_per_lead"
                     }),
 
+                // Не более одного активного SendTyping на лида: TryInsertSendTypingTask вставляет
+                // вслепую и глотает дубликат — O(1) без скана тасков лида, гонка конкурентных
+                // входящих закрыта на уровне БД (filter-upsert без unique её не закрывал бы)
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys
+                        .Ascending(x => x.LeadStateId)
+                        .Ascending(x => x.Type),
+                    new CreateIndexOptions<ActionTaskDocument>
+                    {
+                        Unique = true,
+                        PartialFilterExpression = Builders<ActionTaskDocument>.Filter.Or(
+                            Builders<ActionTaskDocument>.Filter.And(
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.SendTyping),
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.Pending)),
+                            Builders<ActionTaskDocument>.Filter.And(
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Type, ActionType.SendTyping),
+                                Builders<ActionTaskDocument>.Filter.Eq(x => x.Status, ActionStatus.InProgress))
+                        ),
+                        Name = "unique_active_send_typing_per_lead"
+                    }),
+
                 // TTL: терминальные таски (Completed/Failed/Cancelled) получают finishedAt и удаляются
                 // Mongo автоматически спустя retention — коллекция не растёт бесконечно. Активные таски
                 // поля не имеют и под TTL не попадают. При изменении срока Mongo кинет IndexOptionsConflict —

@@ -249,6 +249,22 @@ public class ActionTaskRepository : IActionTaskRepository
             ct);
     }
 
+    // «Печатает» не плодим: на серию входящих — один активный таск на лида
+    // (unique_active_send_typing_per_lead). Время НЕ сдвигаем: якорь — первое неотвеченное
+    // сообщение, в паре с TryInsertAiReplyTask, который тоже игнорирует дубликат и держит
+    // исходный scheduledAt (иначе тайпинг уехал бы позже самого ответа).
+    public async Task TryInsertSendTypingTask(SendTypingActionTaskDocument task, CancellationToken ct)
+    {
+        try
+        {
+            await collection.InsertOneAsync(task, cancellationToken: ct);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Code == 11000)
+        {
+            // Уже есть активный (pending/in-progress) SendTyping для этого лида — дубликат не нужен
+        }
+    }
+
     public async Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct)
     {
         var filter = Builders<ActionTaskDocument>.Filter.And(

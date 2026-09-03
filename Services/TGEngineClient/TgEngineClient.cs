@@ -39,6 +39,24 @@ public class TGEngineClient : ITGEngineClient
         await PostAsync("/messages/send-ai-text", body, chatId, ct);
     }
 
+    public async Task SendTyping(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        int durationMs,
+        CancellationToken ct)
+    {
+        var body = new SendTypingDto(
+            tenantId,
+            spaceId,
+            botId,
+            chatId,
+            durationMs);
+
+        await PostAsync("/actions/typing", body, chatId, ct);
+    }
+
     public async Task ReadChatHistory(
         Guid tenantId,
         Guid spaceId,

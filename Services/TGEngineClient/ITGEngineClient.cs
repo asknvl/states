@@ -24,6 +24,14 @@ public interface ITGEngineClient
         string text,
         CancellationToken ct);
 
+    Task SendTyping(
+        Guid tenantId,
+        Guid spaceId,
+        Guid botId,
+        Guid chatId,
+        int durationMs,
+        CancellationToken ct);
+
     Task ReadChatHistory(
         Guid tenantId,
         Guid spaceId,

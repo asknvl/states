@@ -24,4 +24,5 @@ public interface IActionTaskRepository
     Task TryInsertAiReplyTask(AiReplyActionTaskDocument task, CancellationToken ct);
     Task UpsertPendingAiRouterTask(AiRouterActionTaskDocument task, CancellationToken ct);
     Task UpsertPendingMarkReadTask(MarkReadActionTaskDocument task, CancellationToken ct);
+    Task TryInsertSendTypingTask(SendTypingActionTaskDocument task, CancellationToken ct);
 }
