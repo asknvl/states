@@ -172,6 +172,11 @@ public sealed class SendTypingActionTaskDocument : ActionTaskDocument
     [BsonElement("chatId")]
     public Guid ChatId { get; set; }
 
+    // Сколько миллисекунд tgengine держит индикатор. Считается при планировании:
+    // случайный lead (5-10с, обрезан по окну) + запас; 0 — фолбэк в экзекьюторе.
+    [BsonElement("durationMs")]
+    public int DurationMs { get; set; }
+
     public SendTypingActionTaskDocument() : base(ActionType.SendTyping, isCritical: false) { }
 }
 

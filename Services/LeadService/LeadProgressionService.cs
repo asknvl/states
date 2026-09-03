@@ -43,8 +43,9 @@ public class LeadProgressionService : ILeadProgressionService
     // «Печатает» перед первым отложенным пресетом ноды (перед последующими пресетами цепочки
     // тайпинг ставит ActionExecutor после отправки предыдущего — активный SendTyping на лида
     // может быть только один, см. unique_active_send_typing_per_lead). Индикатор виден лиду,
-    // только если между ним и отправкой есть пауза, поэтому пресеты с Delay меньше LeadSeconds
-    // пропускаем. В ActionsLog ноды таск не входит — вставляется сбоку, как MarkRead.
+    // только если между ним и отправкой есть пауза, поэтому пресеты с Delay меньше
+    // MinVisibleSeconds пропускаем, а случайный lead обрезаем по окну до отправки.
+    // В ActionsLog ноды таск не входит — вставляется сбоку, как MarkRead.
     private async Task ScheduleTypingBeforeFirstDelayedPreset(
         List<ActionTaskDocument> actionTasks,
         CancellationToken ct)
@@ -57,8 +58,9 @@ public class LeadProgressionService : ILeadProgressionService
         if (firstPreset is null)
             return;
 
-        var typingAt = firstPreset.ScheduledAt - TimeSpan.FromSeconds(TypingDefaults.LeadSeconds);
-        if (typingAt <= DateTime.UtcNow)
+        var window = (firstPreset.ScheduledAt - DateTime.UtcNow).TotalSeconds;
+        var typingLead = TypingDefaults.DrawLeadSeconds(window);
+        if (typingLead is null)
             return;
 
         var typingTask = new SendTypingActionTaskDocument
@@ -73,9 +75,10 @@ public class LeadProgressionService : ILeadProgressionService
             ActionId = Guid.CreateVersion7(),
             BotId = firstPreset.BotId,
             ChatId = firstPreset.ChatId,
-            ScheduledAt = typingAt,
+            ScheduledAt = firstPreset.ScheduledAt - TimeSpan.FromSeconds(typingLead.Value),
             CreatedAt = DateTime.UtcNow,
-            Order = 0
+            Order = 0,
+            DurationMs = TypingDefaults.DurationMsForLead(typingLead.Value)
         };
 
         await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
@@ -1068,28 +1071,33 @@ public class LeadProgressionService : ILeadProgressionService
 
                 await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
 
-                // «Печатает» незадолго до ответа: прочитка на ReadDelay, тайпинг за LeadSeconds
-                // до AiReply, сам ответ на ReadDelay + ReplyDelay. При коротком ReplyDelay
-                // тайпинг стартует сразу после прочитки.
-                var typingTask = new SendTypingActionTaskDocument
+                // «Печатает» незадолго до ответа: прочитка на ReadDelay, тайпинг за случайный
+                // lead до AiReply (обрезан по ReplyDelay — укладывается целиком), сам ответ
+                // на ReadDelay + ReplyDelay.
+                var typingLead = TypingDefaults.DrawLeadSeconds(funnel!.ReplyDelay);
+                if (typingLead is not null)
                 {
-                    Id = Guid.CreateVersion7(),
-                    TenantId = leadState.TenantId,
-                    SpaceId = leadState.SpaceId,
-                    LeadStateId = leadState.Id,
-                    FunnelId = leadState.FunnelId.Value,
-                    FlowId = leadState.FlowId!.Value,
-                    NodeId = leadState.NodeId.Value,
-                    ActionId = Guid.CreateVersion7(),
-                    BotId = leadState.BotId,
-                    ChatId = leadState.ChatId,
-                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(
-                        funnel!.ReadDelay + Math.Max(0, funnel.ReplyDelay - TypingDefaults.LeadSeconds)),
-                    CreatedAt = DateTime.UtcNow,
-                    Order = 0
-                };
+                    var typingTask = new SendTypingActionTaskDocument
+                    {
+                        Id = Guid.CreateVersion7(),
+                        TenantId = leadState.TenantId,
+                        SpaceId = leadState.SpaceId,
+                        LeadStateId = leadState.Id,
+                        FunnelId = leadState.FunnelId.Value,
+                        FlowId = leadState.FlowId!.Value,
+                        NodeId = leadState.NodeId.Value,
+                        ActionId = Guid.CreateVersion7(),
+                        BotId = leadState.BotId,
+                        ChatId = leadState.ChatId,
+                        ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(
+                            funnel.ReadDelay + funnel.ReplyDelay - typingLead.Value),
+                        CreatedAt = DateTime.UtcNow,
+                        Order = 0,
+                        DurationMs = TypingDefaults.DurationMsForLead(typingLead.Value)
+                    };
 
-                await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
+                    await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
+                }
                 await leadStateRepository.TrySetWaitingIfStillOnNode(leadState.Id, leadState.NodeId.Value, ct);
                 return;
             }

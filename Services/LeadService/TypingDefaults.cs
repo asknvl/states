@@ -1,15 +1,35 @@
 namespace states.Services.LeadService;
 
-// Константы «печатает» перед AI-ответом. Длина текста заранее неизвестна (LLM ещё не вызывался
-// на момент планирования), поэтому длительность фиксированная, без расчёта от длины ответа.
+// Параметры «печатает» перед отправкой. Длина ответа на момент планирования неизвестна
+// (LLM ещё не вызывался), поэтому время печатания не от текста, а случайное в диапазоне —
+// чтобы паузы не выглядели механически одинаковыми от сообщения к сообщению.
 public static class TypingDefaults
 {
-    // За сколько секунд до запланированного AiReply стартует «печатает»:
-    // тайпинг-таск ставится на ReadDelay + max(0, ReplyDelay - LeadSeconds).
-    public const int LeadSeconds = 5;
+    // Диапазон: за сколько секунд до запланированной отправки стартует «печатает»
+    public const int MinLeadSeconds = 5;
+    public const int MaxLeadSeconds = 10;
 
-    // Сколько tgengine держит индикатор: LeadSeconds + запас на опрос воркера (до 1с),
-    // ожидание слота и генерацию LLM (~2-4с). Реальная отправка сообщения гасит индикатор
-    // раньше дедлайна (cancel-on-send в tgengine), поэтому запас безопасен.
-    public const int DurationMs = 12_000;
+    // Если до отправки остаётся меньше этого окна — индикатор показать не успеем, пропускаем
+    public const int MinVisibleSeconds = 2;
+
+    // Запас поверх lead: опрос воркера (до 1с), ожидание слота, генерация LLM (~2-4с).
+    // Реальная отправка гасит индикатор раньше дедлайна (cancel-on-send в tgengine),
+    // поэтому запас безопасен.
+    public const int CushionMs = 4_000;
+
+    // Фолбэк для тасков без durationMs (созданных кодом до появления поля)
+    public const int FallbackDurationMs = 12_000;
+
+    // Случайный lead, обрезанный по доступному окну ожидания: тайпинг всегда целиком
+    // укладывается до запланированной отправки. Окно меньше MinVisibleSeconds — не показываем.
+    public static int? DrawLeadSeconds(double availableWindowSeconds)
+    {
+        if (availableWindowSeconds < MinVisibleSeconds)
+            return null;
+
+        var drawn = Random.Shared.Next(MinLeadSeconds, MaxLeadSeconds + 1);
+        return (int)Math.Min(drawn, Math.Floor(availableWindowSeconds));
+    }
+
+    public static int DurationMsForLead(int leadSeconds) => leadSeconds * 1000 + CushionMs;
 }
