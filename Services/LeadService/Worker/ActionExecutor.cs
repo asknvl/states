@@ -105,10 +105,61 @@ public class ActionExecutor : IActionExecutor
             task.BotId,
             task.ChatId,
             variables,
-            task.FunnelId,            
+            task.FunnelId,
             task.PresetId,
             task.NeedPin,
             ct);
+
+        await ScheduleTypingBeforeNextPreset(task, ct);
+    }
+
+    // «Печатает» перед следующим отложенным пресетом цепочки. Тайпинг для первого пресета
+    // ставит LeadProgressionService при входе в ноду; здесь — для каждого следующего, после
+    // успешной отправки предыдущего: активный SendTyping на лида может быть только один
+    // (unique_active_send_typing_per_lead), но к этому моменту предыдущий уже завершён.
+    // Следующий таск ещё Waiting (UnlockNext срабатывает после экзекьютора), его scheduledAt
+    // абсолютный и посчитан при входе в ноду. Если паузы до него меньше LeadSeconds —
+    // индикатор показать не успеем, пропускаем. Сбой тут не роняет отправленный пресет.
+    private async Task ScheduleTypingBeforeNextPreset(SendPresetActionTaskDocument task, CancellationToken ct)
+    {
+        try
+        {
+            var nodeTasks = await actionTaskRepository.GetByLeadAndNode(task.LeadStateId, task.NodeId, ct);
+
+            var next = nodeTasks
+                .OfType<SendPresetActionTaskDocument>()
+                .FirstOrDefault(t => t.Order == task.Order + 1
+                    && t.Status is ActionStatus.Waiting or ActionStatus.Pending);
+
+            if (next is null)
+                return;
+
+            var typingAt = next.ScheduledAt - TimeSpan.FromSeconds(TypingDefaults.LeadSeconds);
+            if (typingAt <= DateTime.UtcNow)
+                return;
+
+            await actionTaskRepository.TryInsertSendTypingTask(new SendTypingActionTaskDocument
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = next.TenantId,
+                SpaceId = next.SpaceId,
+                LeadStateId = next.LeadStateId,
+                FunnelId = next.FunnelId,
+                FlowId = next.FlowId,
+                NodeId = next.NodeId,
+                ActionId = Guid.CreateVersion7(),
+                BotId = next.BotId,
+                ChatId = next.ChatId,
+                ScheduledAt = typingAt,
+                CreatedAt = DateTime.UtcNow,
+                Order = 0
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to schedule typing before next preset for lead {LeadStateId}", task.LeadStateId);
+        }
     }
 
     private async Task ExecuteManageTag(ManageTagActionTaskDocument task, CancellationToken ct)
