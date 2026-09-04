@@ -392,6 +392,19 @@ public class ActionExecutor : IActionExecutor
     // останавливать воронку или уводить лида на оператора.
     private async Task ExecuteSendTyping(SendTypingActionTaskDocument task, CancellationToken ct)
     {
+        // Guard от протухших тайпингов: таск, выехавший сильно позже срока (перегруз воркера,
+        // ретрай после transient-ошибки), не показываем вовсе — «печатает» после уже
+        // отправленного ответа выглядит хуже, чем его отсутствие. Возврат без исключения:
+        // таск завершится Completed, воронку не трогает.
+        var lateBy = DateTime.UtcNow - task.ScheduledAt;
+        if (lateBy > TimeSpan.FromSeconds(TypingDefaults.StaleAfterSeconds))
+        {
+            logger.LogInformation(
+                "SendTyping: skip stale task {TaskId} for lead {LeadStateId}, late by {LateBy}",
+                task.Id, task.LeadStateId, lateBy);
+            return;
+        }
+
         await tgengine.SendTyping(
             task.TenantId,
             task.SpaceId,

@@ -327,6 +327,22 @@ namespace states.Mongo
                         Name = "unique_active_send_typing_per_lead"
                     }),
 
+                // UpsertPendingMarkReadTask / UpsertPendingAiRouterTask: фильтр
+                // (leadStateId, type, status=Pending) на каждом входящем сообщении. Без этого
+                // индекса запрос шёл по префиксу (leadStateId, nodeId) и сканировал все таски
+                // лида, включая терминальные за 7 дней до TTL. Partial по Pending: в индексе
+                // только живая очередь, он крошечный. Не unique — дедуп у этих упсертов свой.
+                new CreateIndexModel<ActionTaskDocument>(
+                    Builders<ActionTaskDocument>.IndexKeys
+                        .Ascending(x => x.LeadStateId)
+                        .Ascending(x => x.Type),
+                    new CreateIndexOptions<ActionTaskDocument>
+                    {
+                        PartialFilterExpression = Builders<ActionTaskDocument>.Filter.Eq(
+                            x => x.Status, ActionStatus.Pending),
+                        Name = "pending_tasks_by_lead_and_type"
+                    }),
+
                 // TTL: терминальные таски (Completed/Failed/Cancelled) получают finishedAt и удаляются
                 // Mongo автоматически спустя retention — коллекция не растёт бесконечно. Активные таски
                 // поля не имеют и под TTL не попадают. При изменении срока Mongo кинет IndexOptionsConflict —
