@@ -82,6 +82,11 @@ public class ActionExecutor : IActionExecutor
                 await ExecuteMarkRead(markRead, ct);
                 break;
 
+            case SendTypingActionTaskDocument sendTyping:
+                logger.LogInformation("ActionExecutor Execute ExecuteSendTyping");
+                await ExecuteSendTyping(sendTyping, ct);
+                break;
+
             default:
                 throw new InvalidOperationException($"Unknown action task type: {task.GetType().Name}");
         }
@@ -100,10 +105,63 @@ public class ActionExecutor : IActionExecutor
             task.BotId,
             task.ChatId,
             variables,
-            task.FunnelId,            
+            task.FunnelId,
             task.PresetId,
             task.NeedPin,
             ct);
+
+        await ScheduleTypingBeforeNextPreset(task, ct);
+    }
+
+    // «Печатает» перед следующим отложенным пресетом цепочки. Тайпинг для первого пресета
+    // ставит LeadProgressionService при входе в ноду; здесь — для каждого следующего, после
+    // успешной отправки предыдущего: активный SendTyping на лида может быть только один
+    // (unique_active_send_typing_per_lead), но к этому моменту предыдущий уже завершён.
+    // Следующий таск ещё Waiting (UnlockNext срабатывает после экзекьютора), его scheduledAt
+    // абсолютный и посчитан при входе в ноду. Случайный lead обрезается по окну до отправки;
+    // окно меньше MinVisibleSeconds — пропускаем. Сбой тут не роняет отправленный пресет.
+    private async Task ScheduleTypingBeforeNextPreset(SendPresetActionTaskDocument task, CancellationToken ct)
+    {
+        try
+        {
+            var nodeTasks = await actionTaskRepository.GetByLeadAndNode(task.LeadStateId, task.NodeId, ct);
+
+            var next = nodeTasks
+                .OfType<SendPresetActionTaskDocument>()
+                .FirstOrDefault(t => t.Order == task.Order + 1
+                    && t.Status is ActionStatus.Waiting or ActionStatus.Pending);
+
+            if (next is null)
+                return;
+
+            var window = (next.ScheduledAt - DateTime.UtcNow).TotalSeconds;
+            var typingLead = TypingDefaults.DrawLeadSeconds(window);
+            if (typingLead is null)
+                return;
+
+            await actionTaskRepository.TryInsertSendTypingTask(new SendTypingActionTaskDocument
+            {
+                Id = Guid.CreateVersion7(),
+                TenantId = next.TenantId,
+                SpaceId = next.SpaceId,
+                LeadStateId = next.LeadStateId,
+                FunnelId = next.FunnelId,
+                FlowId = next.FlowId,
+                NodeId = next.NodeId,
+                ActionId = Guid.CreateVersion7(),
+                BotId = next.BotId,
+                ChatId = next.ChatId,
+                ScheduledAt = next.ScheduledAt - TimeSpan.FromSeconds(typingLead.Value),
+                CreatedAt = DateTime.UtcNow,
+                Order = 0,
+                DurationMs = TypingDefaults.DurationMsForLead(typingLead.Value)
+            }, ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to schedule typing before next preset for lead {LeadStateId}", task.LeadStateId);
+        }
     }
 
     private async Task ExecuteManageTag(ManageTagActionTaskDocument task, CancellationToken ct)
@@ -212,6 +270,32 @@ public class ActionExecutor : IActionExecutor
                 ReplyOnlyIfLastIncoming = true
             };
             await actionTaskRepository.TryInsertAiReplyTask(replyTask, ct);
+
+            // «Печатает» за случайный lead до запланированного AiReply, обрезан по ReplyDelay
+            // (прочитка здесь не участвует — она идёт параллельным MarkRead-таском от сигнала)
+            var typingLead = TypingDefaults.DrawLeadSeconds(funnel.ReplyDelay);
+            if (typingLead is not null)
+            {
+                var typingTask = new SendTypingActionTaskDocument
+                {
+                    Id = Guid.CreateVersion7(),
+                    TenantId = task.TenantId,
+                    SpaceId = task.SpaceId,
+                    LeadStateId = task.LeadStateId,
+                    FunnelId = task.FunnelId,
+                    FlowId = task.FlowId,
+                    NodeId = task.NodeId,
+                    ActionId = Guid.CreateVersion7(),
+                    BotId = task.BotId,
+                    ChatId = task.ChatId,
+                    ScheduledAt = DateTime.UtcNow + TimeSpan.FromSeconds(funnel.ReplyDelay - typingLead.Value),
+                    CreatedAt = DateTime.UtcNow,
+                    Order = 0,
+                    DurationMs = TypingDefaults.DurationMsForLead(typingLead.Value)
+                };
+
+                await actionTaskRepository.TryInsertSendTypingTask(typingTask, ct);
+            }
             //await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); // ХЗ зачем тут добавлял
             return;
         }
@@ -301,6 +385,33 @@ public class ActionExecutor : IActionExecutor
             await progressionService.TransitionToNextNode(task.LeadStateId, ct); 
         //else
         //    await leadStateRepository.UpdateLeadStateStatus(task.LeadStateId, LeadFunnelStatus.Waiting, ct); //Оно и так вроде в вейтинге всегда в этом месте
+    }
+
+    // Показать «печатает» перед AI-ответом: tgengine отвечает сразу, индикатор крутится
+    // у него в фоне и гаснет при отправке сообщения. Таск некритичный — сбой не должен
+    // останавливать воронку или уводить лида на оператора.
+    private async Task ExecuteSendTyping(SendTypingActionTaskDocument task, CancellationToken ct)
+    {
+        // Guard от протухших тайпингов: таск, выехавший сильно позже срока (перегруз воркера,
+        // ретрай после transient-ошибки), не показываем вовсе — «печатает» после уже
+        // отправленного ответа выглядит хуже, чем его отсутствие. Возврат без исключения:
+        // таск завершится Completed, воронку не трогает.
+        var lateBy = DateTime.UtcNow - task.ScheduledAt;
+        if (lateBy > TimeSpan.FromSeconds(TypingDefaults.StaleAfterSeconds))
+        {
+            logger.LogInformation(
+                "SendTyping: skip stale task {TaskId} for lead {LeadStateId}, late by {LateBy}",
+                task.Id, task.LeadStateId, lateBy);
+            return;
+        }
+
+        await tgengine.SendTyping(
+            task.TenantId,
+            task.SpaceId,
+            task.BotId,
+            task.ChatId,
+            task.DurationMs > 0 ? task.DurationMs : TypingDefaults.FallbackDurationMs,
+            ct);
     }
 
     private async Task ExecuteMarkRead(MarkReadActionTaskDocument task, CancellationToken ct)
