@@ -40,13 +40,15 @@ public class LeadProgressionService : ILeadProgressionService
     }
 
     #region private
-    // «Печатает» перед первым отложенным пресетом ноды (перед последующими пресетами цепочки
-    // тайпинг ставит ActionExecutor после отправки предыдущего — активный SendTyping на лида
-    // может быть только один, см. unique_active_send_typing_per_lead). Индикатор виден лиду,
-    // только если между ним и отправкой есть пауза, поэтому пресеты с Delay меньше
-    // MinVisibleSeconds пропускаем, а случайный lead обрезаем по окну до отправки.
-    // В ActionsLog ноды таск не входит — вставляется сбоку, как MarkRead.
-    private async Task ScheduleTypingBeforeFirstDelayedPreset(
+    // «Печатает» перед первой отложенной отправкой ноды: первым пресетом цепочки либо
+    // проактивным AiReply (вход в AI-ноду по переходу — бот пишет первым через ReplyDelay,
+    // реактивные AiReply создаются не здесь и тайпинг им ставит HandleIncomingSignal).
+    // Перед последующими пресетами цепочки тайпинг ставит ActionExecutor после отправки
+    // предыдущего — активный SendTyping на лида может быть только один,
+    // см. unique_active_send_typing_per_lead. Индикатор виден лиду, только если между ним
+    // и отправкой есть пауза, поэтому окна меньше MinVisibleSeconds пропускаем, а случайный
+    // lead обрезаем по окну. В ActionsLog ноды таск не входит — вставляется сбоку, как MarkRead.
+    private async Task ScheduleTypingBeforeFirstDelayedSend(
         List<ActionTaskDocument> actionTasks,
         CancellationToken ct)
     {
@@ -55,10 +57,31 @@ public class LeadProgressionService : ILeadProgressionService
             .OrderBy(t => t.Order)
             .FirstOrDefault();
 
-        if (firstPreset is null)
-            return;
+        var aiReply = actionTasks
+            .OfType<AiReplyActionTaskDocument>()
+            .FirstOrDefault();
 
-        var window = (firstPreset.ScheduledAt - DateTime.UtcNow).TotalSeconds;
+        ActionTaskDocument target;
+        Guid botId, chatId;
+
+        if (firstPreset is not null)
+        {
+            target = firstPreset;
+            botId = firstPreset.BotId;
+            chatId = firstPreset.ChatId;
+        }
+        else if (aiReply is not null)
+        {
+            target = aiReply;
+            botId = aiReply.BotId;
+            chatId = aiReply.ChatId;
+        }
+        else
+        {
+            return;
+        }
+
+        var window = (target.ScheduledAt - DateTime.UtcNow).TotalSeconds;
         var typingLead = TypingDefaults.DrawLeadSeconds(window);
         if (typingLead is null)
             return;
@@ -66,16 +89,16 @@ public class LeadProgressionService : ILeadProgressionService
         var typingTask = new SendTypingActionTaskDocument
         {
             Id = Guid.CreateVersion7(),
-            TenantId = firstPreset.TenantId,
-            SpaceId = firstPreset.SpaceId,
-            LeadStateId = firstPreset.LeadStateId,
-            FunnelId = firstPreset.FunnelId,
-            FlowId = firstPreset.FlowId,
-            NodeId = firstPreset.NodeId,
+            TenantId = target.TenantId,
+            SpaceId = target.SpaceId,
+            LeadStateId = target.LeadStateId,
+            FunnelId = target.FunnelId,
+            FlowId = target.FlowId,
+            NodeId = target.NodeId,
             ActionId = Guid.CreateVersion7(),
-            BotId = firstPreset.BotId,
-            ChatId = firstPreset.ChatId,
-            ScheduledAt = firstPreset.ScheduledAt - TimeSpan.FromSeconds(typingLead.Value),
+            BotId = botId,
+            ChatId = chatId,
+            ScheduledAt = target.ScheduledAt - TimeSpan.FromSeconds(typingLead.Value),
             CreatedAt = DateTime.UtcNow,
             Order = 0,
             DurationMs = TypingDefaults.DurationMsForLead(typingLead.Value)
@@ -385,7 +408,7 @@ public class LeadProgressionService : ILeadProgressionService
 
             await leadStateRepository.ResetCurrentNodeActions(leadState.Id, actionStatusEntries, ct);
             await actionTaskRepository.CreateMany(actionTasks, ct);
-            await ScheduleTypingBeforeFirstDelayedPreset(actionTasks, ct);
+            await ScheduleTypingBeforeFirstDelayedSend(actionTasks, ct);
         }
 
         if (pushTasks.Count > 0)
@@ -554,7 +577,7 @@ public class LeadProgressionService : ILeadProgressionService
         if (actionTasks.Count > 0)
         {
             await actionTaskRepository.CreateMany(actionTasks, ct);
-            await ScheduleTypingBeforeFirstDelayedPreset(actionTasks, ct);
+            await ScheduleTypingBeforeFirstDelayedSend(actionTasks, ct);
         }
 
         if (pushTasks.Count > 0)
@@ -715,7 +738,7 @@ public class LeadProgressionService : ILeadProgressionService
             );
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
-        await ScheduleTypingBeforeFirstDelayedPreset(actionTasks, ct);
+        await ScheduleTypingBeforeFirstDelayedSend(actionTasks, ct);
         await pushTaskRepository.CreateMany(pushTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} transitioned to node {NodeId} via edge {EdgeId}",
@@ -810,7 +833,7 @@ public class LeadProgressionService : ILeadProgressionService
             ct);
 
         await actionTaskRepository.CreateMany(actionTasks, ct);
-        await ScheduleTypingBeforeFirstDelayedPreset(actionTasks, ct);
+        await ScheduleTypingBeforeFirstDelayedSend(actionTasks, ct);
         await pushTaskRepository.CreateMany(pushTasks, ct);
 
         logger.LogInformation("Lead {LeadStateId} manually moved to flow {FlowId} node {NodeId}, blocked={IsBlocked}",
