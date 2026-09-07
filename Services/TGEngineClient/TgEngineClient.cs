@@ -13,10 +13,21 @@ public class TGEngineClient : ITGEngineClient
     private readonly HttpClient http;
     private readonly ILogger logger;
 
-    public TGEngineClient(HttpClient http, ILogger<TGEngineClient> logger)
+    // Таймауты пер-запросные (HttpClient.Timeout один на все вызовы и так не умеет).
+    // Send-пресету нужен отдельный, больший бюджет: холодная отправка тяжёлого медиа
+    // без кэша file_id (скачивание из S3 + upload в Telegram) легитимно занимает минуты.
+    private readonly TimeSpan requestTimeout;
+    private readonly TimeSpan sendPresetTimeout;
+
+    public TGEngineClient(HttpClient http, IConfiguration configuration, ILogger<TGEngineClient> logger)
     {
         this.http = http;
         this.logger = logger;
+
+        requestTimeout = TimeSpan.FromSeconds(
+            configuration.GetValue("TgEngineClient:TimeoutSeconds", 30));
+        sendPresetTimeout = TimeSpan.FromSeconds(
+            configuration.GetValue("TgEngineClient:SendPresetTimeoutSeconds", 300));
     }
 
     public async Task SendAiTextMessages(
@@ -135,20 +146,25 @@ public class TGEngineClient : ITGEngineClient
             presetId,
             needPin);
 
-        await PostAsync("/botpresets/send", body, chatId, ct);
+        await PostAsync("/botpresets/send", body, chatId, ct, sendPresetTimeout);
     }
 
     private async Task<HttpResponseMessage> PostAsync<TRequest>(
         string path,
         TRequest body,
         Guid chatId,
-        CancellationToken ct)
+        CancellationToken ct,
+        TimeSpan? timeout = null)
     {
         HttpResponseMessage response;
 
+        var effectiveTimeout = timeout ?? requestTimeout;
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(effectiveTimeout);
+
         try
         {
-            response = await http.PostAsJsonAsync(path, body, ct);
+            response = await http.PostAsJsonAsync(path, body, cts.Token);
         }
         catch (HttpRequestException ex)
         {
@@ -159,8 +175,11 @@ public class TGEngineClient : ITGEngineClient
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
-            logger.LogError(ex, "TgEngineClient {Path} request timed out: chatId={ChatId}", path, chatId);
-            throw new TransientActionException($"TgEngineClient {path} request timed out", ex);
+            logger.LogError(ex,
+                "TgEngineClient {Path} request timed out after {TimeoutSeconds}s: chatId={ChatId}",
+                path, effectiveTimeout.TotalSeconds, chatId);
+            throw new TransientActionException(
+                $"TgEngineClient {path} request timed out after {effectiveTimeout.TotalSeconds:0}s", ex);
         }
 
         var status = (int)response.StatusCode;

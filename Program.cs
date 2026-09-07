@@ -201,12 +201,15 @@ namespace states
                     ?? throw new InvalidOperationException("TgEngineClient:EndPoint not configured");
                 client.BaseAddress = new Uri(baseUrl);
 
-                // Вместо дефолтных 100с: подвисший tgengine не должен занимать слоты ActionWorker
-                // (механика вебхук-инцидента 2026-08-19). Таймаут превращается в
-                // TransientActionException → ретрай с бэкоффом. Ниже 30с опускать осторожно:
-                // отправка тяжёлого медиа-пресета без кэша Telegram-файла (S3 + upload) может
-                // легитимно не уложиться, и ретрай задублирует сообщение лиду.
-                client.Timeout = TimeSpan.FromSeconds(30);
+                // Таймауты пер-запросные, их ставит сам TGEngineClient: обычным вызовам — 30с
+                // (подвисший tgengine не должен занимать слоты ActionWorker — механика
+                // вебхук-инцидента 2026-08-19), send-пресету — 300с (холодная отправка тяжёлого
+                // медиа без кэша file_id легитимно длинная; обрыв клиента на фазе upload в
+                // Telegram + ретрай = дубль лиду). Таймаут превращается в TransientActionException
+                // → ретрай с бэкоффом. Здесь — только страховочный потолок поверх обоих.
+                var ceilingSeconds = builder.Configuration.GetValue(
+                    "TgEngineClient:SendPresetTimeoutSeconds", 300) + 10;
+                client.Timeout = TimeSpan.FromSeconds(ceilingSeconds);
             });
 
             // AI service
