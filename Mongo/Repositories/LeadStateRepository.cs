@@ -842,7 +842,7 @@ public class LeadStateRepository : ILeadStateRepository
     private sealed record DepositAggregates(decimal Total, decimal First, decimal Last, int Count, string CurrencyCode);
 
     // Считает депозитные агрегаты по логу событий лида. Учитываются только Accepted-события:
-    // статус Duplicate зарезервирован под дедупликацию повторных постбэков по eventId.
+    // Duplicate (повторная доставка постбэка) и Repeat (повторное событие лида) в счётчики не входят.
     private async Task<DepositAggregates?> ComputeDepositAggregates(
         IClientSessionHandle session, Guid tenantId, string leadId, CancellationToken ct)
     {

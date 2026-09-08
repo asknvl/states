@@ -3,6 +3,7 @@
     public enum LeadEventStatus
     {
         Accepted,
-        Duplicate
+        Duplicate,
+        Repeat
     }
 }

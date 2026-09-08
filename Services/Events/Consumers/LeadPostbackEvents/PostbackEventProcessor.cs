@@ -79,6 +79,9 @@ public class PostbackEventProcessor(
         // оборвётся, а конверсия к этому моменту уже гарантированно стоит в очереди.
         // Вставка идемпотентна: Id документа = EventId постбэка в трекере.
         // Доставкой занимается OutboxWorkerService — конверсия переживает простой Kafka.
+        // Конверсию рождает только ACCEPTED: DUPLICATE — повторная доставка того же события,
+        // REPEAT — повторное событие лида (у него свой eventId, идемпотентность по Id не спасёт) —
+        // оба в ФБ не шлём, иначе задвоение конверсий на пикселе.
         var conversionType = postbackEventType switch
         {
             PostbackEventType.REGISTRATION => LeadConversionType.Registration,
@@ -88,7 +91,7 @@ public class PostbackEventProcessor(
         };
 
         if (conversionType is not null
-            && payload.Status != PostbackEventStatus.DUPLICATE
+            && payload.Status == PostbackEventStatus.ACCEPTED
             && leadState.CampaignId is not null)
         {
             await outboxRepository.TryAdd(new LeadConversionOutboxDocument
@@ -123,13 +126,14 @@ public class PostbackEventProcessor(
                 recalculatedDepositCount = await leadStateRepository.RecalculateDeposits(payload.TenantId, payload.LeadId, ct);
         }
 
-        // Дубль постбэка: событие записано, но лида по воронке не двигаем —
-        // переход уже был выполнен при первой доставке этого события.
-        if (payload.Status == PostbackEventStatus.DUPLICATE)
+        // Не-ACCEPTED постбэк: событие записано, но лида по воронке не двигаем.
+        // DUPLICATE — повторная доставка уже обработанного события, REPEAT — повторное событие
+        // лида (например, вторая регистрация): переход по AutoAction уже был выполнен первым.
+        if (payload.Status != PostbackEventStatus.ACCEPTED)
         {
             logger.LogInformation(
-                "Postback {EventType} (eventId {EventId}) for lead '{LeadId}' is a duplicate, skipping funnel transition",
-                postbackEventType, payload.EventId, payload.LeadId);
+                "Postback {EventType} (eventId {EventId}, status {Status}) for lead '{LeadId}' — skipping funnel transition",
+                postbackEventType, payload.EventId, payload.Status, payload.LeadId);
             return;
         }
 
@@ -171,11 +175,14 @@ public class PostbackEventProcessor(
 
     private static LeadEventBaseDocument? BuildLeadEventDocument(PostbackEventType type, PostbackEventPayload payload, Guid spaceId)
     {
-        // Статус переносим из постбэка как есть: дубли остаются в логе событий со статусом
-        // Duplicate, но в учёте депозитов не участвуют — пересчёт берёт только Accepted.
-        var status = payload.Status == PostbackEventStatus.DUPLICATE
-            ? LeadEventStatus.Duplicate
-            : LeadEventStatus.Accepted;
+        // Статус переносим из постбэка как есть: дубли и повторы остаются в логе событий,
+        // но в учёте депозитов не участвуют — пересчёт берёт только Accepted.
+        var status = payload.Status switch
+        {
+            PostbackEventStatus.DUPLICATE => LeadEventStatus.Duplicate,
+            PostbackEventStatus.REPEAT => LeadEventStatus.Repeat,
+            _ => LeadEventStatus.Accepted
+        };
 
         return type switch
         {
