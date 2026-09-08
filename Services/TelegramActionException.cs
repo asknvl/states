@@ -6,9 +6,13 @@ namespace states.Services;
 // ActionWorkerService валит таску сразу и уводит лида на оператора (Manual).
 public class TelegramActionException : Exception
 {
-    // Лид заблокировал бота. Особый случай: оператору такой лид бесполезен — писать некуда,
-    // а в Blocked его переведёт событие деактивации бота из tgengine (см. GlobalEventProcessor).
-    public const string UserIsBlockedCode = "USER_IS_BLOCKED";
+    // Лид недостижим: заблокировал бота или удалил аккаунт. Особый случай: оператору такой
+    // лид бесполезен — писать некуда, а в Blocked его переведёт событие деактивации бота
+    // из tgengine (см. GlobalEventProcessor).
+    public static bool IsUserUnreachableCode(string? code) =>
+        code is "USER_IS_BLOCKED" or "INPUT_USER_DEACTIVATED";
+
+    public bool IsUserUnreachable => IsUserUnreachableCode(Code);
 
     public TelegramActionException(string code, string message, Exception? inner = null)
         : base(message, inner)
