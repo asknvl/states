@@ -69,8 +69,10 @@ public interface ILeadStateRepository
     // с одним chatId). Вызывается на каждый message signal до захвата лида.
     Task SetLastIncomingAt(Guid tenantId, Guid botId, Guid chatId, DateTime at, CancellationToken ct);
 
-    Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct);
-    Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
+    // Чат может числиться в нескольких lead states (повторные входы в воронки) —
+    // блокировка/разблокировка обрабатывает все; возвращаются реально изменённые.
+    Task<List<FunnelLeadState>> MarkBlockedByChatId(Guid chatId, CancellationToken ct);
+    Task<List<FunnelLeadState>> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task ResetCurrentNodeActions(Guid leadStateId, List<ActionStatusEntry> actions, CancellationToken ct);
 
     Task<bool> AreAllActionsFinished(Guid leadStateId, Guid nodeId, CancellationToken ct);

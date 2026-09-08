@@ -341,74 +341,71 @@ public class LeadStateRepository : ILeadStateRepository
         await MongoHelpers.RetryOnConnectionLoss(() => collection.UpdateManyAsync(filter, update, cancellationToken: ct), logger);
     }
 
-    public async Task<FunnelLeadState?> MarkBlockedByChatId(Guid chatId, CancellationToken ct)
+    // Блокирует все lead states чата. PreBlockStatus у каждого свой, поэтому по одному
+    // документу (filter по Id), а не UpdateMany.
+    public async Task<List<FunnelLeadState>> MarkBlockedByChatId(Guid chatId, CancellationToken ct)
     {
-        var existing = await collection.Find(x => x.ChatId == chatId).FirstOrDefaultAsync(ct);
-        if (existing is null || existing.Status == LeadFunnelStatus.Blocked)
-            return null;
+        var candidates = await collection
+            .Find(x => x.ChatId == chatId && x.Status != LeadFunnelStatus.Blocked)
+            .ToListAsync(ct);
 
-        var filter = Builders<FunnelLeadState>.Filter.And(
-            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
-            Builders<FunnelLeadState>.Filter.Ne(x => x.Status, LeadFunnelStatus.Blocked));
+        var blocked = new List<FunnelLeadState>();
 
-        var update = Builders<FunnelLeadState>.Update
-            .Set(x => x.PreBlockStatus, existing.Status)
-            .Set(x => x.Status, LeadFunnelStatus.Blocked)
-            .Inc(x => x.Version, 1);
-
-        FunnelLeadState? updated = null;
-
-        await InTransaction(async session =>
+        foreach (var existing in candidates)
         {
-            updated = await collection.FindOneAndUpdateAsync(
-                session, filter, update,
-                new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },
-                ct);
+            var filter = Builders<FunnelLeadState>.Filter.And(
+                Builders<FunnelLeadState>.Filter.Eq(x => x.Id, existing.Id),
+                Builders<FunnelLeadState>.Filter.Ne(x => x.Status, LeadFunnelStatus.Blocked));
 
-            if (updated is null)
-                return;
+            var update = Builders<FunnelLeadState>.Update
+                .Set(x => x.PreBlockStatus, existing.Status)
+                .Set(x => x.Status, LeadFunnelStatus.Blocked)
+                .Inc(x => x.Version, 1);
 
-            await outbox.InsertOneAsync(session, new LeadStatusChangedOutboxDocument
-            {
-                Id = Guid.CreateVersion7(),
-                CreatedAt = DateTime.UtcNow,
-                TenantId = updated.TenantId,
-                SpaceId = updated.SpaceId,
-                BotId = updated.BotId,
-                ChatId = updated.ChatId,
-                LeadId = updated.LeadId,
-                Version = updated.Version,
-                Status = updated.Status
-            }, cancellationToken: ct);
-        }, ct);
+            var updated = await ApplyStatusChange(filter, update, ct);
+            if (updated is not null)
+                blocked.Add(updated);
+        }
 
-        return updated;
+        return blocked;
     }
 
-    // Возвращает лида в статус, в котором он был до блокировки (preBlockStatus).
-    // Если preBlockStatus не сохранён (документ заблокирован до появления этого поля) — откатываемся на Waiting.
-    public async Task<FunnelLeadState?> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
+    // Возвращает всех Blocked-лидов чата в статус до блокировки (preBlockStatus).
+    // Если preBlockStatus не сохранён (документ заблокирован до появления этого поля) — в Waiting.
+    public async Task<List<FunnelLeadState>> UnblockByChatId(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct)
     {
-        var existing = await collection
-            .Find(x => x.TenantId == tenantId && x.BotId == botId && x.ChatId == chatId)
-            .FirstOrDefaultAsync(ct);
+        var candidates = await collection
+            .Find(x => x.TenantId == tenantId && x.BotId == botId && x.ChatId == chatId
+                && x.Status == LeadFunnelStatus.Blocked)
+            .ToListAsync(ct);
 
-        if (existing is null || existing.Status != LeadFunnelStatus.Blocked)
-            return null;
+        var unblocked = new List<FunnelLeadState>();
 
-        var restoredStatus = existing.PreBlockStatus ?? LeadFunnelStatus.Waiting;
+        foreach (var existing in candidates)
+        {
+            var filter = Builders<FunnelLeadState>.Filter.And(
+                Builders<FunnelLeadState>.Filter.Eq(x => x.Id, existing.Id),
+                Builders<FunnelLeadState>.Filter.Eq(x => x.Status, LeadFunnelStatus.Blocked));
 
-        var filter = Builders<FunnelLeadState>.Filter.And(
-            Builders<FunnelLeadState>.Filter.Eq(x => x.TenantId, tenantId),
-            Builders<FunnelLeadState>.Filter.Eq(x => x.BotId, botId),
-            Builders<FunnelLeadState>.Filter.Eq(x => x.ChatId, chatId),
-            Builders<FunnelLeadState>.Filter.Eq(x => x.Status, LeadFunnelStatus.Blocked));
+            var update = Builders<FunnelLeadState>.Update
+                .Set(x => x.Status, existing.PreBlockStatus ?? LeadFunnelStatus.Waiting)
+                .Set(x => x.PreBlockStatus, (LeadFunnelStatus?)null)
+                .Inc(x => x.Version, 1);
 
-        var update = Builders<FunnelLeadState>.Update
-            .Set(x => x.Status, restoredStatus)
-            .Set(x => x.PreBlockStatus, (LeadFunnelStatus?)null)
-            .Inc(x => x.Version, 1);
+            var updated = await ApplyStatusChange(filter, update, ct);
+            if (updated is not null)
+                unblocked.Add(updated);
+        }
 
+        return unblocked;
+    }
+
+    // Смена статуса + запись в outbox одной транзакцией — общий хвост блокировки/разблокировки.
+    private async Task<FunnelLeadState?> ApplyStatusChange(
+        FilterDefinition<FunnelLeadState> filter,
+        UpdateDefinition<FunnelLeadState> update,
+        CancellationToken ct)
+    {
         FunnelLeadState? updated = null;
 
         await InTransaction(async session =>

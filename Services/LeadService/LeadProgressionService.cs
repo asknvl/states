@@ -863,13 +863,16 @@ public class LeadProgressionService : ILeadProgressionService
 
     public async Task MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct)
     {
-        var updated = await leadStateRepository.MarkBlockedByChatId(chatId, ct);
-        if (updated is null)
-            return;
+        var blocked = await leadStateRepository.MarkBlockedByChatId(chatId, ct);
 
-        await CancelPendingTasks(updated.Id, ct);
+        foreach (var leadState in blocked)
+        {
+            await CancelPendingTasks(leadState.Id, ct);
 
-        logger.LogInformation("Lead state chatId={ChatId} blocked, preBlockStatus={PreBlockStatus}", chatId, updated.PreBlockStatus);
+            logger.LogInformation(
+                "Lead state {LeadStateId} (chatId={ChatId}) blocked, preBlockStatus={PreBlockStatus}",
+                leadState.Id, chatId, leadState.PreBlockStatus);
+        }
     }
 
     public async Task UpdateLeadStateByChatId(
@@ -996,11 +999,15 @@ public class LeadProgressionService : ILeadProgressionService
         if (leadState is null)
         {
             // Не Waiting — возможно лид был заблокирован, а это сообщение значит, что он разблокировал бота.
-            // UnblockByChatId сам не делает ничего, если лид не Blocked — лишней записи в общем случае нет.
+            // UnblockByChatId сам не делает ничего, если Blocked-лидов нет — лишней записи в общем случае нет.
             var unblocked = await leadStateRepository.UnblockByChatId(tenantId, botId, chatId, ct);
-            if (unblocked is null) return;
+            if (unblocked.Count == 0) return;
 
-            await RearmCurrentNodeActions(unblocked, ct);
+            // Таски пересоздаются только активным на ноде (Nothing/Waiting): Manual ждёт
+            // оператора, а рарм Finished заново слал бы пресеты завершённой воронки.
+            foreach (var lead in unblocked)
+                if (lead.Status is LeadFunnelStatus.Nothing or LeadFunnelStatus.Waiting)
+                    await RearmCurrentNodeActions(lead, ct);
 
             leadState = await leadStateRepository.ClaimWaitingLeadByChatId(tenantId, botId, chatId, ct);
             if (leadState is null) return;
