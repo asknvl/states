@@ -77,21 +77,23 @@ public class GlobalEventProcessor(
                 "Bot subscription deactivated for chat {ChatId}, bot {BotId} — marking lead as blocked",
                 p.ChatId, p.BotId);
 
-            var existingLeadState = await leadStateRepository.GetLeadStateByChatId(p.TenantId, p.ChatId, ct);
-            if (existingLeadState is not null)
+            var blocked = await leadProgressionService.MarkLeadBlocked(p.TenantId, p.ChatId, ct);
+
+            // tgengine шлёт деактивацию на каждый отказ отправки — лид-событие пишем
+            // только по реально заблокированным, повторные события дублей не плодят.
+            foreach (var leadState in blocked)
             {
                 await leadEventsRepository.Create(new BotDeactivationEventDocument
                 {
                     Id = Guid.CreateVersion7(),
                     TenantId = p.TenantId,
                     SpaceId = p.SpaceId,
-                    LeadId = existingLeadState.LeadId,
+                    LeadId = leadState.LeadId,
                     CreatedAt = DateTime.UtcNow,
                     BotId = p.BotId
                 }, ct);
             }
 
-            await leadProgressionService.MarkLeadBlocked(p.TenantId, p.ChatId, ct);
             return;
         }
 

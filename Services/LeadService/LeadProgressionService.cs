@@ -861,7 +861,7 @@ public class LeadProgressionService : ILeadProgressionService
         logger.LogInformation("Lead state chatId={LeadStateId} status manually set to {Status}", chatId, status);
     }
 
-    public async Task MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct)
+    public async Task<List<FunnelLeadState>> MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct)
     {
         var blocked = await leadStateRepository.MarkBlockedByChatId(chatId, ct);
 
@@ -873,6 +873,8 @@ public class LeadProgressionService : ILeadProgressionService
                 "Lead state {LeadStateId} (chatId={ChatId}) blocked, preBlockStatus={PreBlockStatus}",
                 leadState.Id, chatId, leadState.PreBlockStatus);
         }
+
+        return blocked;
     }
 
     public async Task UpdateLeadStateByChatId(

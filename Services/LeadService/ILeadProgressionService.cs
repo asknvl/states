@@ -1,4 +1,5 @@
 using states.Dtos.Leads;
+using states.Mongo.Documents;
 
 namespace states.Services.LeadService;
 
@@ -11,7 +12,9 @@ public interface ILeadProgressionService
     Task HandleIncomingSignal(Guid tenantId, Guid botId, Guid chatId, CancellationToken ct);
     Task SetLeadFunnelPosition(Guid tenantId, string leadId, Guid funnelId, Guid flowId, Guid nodeId, CancellationToken ct);
     Task SetLeadStatus(Guid tenantId, Guid chatId, LeadFunnelStatus status, CancellationToken ct);
-    Task MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct);
+    // Возвращает реально заблокированные lead states — по ним пишутся лид-события
+    // деактивации; повторный вызов по уже заблокированному чату вернёт пустой список.
+    Task<List<FunnelLeadState>> MarkLeadBlocked(Guid tenantId, Guid chatId, CancellationToken ct);
     Task ExecuteTransitionByEdge(Guid leadStateId, Guid edgeId, CancellationToken ct);
     Task UpdateLeadStateByChatId(Guid tenantId, Guid spaceId, Guid botId, Guid chatId, SetLeadStateRequest dto, CancellationToken ct);
 
