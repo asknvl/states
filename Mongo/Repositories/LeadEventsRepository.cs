@@ -68,6 +68,16 @@ namespace states.Mongo.Repositories
             await collection.InsertOneAsync(document, cancellationToken: ct);
         }
 
+        public async Task<long> DeleteByLead(Guid tenantId, string leadId, CancellationToken ct = default)
+        {
+            var filter = Builders<LeadEventBaseDocument>.Filter.And(
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.TenantId, tenantId),
+                Builders<LeadEventBaseDocument>.Filter.Eq(x => x.LeadId, leadId));
+
+            var result = await collection.DeleteManyAsync(filter, ct);
+            return result.DeletedCount;
+        }
+
         public async Task<IReadOnlyList<LeadEventBaseDocument>> CreateMany(
             IReadOnlyList<LeadEventBaseDocument> documents,
             CancellationToken ct = default)

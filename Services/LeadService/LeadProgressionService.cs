@@ -19,6 +19,7 @@ public class LeadProgressionService : ILeadProgressionService
     private readonly ILeadStateRepository leadStateRepository;
     private readonly IActionTaskRepository actionTaskRepository;
     private readonly IPushTaskRepository pushTaskRepository;
+    private readonly ILeadEventsRepository leadEventsRepository;
     private readonly IFunnelRuntimeCache funnelCache;
     private readonly IEdgeRouter edgeRouter;
     private readonly ILogger<LeadProgressionService> logger;
@@ -27,6 +28,7 @@ public class LeadProgressionService : ILeadProgressionService
         ILeadStateRepository leadStateRepository,
         IActionTaskRepository actionTaskRepository,
         IPushTaskRepository pushTaskRepository,
+        ILeadEventsRepository leadEventsRepository,
         IFunnelRuntimeCache funnelCache,
         IEdgeRouter edgeRouter,
         ILogger<LeadProgressionService> logger)
@@ -34,6 +36,7 @@ public class LeadProgressionService : ILeadProgressionService
         this.leadStateRepository = leadStateRepository;
         this.actionTaskRepository = actionTaskRepository;
         this.pushTaskRepository = pushTaskRepository;
+        this.leadEventsRepository = leadEventsRepository;
         this.funnelCache = funnelCache;
         this.edgeRouter = edgeRouter;
         this.logger = logger;
@@ -1182,6 +1185,29 @@ public class LeadProgressionService : ILeadProgressionService
         await leadStateRepository.Delete(leadState.Id, CancellationToken.None);
 
         logger.LogInformation("Lead state {LeadStateId} cleared for chat {ChatId}", leadState.Id, chatId);
+
+        // События лида удаляем только вместе с его ПОСЛЕДНИМ состоянием: при мультибот-кампании
+        // lead_events общие для всех состояний лида (депозитные агрегаты считаются по
+        // (tenantId, leadId) — см. RecalculateDeposits), и пока лид жив в другом боте, его
+        // историю трогать нельзя. У лидов до внедрения поля leadId может быть пустым — таких
+        // пропускаем, чтобы фильтром по пустому leadId не задеть чужие события.
+        if (string.IsNullOrEmpty(leadState.LeadId))
+            return;
+
+        var remaining = await leadStateRepository.GetLeadStatesByLeadId(tenantId, leadState.LeadId, CancellationToken.None);
+        if (remaining.Count > 0)
+        {
+            logger.LogInformation(
+                "Lead '{LeadId}' still has {Count} lead state(s), keeping its events",
+                leadState.LeadId, remaining.Count);
+            return;
+        }
+
+        var deletedEvents = await leadEventsRepository.DeleteByLead(tenantId, leadState.LeadId, CancellationToken.None);
+        if (deletedEvents > 0)
+            logger.LogInformation(
+                "Deleted {Count} event(s) of lead '{LeadId}' along with its last lead state",
+                deletedEvents, leadState.LeadId);
     }
     #endregion
 
