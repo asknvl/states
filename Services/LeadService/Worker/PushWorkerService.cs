@@ -118,13 +118,14 @@ public sealed class PushWorkerService : BackgroundService
         {
             // shutting down
         }
-        // Лид заблокировал бота — ожидаемый конец диалога, а не сбой: писать ему некуда,
-        // чинить нечего. Статус Blocked приедет событием деактивации бота из tgengine.
-        catch (TelegramActionException ex) when (ex.Code == TelegramActionException.UserIsBlockedCode)
+        // Лид недостижим (заблокировал бота или удалил аккаунт) — ожидаемый конец диалога,
+        // а не сбой: писать ему некуда, чинить нечего. Статус Blocked приедет событием
+        // деактивации бота из tgengine.
+        catch (TelegramActionException ex) when (ex.IsUserUnreachable)
         {
             logger.LogWarning(ex,
-                "Push task {TaskId} stopped: lead {LeadStateId} has blocked the bot",
-                task.Id, task.LeadStateId);
+                "Push task {TaskId} stopped: lead {LeadStateId} is unreachable ({Code})",
+                task.Id, task.LeadStateId, ex.Code);
 
             await taskRepository.Fail(task.Id, ct);
         }

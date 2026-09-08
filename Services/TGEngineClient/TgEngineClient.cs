@@ -209,9 +209,10 @@ public class TGEngineClient : ITGEngineClient
             var (rawCode, detail) = await ReadProblemDetails(response, "telegramErrorCode", ct);
             var code = rawCode ?? UnknownTelegramErrorCode;
 
-            // Блокировка бота лидом — ожидаемый конец диалога, а не сбой: чинить нечего
+            // Недостижимый лид (блокировка, удалённый аккаунт) — ожидаемый конец диалога,
+            // а не сбой: чинить нечего
             logger.Log(
-                code == TelegramActionException.UserIsBlockedCode ? LogLevel.Warning : LogLevel.Error,
+                TelegramActionException.IsUserUnreachableCode(code) ? LogLevel.Warning : LogLevel.Error,
                 "TgEngineClient {Path} rejected by Telegram: Code={Code}, Detail={Detail}, chatId={ChatId}",
                 path, code, detail, chatId);
 

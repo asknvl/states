@@ -143,14 +143,15 @@ public sealed class ActionWorkerService : BackgroundService
 
             await taskRepository.Reschedule(task.Id, DateTime.UtcNow + delay, ct);
         }
-        // Лид заблокировал бота. В Manual не уводим: писать ему некуда, оператор бесполезен,
-        // а статус Blocked приедет событием деактивации бота из tgengine — Manual с ним только
-        // конфликтовал бы, затирая или затираясь в зависимости от того, что запишется последним.
-        catch (TelegramActionException ex) when (ex.Code == TelegramActionException.UserIsBlockedCode)
+        // Лид недостижим (заблокировал бота или удалил аккаунт). В Manual не уводим: писать
+        // ему некуда, оператор бесполезен, а статус Blocked приедет событием деактивации бота
+        // из tgengine — Manual с ним только конфликтовал бы, затирая или затираясь
+        // в зависимости от того, что запишется последним.
+        catch (TelegramActionException ex) when (ex.IsUserUnreachable)
         {
             logger.LogWarning(ex,
-                "Action task {TaskId} stopped: lead {LeadStateId} has blocked the bot",
-                task.Id, task.LeadStateId);
+                "Action task {TaskId} stopped: lead {LeadStateId} is unreachable ({Code})",
+                task.Id, task.LeadStateId, ex.Code);
 
             await taskRepository.Fail(task.Id, ct);
             await leadStateRepository.UpdateActionStatus(
