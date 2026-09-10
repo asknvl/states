@@ -15,10 +15,9 @@ namespace states.Mongo.Repositories
         Task UpdateFlow(Guid funnelId, FlowDocument flow, CancellationToken ct);
         Task RemoveFlow(Guid funnelId, Guid flowId, CancellationToken ct);
 
-        Task<IReadOnlyCollection<TagDocument>> GetTags(Guid funnelId, CancellationToken ct);
-        Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
+        Task<IReadOnlyList<TagDocument>> AddTag(Guid funnelId, Guid tagId, CancellationToken ct);
         Task<IReadOnlyList<TagDocument>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct);
-        Task<IReadOnlyList<TagDocument>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct);
+        Task<IReadOnlyList<Guid>> GetFunnelIdsByTag(Guid tenantId, Guid tagId, CancellationToken ct);
 
         Task<IReadOnlyCollection<VariableDocument>> GetVariables(Guid funnelId, CancellationToken ct);
         Task<IReadOnlyList<VariableDocument>> AddVariable(Guid funnelId, VariableDocument variable, CancellationToken ct);

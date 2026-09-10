@@ -625,26 +625,39 @@ public class LeadStateRepository : ILeadStateRepository
             Name = replacementTag.Name
         } : null;
 
-        UpdateDefinition<FunnelLeadState> update = operation switch
+        // Имена в снапшотах лида могли устареть после переименования тега, поэтому существующие
+        // элементы ищем только по id, а не сравнением всего документа {id, name}: сначала пулл
+        // всех элементов с задетыми id, затем (для Add/Replace) пуш тега с актуальным именем.
+        // Двумя шагами ещё и потому, что $pull и $push по одному пути в одном update Mongo отклоняет.
+        Guid[] pullTagIds = operation switch
         {
-            TagOperation.Add =>
-                Builders<FunnelLeadState>.Update.AddToSet(x => x.Tags, tagDocument),
-
-            TagOperation.Remove =>
-                Builders<FunnelLeadState>.Update.Pull(x => x.Tags, tagDocument),
-
-            TagOperation.Replace when replacementTag is not null =>
-                Builders<FunnelLeadState>.Update
-                    .Pull(x => x.Tags, tagDocument)
-                    .AddToSet(x => x.Tags, replacementTagDocument),
-
+            TagOperation.Add => [tag.Id],
+            TagOperation.Remove => [tag.Id],
+            TagOperation.Replace when replacementTagDocument is not null => [tag.Id, replacementTagDocument.Id],
             _ => throw new InvalidOperationException($"Unsupported tag operation: {operation}")
         };
 
-        update = Builders<FunnelLeadState>.Update.Combine(update, Builders<FunnelLeadState>.Update.Inc(x => x.Version, 1));
+        var pullUpdate = Builders<FunnelLeadState>.Update.PullFilter(x => x.Tags,
+            Builders<TagDocument>.Filter.In(t => t.Id, pullTagIds));
+
+        UpdateDefinition<FunnelLeadState>? pushUpdate = operation switch
+        {
+            TagOperation.Add => Builders<FunnelLeadState>.Update.Push(x => x.Tags, tagDocument),
+            TagOperation.Replace => Builders<FunnelLeadState>.Update.Push(x => x.Tags, replacementTagDocument!),
+            _ => null
+        };
+
+        var update = Builders<FunnelLeadState>.Update.Inc(x => x.Version, 1);
+        if (pushUpdate is not null)
+            update = Builders<FunnelLeadState>.Update.Combine(pushUpdate, update);
 
         await InTransaction(async session =>
         {
+            var pullResult = await collection.UpdateOneAsync(session, filter, pullUpdate, cancellationToken: ct);
+
+            if (pullResult.MatchedCount == 0)
+                throw new KeyNotFoundException($"Lead state '{leadStateId}' not found.");
+
             var updated = await collection.FindOneAndUpdateAsync(
                 session, filter, update,
                 new FindOneAndUpdateOptions<FunnelLeadState> { ReturnDocument = ReturnDocument.After },

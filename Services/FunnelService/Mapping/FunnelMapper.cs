@@ -26,7 +26,9 @@ public static class FunnelDocumentMapper
         };
     }
 
-    public static FunnelDto ToFunnelDto(this FunnelDocument document)
+    // Теги приходят параметром: имена резолвятся из tenant_tags (FunnelTagResolver),
+    // рудиментарные имена из документа воронки не используются.
+    public static FunnelDto ToFunnelDto(this FunnelDocument document, IReadOnlyList<Tag> tags)
     {
         return new FunnelDto(
             Id: document.Id,
@@ -34,7 +36,7 @@ public static class FunnelDocumentMapper
             SpaceId: document.SpaceId,
             Name: document.Name,
             Description: document.Description,
-            Tags: document.Tags.Select(t => new Tag(t.Id, t.Name)).ToList(),
+            Tags: tags.ToList(),
             Variables: document.Variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList(),
             Flows: document.Flows.Select(f => new FlowShortDto(f.Id, f.Name)).ToList(),
             IsActive: document.IsActive,
@@ -54,7 +56,7 @@ public static class FunnelDocumentMapper
         );
     }
 
-    public static Funnel ToDto(this FunnelDocument document)
+    public static Funnel ToDto(this FunnelDocument document, IReadOnlyList<Tag> tags)
     {
         return new Funnel(
             Id: document.Id,
@@ -62,7 +64,7 @@ public static class FunnelDocumentMapper
             SpaceId: document.SpaceId,
             Name: document.Name,
             Description: document.Description,
-            Tags: document.Tags.Select(ToDto).ToList(),
+            Tags: tags.ToList(),
             Variables: document.Variables.Select(v => new FunnelVariable(v.Id, v.Macros, v.Value)).ToList(),
             Flows: document.Flows.Select(ToDto).ToList(),
             PresetsFolderId: document.PresetsFolderId,
@@ -101,7 +103,7 @@ public static class FunnelDocumentMapper
 
         return new Tag(
             Id: document.Id,
-            Name: document.Name
+            Name: document.Name ?? string.Empty
         );
     }
     #endregion

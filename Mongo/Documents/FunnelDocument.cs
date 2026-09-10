@@ -98,13 +98,19 @@ namespace states.Mongo.Documents
         public List<EdgeDocument> Edges { get; set; } = [];
     }
 
+    // Внимание: свойство Id сериализуется как "_id" — драйвер назначает его id-членом класса
+    // и игнорирует BsonElement("id"); так лежат и прод-данные.
+    // Имя тега: истина — tenant_tags. В tags воронки новые элементы пишутся без имени
+    // (только id), у старых элементов name остался рудиментом и нигде не читается.
+    // В снапшотах лидов (FunnelLeadState.Tags) имя заполняется всегда.
     public class TagDocument
     {
         [BsonElement("id")]
         public Guid Id { get; set; }
 
         [BsonElement("name")]
-        public string Name { get; set; } = default!;
+        [BsonIgnoreIfNull]
+        public string? Name { get; set; }
     }
 
     public class VariableDocument

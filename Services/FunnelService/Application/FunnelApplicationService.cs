@@ -12,6 +12,7 @@ namespace states.Services.FunnelService.Application
         private readonly IFunnelRuntimeSupervisor runtimeSupervisor;
         private readonly IFoldersRepository foldersRepository;
         private readonly ITenantTagsRepository tenantTagsRepository;
+        private readonly FunnelTagResolver tagResolver;
         private readonly IConfiguration configuration;
 
         public FunnelApplicationService(
@@ -19,12 +20,14 @@ namespace states.Services.FunnelService.Application
             IFunnelRuntimeSupervisor runtimeSupervisor,
             IFoldersRepository foldersRepository,
             ITenantTagsRepository tenantTagsRepository,
+            FunnelTagResolver tagResolver,
             IConfiguration configuration)
         {
             this.funnelsRepository = repository;
             this.runtimeSupervisor = runtimeSupervisor;
             this.foldersRepository = foldersRepository;
             this.tenantTagsRepository = tenantTagsRepository;
+            this.tagResolver = tagResolver;
             this.configuration = configuration;
         }
 
@@ -49,8 +52,8 @@ namespace states.Services.FunnelService.Application
             funnel.PresetsFolderId = folder.Id;            
 
             await funnelsRepository.Create(funnel, ct);
-            runtimeSupervisor.NotifyCreated(funnel.ToDto());
-            return funnel.ToFunnelDto();
+            runtimeSupervisor.NotifyCreated(funnel.ToDto([]));
+            return funnel.ToFunnelDto([]);
         }
 
         public async Task<FunnelDto> Update(Guid funnelId, FunnelUpdateDto dto, CancellationToken ct)
@@ -58,19 +61,24 @@ namespace states.Services.FunnelService.Application
             await funnelsRepository.UpdateMetadata(funnelId, dto.Name, dto.Description, ct);
             await RefreshCache(funnelId);
             var document = await funnelsRepository.Get(funnelId);
-            return document.ToFunnelDto();
+            return document.ToFunnelDto(await tagResolver.Resolve(document));
         }
 
         public async Task<Funnel> Get(Guid funnelId, CancellationToken ct)
         {
             var document = await funnelsRepository.Get(funnelId);
-            return document.ToDto();
+            return document.ToDto(await tagResolver.Resolve(document));
         }
 
         public async Task<IReadOnlyCollection<FunnelDto>> Get(Guid tenantId, Guid? spaceId, Guid? botId, CancellationToken ct)
         {
             var documents = await funnelsRepository.GetFunnels(tenantId, spaceId, botId, ct);
-            return documents.Select(x => x.ToFunnelDto()).ToList();
+
+            var result = new List<FunnelDto>(documents.Count);
+            foreach (var document in documents)
+                result.Add(document.ToFunnelDto(await tagResolver.Resolve(document)));
+
+            return result;
         }
 
         public async Task<IReadOnlyCollection<FunnelShortDto>> GetShort(Guid tenantId, Guid? spaceId, CancellationToken ct)
@@ -133,13 +141,22 @@ namespace states.Services.FunnelService.Application
         #region tags
         public async Task<IReadOnlyCollection<Tag>> GetTagsByFunnel(Guid funnelId, CancellationToken ct)
         {
-            var tags = await funnelsRepository.GetTags(funnelId, ct);
-            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
+            var document = await funnelsRepository.Get(funnelId);
+            return await tagResolver.Resolve(document);
         }
 
         public async Task<IReadOnlyCollection<Tag>> GetTagsByTenant(Guid tenantId, Guid spaceId, CancellationToken ct)
         {
-            var tenantTags = await tenantTagsRepository.GetTenantTags(tenantId, spaceId);
+            // Используемость выводится из воронок (истина членства), а не из usages:
+            // usages текут при удалении воронок. Для будущей фильтрации по спейсу
+            // достаточно передать spaceId в GetFunnels.
+            var funnels = await funnelsRepository.GetFunnels(tenantId, null, null, ct);
+            var usedTagIds = funnels
+                .SelectMany(f => f.Tags.Select(t => t.Id))
+                .Distinct()
+                .ToList();
+
+            var tenantTags = await tenantTagsRepository.GetByIds(tenantId, usedTagIds);
             return tenantTags
                 .Select(t => new Tag(t.TagId, t.TagName))
                 .ToList();
@@ -149,33 +166,51 @@ namespace states.Services.FunnelService.Application
         {
             var funnel = await funnelsRepository.Get(funnelId);
 
-            var (tagId, tagName) = await tenantTagsRepository.CreateIfNeed(
+            var (tagId, _) = await tenantTagsRepository.CreateIfNeed(
                 funnel.TenantId,
                 funnel.SpaceId,
                 funnelId,
-                name);
+                name.Trim());
 
-
-            var tags = await funnelsRepository.AddTag(funnelId, tagId, tagName, ct);
+            var tags = await funnelsRepository.AddTag(funnelId, tagId, ct);
             await RefreshCache(funnelId);
 
-            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
+            return await tagResolver.Resolve(funnel.TenantId, tags);
         }
 
         public async Task<IReadOnlyList<Tag>> RemoveTag(Guid funnelId, Guid tagId, CancellationToken ct)
         {
+            var funnel = await funnelsRepository.Get(funnelId);
             var tags = await funnelsRepository.RemoveTag(funnelId, tagId, ct);
             await tenantTagsRepository.DecreaseTenantTagUsage(tagId, funnelId);
             await RefreshCache(funnelId);
-            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
+            return await tagResolver.Resolve(funnel.TenantId, tags);
         }
 
         public async Task<IReadOnlyList<Tag>> UpdateTag(Guid funnelId, Guid tagId, string name, CancellationToken ct)
         {
-            var tags = await funnelsRepository.UpdateTag(funnelId, tagId, name, ct);
-            await tenantTagsRepository.UpdateTenantTagName(tagId, name);
-            await RefreshCache(funnelId);
-            return tags.Select(t => new Tag(t.Id, t.Name)).ToList();
+            var funnel = await funnelsRepository.Get(funnelId);
+            if (funnel.Tags.All(t => t.Id != tagId))
+                throw new KeyNotFoundException($"Tag with id '{tagId}' was not found in funnel '{funnelId}'.");
+
+            await tenantTagsRepository.UpdateTenantTagName(funnel.TenantId, tagId, name.Trim());
+
+            // Тег общий, а в кэше имена материализованы — пересобираем кэш каждой воронки,
+            // где тег используется, иначе воркер продолжит писать лидам старое имя.
+            var affectedFunnelIds = await funnelsRepository.GetFunnelIdsByTag(funnel.TenantId, tagId, ct);
+            foreach (var affectedFunnelId in affectedFunnelIds)
+            {
+                try
+                {
+                    await RefreshCache(affectedFunnelId);
+                }
+                catch (KeyNotFoundException)
+                {
+                    // воронку могли удалить между выборкой и рефрешем
+                }
+            }
+
+            return await tagResolver.Resolve(funnel);
         }
         #endregion
 
@@ -256,7 +291,7 @@ namespace states.Services.FunnelService.Application
         private async Task RefreshCache(Guid funnelId)
         {
             var document = await funnelsRepository.Get(funnelId);
-            runtimeSupervisor.NotifyUpdated(document.ToDto());
+            runtimeSupervisor.NotifyUpdated(document.ToDto(await tagResolver.Resolve(document)));
         }
     }
 }

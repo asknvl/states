@@ -9,15 +9,18 @@ namespace states.Services.FunnelService.Runtime
     {
         private readonly FunnelCache cache;
         private readonly IFunnelsRepository repository;
+        private readonly FunnelTagResolver tagResolver;
         private readonly ILogger<FunnelRuntimeService> logger;
 
         public FunnelRuntimeService(
             FunnelCache cache,
             IFunnelsRepository repository,
+            FunnelTagResolver tagResolver,
             ILogger<FunnelRuntimeService> logger)
         {
             this.cache = cache;
             this.repository = repository;
+            this.tagResolver = tagResolver;
             this.logger = logger;
         }
 
@@ -27,7 +30,7 @@ namespace states.Services.FunnelService.Runtime
 
             foreach (var document in documents)
             {
-                cache.Set(document.ToDto());
+                cache.Set(document.ToDto(await tagResolver.Resolve(document)));
             }
 
             logger.LogInformation("FunnelRuntimeService started, loaded {Count} active funnels", documents.Count);
@@ -61,7 +64,7 @@ namespace states.Services.FunnelService.Runtime
         public async void NotifyActivated(Guid funnelId)
         {
             var document = await repository.Get(funnelId);
-            cache.Set(document.ToDto());
+            cache.Set(document.ToDto(await tagResolver.Resolve(document)));
         }
 
         public void NotifyDeactivated(Guid funnelId)

@@ -157,6 +157,7 @@ namespace states
             builder.Services.AddMemoryCache();
             builder.Services.AddSingleton<FunnelCache>();
             builder.Services.AddSingleton<IFunnelRuntimeCache>(sp => sp.GetRequiredService<FunnelCache>());
+            builder.Services.AddSingleton<FunnelTagResolver>();
 
             builder.Services.AddSingleton<FunnelRuntimeService>();
             builder.Services.AddSingleton<IFunnelRuntimeSupervisor>(sp => sp.GetRequiredService<FunnelRuntimeService>());

@@ -44,24 +44,43 @@ namespace states.Mongo.Repositories
             return (doc.TagId, doc.TagName);
         }
 
-        public async Task<IReadOnlyCollection<TenantTag>> GetTenantTags(Guid tenantId, Guid spaceId)
+        public async Task<IReadOnlyCollection<TenantTag>> GetByIds(Guid tenantId, IReadOnlyCollection<Guid> tagIds)
         {
+            if (tagIds.Count == 0)
+                return [];
+
             var filter = Builders<TenantTag>.Filter.And(
                 Builders<TenantTag>.Filter.Eq(x => x.TenantId, tenantId),
-                // исключает теги без активных usages: null, отсутствующее поле и [] дают "usages.0" не существующим
-                Builders<TenantTag>.Filter.Exists("usages.0")
-                //Builders<TenantTag>.Filter.ElemMatch(x => x.Usages,
-                //    Builders<Usage>.Filter.Eq(u => u.SpaceId, spaceId))
+                Builders<TenantTag>.Filter.In(x => x.TagId, tagIds)
             );
 
             return await collection.Find(filter).ToListAsync();
         }
 
-        public async Task UpdateTenantTagName(Guid tagId, string name)
+        public async Task UpdateTenantTagName(Guid tenantId, Guid tagId, string name)
         {
-            var filter = Builders<TenantTag>.Filter.Eq(x => x.TagId, tagId);
-            var update = Builders<TenantTag>.Update.Set(x => x.TagName, name);
-            await collection.UpdateOneAsync(filter, update);
+            // Имя тега уникально в рамках тенанта: CreateIfNeed дедуплицирует по имени,
+            // и переименование в занятое имя создало бы два тега с одним именем.
+            // Гонку check-then-set закроет уникальный индекс (tenantId, tagName) после чистки дублей.
+            var duplicateFilter = Builders<TenantTag>.Filter.And(
+                Builders<TenantTag>.Filter.Eq(x => x.TenantId, tenantId),
+                Builders<TenantTag>.Filter.Eq(x => x.TagName, name),
+                Builders<TenantTag>.Filter.Ne(x => x.TagId, tagId)
+            );
+
+            if (await collection.Find(duplicateFilter).AnyAsync())
+                throw new InvalidOperationException($"Tag with name '{name}' already exists for tenant '{tenantId}'.");
+
+            var filter = Builders<TenantTag>.Filter.And(
+                Builders<TenantTag>.Filter.Eq(x => x.TenantId, tenantId),
+                Builders<TenantTag>.Filter.Eq(x => x.TagId, tagId)
+            );
+
+            var result = await collection.UpdateOneAsync(filter,
+                Builders<TenantTag>.Update.Set(x => x.TagName, name));
+
+            if (result.MatchedCount == 0)
+                throw new KeyNotFoundException($"Tag with id '{tagId}' was not found for tenant '{tenantId}'.");
         }
 
         public async Task DecreaseTenantTagUsage(Guid tagId, Guid funnelId)
